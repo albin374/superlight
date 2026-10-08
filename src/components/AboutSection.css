@@ -1,0 +1,135 @@
+.about-section {
+  display: flex;
+  background-color: #f4f6f9;
+  font-family: 'Inter', sans-serif;
+  min-height: 460px;
+}
+
+.about-content-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: 50px 60px 50px 24px;
+}
+
+.about-text-content {
+  max-width: 600px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.about-subtitle {
+  color: #e6005c;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+}
+
+.about-title {
+  color: #1b253c;
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+
+.about-description {
+  color: #4a5568;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+.about-btn {
+  background-color: #e6005c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+  margin-bottom: 48px;
+  align-self: flex-start;
+}
+
+.about-btn:hover {
+  background-color: #c90050;
+}
+
+.about-features {
+  display: flex;
+  gap: 48px;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-icon-wrapper {
+  color: #e6005c;
+}
+
+.feature-icon {
+  stroke-width: 2;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feature-title {
+  color: #1b253c;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.feature-desc {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.about-image-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.about-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Responsive constraints */
+@media (max-width: 1024px) {
+  .about-section {
+    flex-direction: column;
+  }
+  
+  .about-content-wrapper {
+    justify-content: flex-start;
+    padding: 60px 24px;
+  }
+  
+  .about-image-wrapper {
+    min-height: 400px;
+  }
+}
