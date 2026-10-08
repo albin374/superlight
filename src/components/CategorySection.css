@@ -113,3 +113,49 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .category-section {
+    padding: 40px 0;
+  }
+
+  .category-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .category-header .view-all {
+    display: none; /* Hide View All Categories link on mobile */
+  }
+
+  .category-header .title {
+    font-size: 28px;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .card-image-wrapper {
+    height: 140px;
+    padding: 16px;
+  }
+  
+  .card-content {
+    padding: 12px 8px;
+  }
+  
+  .category-name {
+    font-size: 11px;
+  }
+}

@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import './HeroSection.css';
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const slides = [
-    { id: 1, image: '/home page banner 1.png' },
-    { id: 2, image: '/home page banner 2.png' }
+    { 
+      id: 1, 
+      desktopImage: '/home page banner 1.png',
+      mobileImage: '/Sunlit Modern Dining Kitchen.png'
+    },
+    { 
+      id: 2, 
+      desktopImage: '/home page banner 2.png',
+      mobileImage: '/Sunlit Luxury Kitchen with Skyline Views.png'
+    }
   ];
 
   const nextSlide = () => {
@@ -27,6 +44,35 @@ const HeroSection = () => {
 
   return (
     <div className="superlight-hero-container">
+      
+      {/* Mobile Menu Overlay & Drawer */}
+      <div className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+      <div className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-menu-header">
+          <img src="/Superlight-Logo-01.svg" alt="Superlight" className="logo-image" style={{height: '35px'}} />
+          <button className="close-menu-btn" onClick={() => setIsMobileMenuOpen(false)}>
+            <X size={24} />
+          </button>
+        </div>
+        <div className="mobile-menu-content">
+          <div className="mobile-top-bar-items">
+            <div className="mobile-menu-item"><Phone size={16} /> +971 50 123 4567</div>
+            <div className="mobile-menu-item"><Mail size={16} /> sales@superlight.ae</div>
+            <div className="mobile-menu-item">Track Order</div>
+            <div className="mobile-menu-item">Help & Support</div>
+          </div>
+          <div className="mobile-nav-links">
+            <a href="#" style={{color: '#e6005c', display: 'flex', alignItems: 'center', gap: '8px'}}><Menu size={18} /> All Categories</a>
+            <a href="#">BELCABLE</a>
+            <a href="#">SHOP BY BRAND</a>
+            <a href="#">WE ARE OFFERING</a>
+            <a href="#">CONTACT US</a>
+            <a href="#">COMPANY OVERVIEW</a>
+            <a href="#">PARENT COMPANY</a>
+          </div>
+        </div>
+      </div>
+
       {/* Top Bar */}
       <div className="top-bar">
         <div className="container top-bar-content">
@@ -49,6 +95,10 @@ const HeroSection = () => {
       {/* Main Header */}
       <div className="main-header">
         <div className="container main-header-content">
+          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu size={24} />
+          </button>
+          
           {/* Logo */}
           <div className="logo">
             <img src="/Superlight-Logo-01.svg" alt="Superlight Logo" className="logo-image" />
@@ -112,7 +162,7 @@ const HeroSection = () => {
       {/* Hero Banner */}
       <div 
         className="hero-banner" 
-        style={{ backgroundImage: `url('${slides[currentSlide].image}')`, transition: 'background-image 0.5s ease-in-out' }}
+        style={{ backgroundImage: `url('${isMobile ? slides[currentSlide].mobileImage : slides[currentSlide].desktopImage}')`, transition: 'background-image 0.5s ease-in-out' }}
       >
         <div className="container hero-content-wrapper">
           <div className="hero-text-content">

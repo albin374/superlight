@@ -108,3 +108,46 @@
   max-height: 100%;
   object-fit: contain;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .brands-section {
+    padding: 40px 0;
+  }
+
+  .brands-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .brands-title {
+    font-size: 26px;
+  }
+
+  .brands-header .view-all {
+    display: none; /* Hide View All link on mobile */
+  }
+
+  .carousel-arrow {
+    display: none; /* Hide side arrows on mobile */
+  }
+
+  .brands-carousel-container {
+    gap: 0;
+  }
+
+  .brands-carousel {
+    gap: 24px;
+    margin-left: -24px;
+    margin-right: -24px;
+    padding-left: 24px;
+    padding-right: 24px;
+    width: calc(100% + 48px);
+  }
+
+  .brand-logo-wrapper {
+    height: 35px;
+    min-width: 80px;
+  }
+}
