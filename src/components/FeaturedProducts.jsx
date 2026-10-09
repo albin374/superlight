@@ -37,7 +37,7 @@ const products = [
 
 const categories = ['All', 'Lighting', 'Switches', 'Cables', 'Electrical Equipment >', 'Tools'];
 
-const FeaturedProducts = () => {
+const FeaturedProducts = ({ onProductClick }) => {
   return (
     <div className="featured-section">
       <div className="container">
@@ -65,8 +65,8 @@ const FeaturedProducts = () => {
 
         <div className="products-grid">
           {products.map(product => (
-            <div key={product.id} className="product-card">
-              <button className="heart-btn">
+            <div key={product.id} className="product-card" onClick={() => onProductClick(product)} style={{cursor: 'pointer'}}>
+              <button className="heart-btn" onClick={(e) => e.stopPropagation()}>
                 <Heart size={20} className="heart-icon" />
               </button>
               
@@ -77,7 +77,7 @@ const FeaturedProducts = () => {
               <div className="product-details">
                 <h3 className="product-name">{product.name}</h3>
                 <p className="product-price">{product.price}</p>
-                <button className="add-to-cart-btn">
+                <button className="add-to-cart-btn" onClick={(e) => e.stopPropagation()}>
                   <ShoppingCart size={16} />
                   Add to Cart
                 </button>

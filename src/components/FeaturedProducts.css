@@ -83,7 +83,7 @@
   background-color: #e2e4e8;
 }
 
-.products-grid {
+.featured-section .products-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 20px;
@@ -160,7 +160,7 @@
   margin: 0 0 20px 0;
 }
 
-.add-to-cart-btn {
+.featured-section .add-to-cart-btn {
   width: 100%;
   padding: 10px 0;
   background-color: white;
@@ -177,7 +177,7 @@
   transition: all 0.2s;
 }
 
-.add-to-cart-btn:hover {
+.featured-section .add-to-cart-btn:hover {
   background-color: #fff0f5;
 }
 
