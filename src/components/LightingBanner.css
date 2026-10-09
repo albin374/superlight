@@ -1,0 +1,138 @@
+.lighting-banner-section {
+  padding: 0 0 60px 0;
+  background-color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+.lighting-banner-section .container {
+  max-width: 1350px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.lighting-banner {
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  min-height: 380px;
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+}
+
+.lighting-banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Dark blue gradient on left fading to transparent on right */
+  background: linear-gradient(to right, #111827 0%, #111827 30%, rgba(17, 24, 39, 0.8) 50%, rgba(17, 24, 39, 0) 80%);
+  z-index: 1;
+}
+
+.lighting-banner-content {
+  position: relative;
+  z-index: 2;
+  padding: 60px;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.lighting-subtitle {
+  color: #f3f4f6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+}
+
+.lighting-title {
+  color: #ffffff;
+  font-size: 38px;
+  font-weight: 800;
+  margin: 0 0 16px 0;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.lighting-desc {
+  color: #e5e7eb;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+  max-width: 420px;
+}
+
+.lighting-btn {
+  background-color: #e6005c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  transition: background-color 0.2s;
+}
+
+.lighting-btn:hover {
+  background-color: #cc0052;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .lighting-banner-content {
+    padding: 48px;
+    max-width: 500px;
+  }
+  .lighting-title {
+    font-size: 32px;
+  }
+  .lighting-banner-overlay {
+    background: linear-gradient(to right, #111827 0%, #111827 40%, rgba(17, 24, 39, 0.9) 60%, rgba(17, 24, 39, 0) 90%);
+  }
+}
+
+@media (max-width: 768px) {
+  .lighting-banner {
+    min-height: 350px;
+  }
+  .lighting-banner-content {
+    padding: 40px 32px;
+  }
+  .lighting-title {
+    font-size: 28px;
+  }
+  .lighting-banner-overlay {
+    background: linear-gradient(to right, #111827 0%, #111827 50%, rgba(17, 24, 39, 0.8) 80%, rgba(17, 24, 39, 0.4) 100%);
+  }
+}
+
+@media (max-width: 480px) {
+  .lighting-banner {
+    min-height: 400px;
+    align-items: flex-end;
+  }
+  .lighting-banner-content {
+    padding: 32px 24px;
+  }
+  .lighting-banner-overlay {
+    background: linear-gradient(to top, #111827 0%, #111827 50%, rgba(17, 24, 39, 0.7) 75%, rgba(17, 24, 39, 0) 100%);
+  }
+  .lighting-title {
+    font-size: 24px;
+  }
+  .lighting-desc {
+    font-size: 14px;
+  }
+}

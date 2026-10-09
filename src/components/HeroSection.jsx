@@ -24,6 +24,11 @@ const HeroSection = () => {
       id: 2, 
       desktopImage: '/home page banner 2.png',
       mobileImage: '/Sunlit Luxury Kitchen with Skyline Views.png'
+    },
+    {
+      id: 3,
+      desktopImage: '/Warm Modern Open-Plan Interior.png',
+      mobileImage: '/Luxurious Warm-Toned Open-Plan Interior.png'
     }
   ];
 
