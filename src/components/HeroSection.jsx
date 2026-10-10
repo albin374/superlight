@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
 
-const HeroSection = ({ isHome = true, goHome, goToAboutUs }) => {
+const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -71,7 +71,7 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs }) => {
             <a href="#">BELCABLE</a>
             <a href="#">SHOP BY BRAND</a>
             <a href="#">WE ARE OFFERING</a>
-            <a href="#">CONTACT US</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
             <a href="#">COMPANY OVERVIEW</a>
             <a href="#">PARENT COMPANY</a>
           </div>
@@ -84,9 +84,9 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs }) => {
           <div className="top-bar-left">
             <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToAboutUs}>ABOUT US</span>
             <span className="divider">|</span>
-            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}}>CONTACT US</span>
+            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToContactUs}>CONTACT US</span>
             <span className="divider">|</span>
-            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}}>FAQS</span>
+            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToFaqs}>FAQS</span>
           </div>
           <div className="top-bar-right">
             <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
@@ -339,7 +339,7 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs }) => {
             </li>
             <li><a href="#">COMPANY OVERVIEW</a></li>
             <li><a href="#">PARENT COMPANY</a></li>
-            <li><a href="#">CONTACT US</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); }}>CONTACT US</a></li>
           </ul>
         </div>
       </div>

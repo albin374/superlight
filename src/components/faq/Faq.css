@@ -1,0 +1,154 @@
+.faq-page {
+  font-family: 'Inter', sans-serif;
+  background-color: #fff;
+  padding: 60px 0;
+  overflow: hidden;
+  min-height: 80vh;
+}
+
+.faq-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.faq-content {
+  flex: 1;
+}
+
+.faq-subtitle {
+  color: #e6005c;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.faq-title {
+  font-size: 48px;
+  font-weight: 800;
+  color: #1b253c;
+  margin-top: 0;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.faq-title .pink-text {
+  color: #e6005c;
+}
+
+.faq-desc {
+  font-size: 16px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 40px;
+  max-width: 500px;
+}
+
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faq-item-card {
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+}
+
+.faq-item-card:hover {
+  border-color: #e2e4e8;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.faq-item-card.active {
+  background-color: #fffafb;
+  border-color: #ffe6f0;
+  box-shadow: none;
+}
+
+.faq-question-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.faq-q-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #ffe6f0;
+  color: #e6005c;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+
+.faq-item-card.active .faq-q-icon {
+  background-color: #e6005c;
+  color: #fff;
+}
+
+.faq-q-text {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1b253c;
+  margin: 0;
+  line-height: 1.4;
+  transition: color 0.3s;
+}
+
+.faq-item-card.active .faq-q-text {
+  color: #e6005c;
+}
+
+.faq-toggle-icon {
+  color: #1b253c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+}
+
+.faq-item-card.active .faq-toggle-icon {
+  color: #e6005c;
+}
+
+.faq-answer-row {
+  padding-top: 16px;
+  padding-left: 48px;
+  padding-right: 32px;
+  animation: fadeInDown 0.3s ease forwards;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-answer-row p {
+  margin: 0;
+  font-size: 15px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+
