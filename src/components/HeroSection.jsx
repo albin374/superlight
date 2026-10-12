@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
 
-const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs, goToCompanyOverview, goToLightingSolutions, goToCableManagement, goToAdhesivesToolsHardware, goToElectricalAccessories, goToPlumbingMaterials }) => {
+const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs, goToCompanyOverview, goToLightingSolutions, goToCableManagement, goToAdhesivesToolsHardware, goToElectricalAccessories, goToPlumbingMaterials, goToHomeAutomation }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -318,7 +318,7 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
                   <a href="#electrical-accessories" onClick={(e) => { e.preventDefault(); goToElectricalAccessories && goToElectricalAccessories(); }}>Electrical Accessories</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Home Automation</a>
+                  <a href="#home-automation" onClick={(e) => { e.preventDefault(); goToHomeAutomation && goToHomeAutomation(); }}>Home Automation</a>
                 </div>
                 <div className="mega-menu-item">
                   <a href="#">Electrical Equipment</a>

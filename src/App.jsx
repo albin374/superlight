@@ -18,6 +18,7 @@ import CableManagement from './components/cablemanagement/CableManagement'
 import AdhesivesToolsHardware from './components/adhesivestoolshardware/AdhesivesToolsHardware'
 import ElectricalAccessories from './components/electricalaccessories/ElectricalAccessories'
 import PlumbingMaterials from './components/plumbingmaterials/PlumbingMaterials'
+import HomeAutomation from './components/homeautomation/HomeAutomation'
 import './App.css'
 
 function AppContent() {
@@ -74,6 +75,10 @@ function AppContent() {
     navigate('/plumbing-materials');
   };
 
+  const goToHomeAutomation = () => {
+    navigate('/home-automation');
+  };
+
   const isHome = location.pathname === '/';
 
   return (
@@ -90,6 +95,7 @@ function AppContent() {
         goToAdhesivesToolsHardware={goToAdhesivesToolsHardware}
         goToElectricalAccessories={goToElectricalAccessories}
         goToPlumbingMaterials={goToPlumbingMaterials}
+        goToHomeAutomation={goToHomeAutomation}
       />
       <Routes>
         <Route path="/" element={
@@ -141,6 +147,12 @@ function AppContent() {
         <Route path="/plumbing" element={
           <PlumbingMaterials onProductClick={goToDetails} />
         } />
+        <Route path="/home-automation" element={
+          <HomeAutomation onProductClick={goToDetails} />
+        } />
+        <Route path="/smart-home" element={
+          <HomeAutomation onProductClick={goToDetails} />
+        } />
         <Route path="/product-details" element={
           <ProductDetails goHome={goHome} product={selectedProduct} />
         } />
@@ -153,6 +165,7 @@ function AppContent() {
         goToAdhesivesToolsHardware={goToAdhesivesToolsHardware} 
         goToElectricalAccessories={goToElectricalAccessories} 
         goToPlumbingMaterials={goToPlumbingMaterials}
+        goToHomeAutomation={goToHomeAutomation}
       />
     </>
   )
