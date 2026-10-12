@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Superlight — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-logo-wrap">
+          <img src="/Superlight-Logo-01.svg" alt="Superlight" class="login-logo" onerror="this.src='/favicon.svg'" />
+        </div>
+        <h2>Admin Portal</h2>
+        <p>Sign in to manage inventory, categories, orders & database</p>
+      </div>
+
+      <div id="loginAlert" class="alert error" style="display: none;"></div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <input type="email" id="loginEmail" placeholder="admin@superlight.ae" required autocomplete="username" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+        </div>
+
+        <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block">
+          <span>Sign In to Dashboard</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </form>
+
+      <div class="quick-credentials-box">
+        <div class="cred-header">
+          <strong>Default Credentials:</strong>
+          <button type="button" id="quickFillBtn" class="btn-text">Quick Fill</button>
+        </div>
+        <div class="cred-details">
+          <span>Email: <code>admin@superlight.ae</code></span>
+          <span>Password: <code>Admin@123</code></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN ADMIN APP -->
+  <div id="adminApp" class="admin-layout" style="display: none;">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="/Superlight-Logo-01.svg" alt="Superlight" class="sidebar-logo" onerror="this.src='/favicon.svg'" />
+        <span class="badge-role">ADMIN</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-tab="products">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          <span>Products</span>
+        </button>
+
+        <button class="nav-item" data-tab="categories">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span>Categories</span>
+        </button>
+
+        <button class="nav-item" data-tab="orders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          <span>Orders</span>
+        </button>
+
+        <button class="nav-item" data-tab="inquiries">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Inquiries</span>
+          <span id="unreadBadge" class="sidebar-pill">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="database">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span>SQL Database</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="http://localhost:5173/" target="_blank" class="storefront-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          <span>View Public Store</span>
+        </a>
+        <button id="logoutBtn" class="logout-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Log Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-body">
+      <!-- TOP NAVBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="mobileMenuBtn" class="btn-icon mobile-only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <h1 id="pageTitle" class="page-title">Dashboard</h1>
+        </div>
+
+        <div class="topbar-right">
+          <div class="db-status-pill">
+            <span class="status-indicator"></span>
+            <span>SQLite Active</span>
+          </div>
+
+          <div class="admin-profile-pill">
+            <div class="avatar">SA</div>
+            <div class="profile-info">
+              <span id="adminName" class="profile-name">Superlight Admin</span>
+              <span id="adminEmail" class="profile-email">admin@superlight.ae</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW CONTAINER -->
+      <div class="content-scroll">
+        
+        <!-- TAB 1: DASHBOARD OVERVIEW -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <!-- Metrics Cards -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon pink">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2z"></path></svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Total Products</span>
+                <h3 id="statTotalProducts" class="metric-value">--</h3>
+                <span class="metric-subtext">Across all categories</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Total Orders</span>
+                <h3 id="statTotalOrders" class="metric-value">--</h3>
+                <span class="metric-subtext">Active & completed</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Gross Revenue</span>
+                <h3 id="statTotalRevenue" class="metric-value">--</h3>
+                <span class="metric-subtext">AED currency</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">New Inquiries</span>
+                <h3 id="statUnreadInquiries" class="metric-value">--</h3>
+                <span class="metric-subtext">Pending response</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Section: Recent Orders & Categories Distribution -->
+          <div class="dashboard-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Recent Orders</h3>
+                <button class="btn btn-sm btn-outline" onclick="switchTab('orders')">View All</button>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboardOrdersTable">
+                    <tr><td colspan="5" class="text-center">Loading orders...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Inventory By Category</h3>
+                <button class="btn btn-sm btn-outline" onclick="switchTab('categories')">Manage</button>
+              </div>
+              <div id="categoryBreakdownList" class="category-breakdown-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: PRODUCTS CATALOG -->
+        <section id="tab-products" class="tab-pane">
+          <div class="section-actions-bar">
+            <div class="filter-controls">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="productSearchInput" placeholder="Search products by title or brand..." />
+              </div>
+              <select id="productCategoryFilter" class="filter-select">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="openAddProductModalBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add New Product</span>
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Product Name</th>
+                    <th>Brand</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <tr><td colspan="7" class="text-center">Loading products...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: CATEGORIES -->
+        <section id="tab-categories" class="tab-pane">
+          <div class="section-actions-bar">
+            <p class="section-desc">Manage store taxonomy and departments</p>
+            <button class="btn btn-primary" id="openAddCategoryModalBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add Category</span>
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Category Name</th>
+                    <th>URL Slug</th>
+                    <th>Product Count</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesTableBody">
+                  <tr><td colspan="6" class="text-center">Loading categories...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: ORDERS -->
+        <section id="tab-orders" class="tab-pane">
+          <div class="section-actions-bar">
+            <p class="section-desc">Track and manage customer procurement orders</p>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer Name</th>
+                    <th>Contact</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Order Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                  <tr><td colspan="8" class="text-center">Loading orders...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: INQUIRIES -->
+        <section id="tab-inquiries" class="tab-pane">
+          <div class="section-actions-bar">
+            <p class="section-desc">Customer messages & commercial bulk quote inquiries</p>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Sender Name</th>
+                    <th>Email / Phone</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="inquiriesTableBody">
+                  <tr><td colspan="7" class="text-center">Loading inquiries...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 6: SQL DATABASE CONSOLE -->
+        <section id="tab-database" class="tab-pane">
+          <div class="sql-console-grid">
+            
+            <div class="card">
+              <div class="card-header">
+                <h3>Live Database Tables (SQLite)</h3>
+                <span class="badge-role">WAL Mode</span>
+              </div>
+              <div class="db-tables-list" id="dbTablesList">
+                <!-- Dynamically loaded table badges -->
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Run SQL Query (SELECT Only)</h3>
+              </div>
+              <div class="sql-runner">
+                <textarea id="sqlInput" rows="3" placeholder="SELECT * FROM products LIMIT 10;"></textarea>
+                <div class="sql-btn-bar">
+                  <div class="quick-sql-presets">
+                    <button class="btn btn-sm btn-ghost" onclick="runPresetSQL('SELECT * FROM products LIMIT 10')">Products</button>
+                    <button class="btn btn-sm btn-ghost" onclick="runPresetSQL('SELECT * FROM orders ORDER BY id DESC LIMIT 10')">Orders</button>
+                    <button class="btn btn-sm btn-ghost" onclick="runPresetSQL('SELECT * FROM admins')">Admins</button>
+                    <button class="btn btn-sm btn-ghost" onclick="runPresetSQL('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 15')">Logs</button>
+                  </div>
+                  <button id="runSqlBtn" class="btn btn-primary btn-sm">Execute SQL</button>
+                </div>
+              </div>
+              <div id="sqlResultsWrap" class="table-responsive" style="margin-top: 16px; max-height: 380px;">
+                <div class="text-muted text-center" style="padding: 24px;">Run a query above to see raw SQL database records.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PRODUCT -->
+  <div id="productModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="productModalTitle">Add New Product</h3>
+        <button class="close-modal-btn" onclick="closeProductModal()">&times;</button>
+      </div>
+      <form id="productForm">
+        <input type="hidden" id="prodFormId" />
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label>Product Name *</label>
+              <input type="text" id="prodFormName" required placeholder="e.g. Philips Downlight 15W" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Brand *</label>
+              <input type="text" id="prodFormBrand" required placeholder="e.g. PHILIPS" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Category *</label>
+              <select id="prodFormCategory" required></select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Price (AED) *</label>
+              <input type="number" step="0.01" id="prodFormPrice" required placeholder="35.00" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Old Price (AED)</label>
+              <input type="number" step="0.01" id="prodFormOldPrice" placeholder="45.00" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label>Image URL or Path</label>
+              <input type="text" id="prodFormImage" placeholder="/prod_downlight_1791451418016.png" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Stock Qty</label>
+              <input type="number" id="prodFormStock" value="50" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="prodFormDesc" rows="3" placeholder="Enter product specifications, features, applications..."></textarea>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" id="prodFormFeatured" />
+              <span>Mark as Featured Product</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveProductBtn">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CATEGORY -->
+  <div id="categoryModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add New Category</h3>
+        <button class="close-modal-btn" onclick="closeCategoryModal()">&times;</button>
+      </div>
+      <form id="categoryForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Category Name *</label>
+            <input type="text" id="catFormName" required placeholder="e.g. Smart Lighting" />
+          </div>
+          <div class="form-group">
+            <label>Slug *</label>
+            <input type="text" id="catFormSlug" required placeholder="e.g. smart-lighting" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="catFormDesc" rows="2" placeholder="Category summary..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeCategoryModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW INQUIRY -->
+  <div id="inquiryModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="inqModalSubject">Inquiry Details</h3>
+        <button class="close-modal-btn" onclick="closeInquiryModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="inquiry-meta-box">
+          <div><strong>From:</strong> <span id="inqModalSender"></span></div>
+          <div><strong>Email:</strong> <span id="inqModalEmail"></span></div>
+          <div><strong>Phone:</strong> <span id="inqModalPhone"></span></div>
+        </div>
+        <div class="inquiry-message-box">
+          <label>Message Content:</label>
+          <p id="inqModalContent"></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeInquiryModal()">Close</button>
+        <button type="button" class="btn btn-primary" id="inqMarkRepliedBtn">Mark as Replied</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
