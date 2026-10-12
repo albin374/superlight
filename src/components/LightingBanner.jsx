@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './LightingBanner.css';
 
 const LightingBanner = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="lighting-banner-section">
       <div className="container">
@@ -17,7 +20,7 @@ const LightingBanner = () => {
             <p className="lighting-desc">
               Stylish and energy-efficient lighting for homes, offices and commercial projects.
             </p>
-            <button className="lighting-btn">
+            <button className="lighting-btn" onClick={() => navigate('/lighting-solutions')}>
               Shop Lighting <ArrowRight size={16} />
             </button>
           </div>

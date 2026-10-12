@@ -39,7 +39,7 @@ const BestSellers = () => {
   return (
     <div className="best-sellers-section">
       <div className="container">
-        
+
         <div className="best-sellers-header">
           <div className="best-sellers-header-left">
             <h4 className="best-sellers-subtitle">BEST SELLING PRODUCTS</h4>
@@ -56,11 +56,11 @@ const BestSellers = () => {
               <button className="bs-heart-btn">
                 <Heart size={20} className="heart-icon" />
               </button>
-              
+
               <div className="bs-product-image-wrapper">
                 <img src={product.image} alt={product.name} className="bs-product-image" />
               </div>
-              
+
               <div className="bs-product-details">
                 <h3 className="bs-product-name">{product.name}</h3>
                 <p className="bs-product-price">{product.price}</p>

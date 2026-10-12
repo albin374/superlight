@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
 
-const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs }) => {
+const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs, goToCompanyOverview, goToLightingSolutions, goToCableManagement, goToAdhesivesToolsHardware, goToElectricalAccessories, goToPlumbingMaterials }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -72,8 +72,8 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
             <a href="#">SHOP BY BRAND</a>
             <a href="#">WE ARE OFFERING</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
-            <a href="#">COMPANY OVERVIEW</a>
-            <a href="#">PARENT COMPANY</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); setIsMobileMenuOpen(false); }}>COMPANY OVERVIEW</a>
+            <a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
                   <span>Measurement & Testing</span>
                 </div>
               </a>
-              <a href="#" className="category-item">
+              <a href="#lighting" className="category-item" onClick={(e) => { e.preventDefault(); goToLightingSolutions && goToLightingSolutions(); }}>
                 <div className="category-item-left">
                   <Lightbulb size={20} strokeWidth={1.5} />
                   <span>Lighting</span>
@@ -309,13 +309,13 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
                   <a href="#">Electrical Switchgear</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Lighting Solutions</a>
+                  <a href="#lighting-solutions" onClick={(e) => { e.preventDefault(); goToLightingSolutions && goToLightingSolutions(); }}>Lighting Solutions</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Cables & Cable Management</a>
+                  <a href="#cables-cable-management" onClick={(e) => { e.preventDefault(); goToCableManagement && goToCableManagement(); }}>Cables & Cable Management</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Electrical Accessories</a>
+                  <a href="#electrical-accessories" onClick={(e) => { e.preventDefault(); goToElectricalAccessories && goToElectricalAccessories(); }}>Electrical Accessories</a>
                 </div>
                 <div className="mega-menu-item">
                   <a href="#">Home Automation</a>
@@ -324,21 +324,21 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
                   <a href="#">Electrical Equipment</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Adhesives & Sealants</a>
+                  <a href="#adhesives-sealants" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Adhesives & Sealants</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Plumbing Materials</a>
+                  <a href="#plumbing-materials" onClick={(e) => { e.preventDefault(); goToPlumbingMaterials && goToPlumbingMaterials(); }}>Plumbing Materials</a>
                 </div>
                 <div className="mega-menu-item">
-                  <a href="#">Tools & Hardware</a>
+                  <a href="#tools-hardware" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Tools & Hardware</a>
                 </div>
                 <div className="mega-menu-item">
                   <a href="#">Paints</a>
                 </div>
               </div>
             </li>
-            <li><a href="#">COMPANY OVERVIEW</a></li>
-            <li><a href="#">PARENT COMPANY</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); }}>COMPANY OVERVIEW</a></li>
+            <li><a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a></li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); }}>CONTACT US</a></li>
           </ul>
         </div>

@@ -22,12 +22,14 @@ const ProductDetails = ({ goHome, product }) => {
   const pPrice = product?.price || 'AED 35.00';
   const pImage = product?.image || '/prod_downlight_1791451418016.png';
   
-  // Basic heuristic to get a brand name
-  let brand = 'PHILIPS';
-  if (pName.includes('Ducab')) brand = 'DUCAB';
-  if (pName.includes('Legrand')) brand = 'LEGRAND';
-  if (pName.includes('Schneider')) brand = 'SCHNEIDER';
-  if (pName.includes('LED Flood Light')) brand = 'LED';
+  // Brand heuristic or explicit product brand
+  let brand = product?.brand || 'PHILIPS';
+  if (!product?.brand) {
+    if (pName.includes('Ducab')) brand = 'DUCAB';
+    if (pName.includes('Legrand')) brand = 'LEGRAND';
+    if (pName.includes('Schneider')) brand = 'SCHNEIDER';
+    if (pName.includes('LED Flood Light')) brand = 'LED';
+  }
 
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('Description');

@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './PromoBanners.css';
 
 const PromoBanners = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="promo-banners-section">
       <div className="container promo-banners-container">
@@ -18,7 +21,7 @@ const PromoBanners = () => {
             <p className="promo-desc">
               High-quality cables and wiring solutions for residential, commercial and industrial use.
             </p>
-            <button className="promo-btn">
+            <button className="promo-btn" onClick={() => navigate('/cables-cable-management')}>
               Shop Cables <ArrowRight size={16} />
             </button>
           </div>

@@ -1,0 +1,1106 @@
+/* Company Overview Page Styles */
+
+.company-overview-page {
+  width: 100%;
+  background-color: #f8fafc;
+  color: #1e293b;
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Common Container & Utilities */
+.company-overview-page .container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.co-section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 48px auto;
+}
+
+.co-section-subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #e6005c;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.co-section-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.co-section-title .title-magenta {
+  color: #e6005c;
+  background: linear-gradient(90deg, #e6005c, #ff1a75);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.co-section-desc {
+  font-size: 16px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.co-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(230, 0, 92, 0.08);
+  color: #e6005c;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 18px;
+  border: 1px solid rgba(230, 0, 92, 0.2);
+}
+
+/* 2. Key Metrics Bar */
+.co-metrics-section {
+  padding: 0;
+  margin-top: -30px;
+  position: relative;
+  z-index: 10;
+}
+
+.co-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  background: #ffffff;
+  padding: 28px 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px -8px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.co-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-right: 1px solid #f1f5f9;
+  transition: transform 0.2s ease;
+}
+
+.co-metric-card:last-child {
+  border-right: none;
+}
+
+.co-metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.co-metric-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(230, 0, 92, 0.1) 0%, rgba(230, 0, 92, 0.04) 100%);
+  color: #e6005c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.co-metric-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  margin: 0 0 4px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.co-metric-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 2px 0;
+}
+
+.co-metric-sub {
+  font-size: 11.5px;
+  color: #94a3b8;
+  display: block;
+}
+
+/* 3. Executive Overview / Who We Are */
+.co-intro-section {
+  padding: 90px 0 70px 0;
+}
+
+.co-intro-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.co-intro-paragraph {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #475569;
+  margin-bottom: 18px;
+}
+
+.co-intro-check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 28px 0 34px 0;
+}
+
+.co-check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.co-check-item .check-icon {
+  color: #e6005c;
+  flex-shrink: 0;
+}
+
+.co-intro-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-co-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #e6005c;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(230, 0, 92, 0.25);
+}
+
+.btn-co-primary:hover {
+  background: #cc0052;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(230, 0, 92, 0.35);
+}
+
+.btn-co-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 24px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-co-secondary:hover {
+  border-color: #0f172a;
+  background: #f8fafc;
+  transform: translateY(-2px);
+}
+
+.co-intro-visual {
+  position: relative;
+}
+
+.co-visual-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.co-building-img {
+  width: 100%;
+  height: 480px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+.co-visual-card:hover .co-building-img {
+  transform: scale(1.03);
+}
+
+.co-visual-badge {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.visual-badge-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+  flex-shrink: 0;
+}
+
+.co-visual-badge strong {
+  display: block;
+  font-size: 14.5px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.co-visual-badge span {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+/* 4. Parent Company Alliance Card (Cables House) */
+.co-parent-section {
+  padding: 30px 0 70px 0;
+}
+
+.co-parent-card {
+  background: linear-gradient(135deg, #091322 0%, #0f1f38 60%, #1e1b4b 100%);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 48px 56px;
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 48px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -10px rgba(10, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.co-parent-card::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 0, 92, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.co-parent-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(230, 0, 92, 0.2);
+  color: #ff3385;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+  border: 1px solid rgba(230, 0, 92, 0.4);
+}
+
+.co-parent-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #cbd5e1;
+  line-height: 1.25;
+  margin: 0 0 16px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.co-parent-title .title-white {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: #e6005c;
+  text-underline-offset: 6px;
+}
+
+.co-parent-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #94a3b8;
+  margin: 0 0 28px 0;
+  max-width: 620px;
+}
+
+.co-parent-action {
+  display: flex;
+}
+
+.btn-parent-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #e6005c;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 18px rgba(230, 0, 92, 0.4);
+}
+
+.btn-parent-link:hover {
+  background: #ff1a75;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(230, 0, 92, 0.55);
+}
+
+.co-parent-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  padding-left: 40px;
+}
+
+.parent-stat-box h4 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.parent-stat-box p {
+  font-size: 13.5px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* 5. Mission, Vision, and Core Values */
+.co-values-section {
+  padding: 70px 0;
+  background: #f1f5f9;
+}
+
+.co-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.co-pillar-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 38px 32px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.co-pillar-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.1);
+  border-color: rgba(230, 0, 92, 0.3);
+}
+
+.co-pillar-card.featured {
+  border-color: rgba(230, 0, 92, 0.35);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(254, 242, 248, 0.4) 100%);
+  position: relative;
+}
+
+.co-pillar-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: rgba(230, 0, 92, 0.08);
+  color: #e6005c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.co-pillar-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 14px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.co-pillar-text {
+  font-size: 15px;
+  line-height: 1.68;
+  color: #475569;
+  margin: 0;
+}
+
+.co-pillar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.co-pillar-list li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #475569;
+  position: relative;
+  padding-left: 18px;
+}
+
+.co-pillar-list li::before {
+  content: '•';
+  color: #e6005c;
+  font-size: 20px;
+  position: absolute;
+  left: 0;
+  top: -2px;
+}
+
+.co-pillar-list strong {
+  color: #0f172a;
+}
+
+/* 6. Portfolio & Solutions / Product Categories (Matching Reference Image) */
+.co-portfolio-section {
+  padding: 60px 0 70px 0;
+  background-color: #ffffff;
+}
+
+.co-portfolio-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 20px;
+}
+
+.co-portfolio-header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.co-portfolio-subtitle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.co-portfolio-subtitle {
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.co-portfolio-pink-line {
+  display: inline-block;
+  width: 40px;
+  height: 3px;
+  background-color: #e6005c;
+  border-radius: 3px;
+}
+
+.co-portfolio-title {
+  font-size: 36px;
+  font-weight: 850;
+  color: #0c1938;
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.co-portfolio-title .title-pink {
+  color: #e6005c;
+}
+
+.co-portfolio-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.co-portfolio-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6005c;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: all 0.25s ease;
+  font-family: inherit;
+}
+
+.co-portfolio-view-all:hover {
+  color: #c4004e;
+  transform: translateX(4px);
+}
+
+.co-portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.co-portfolio-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.co-portfolio-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px -4px rgba(12, 25, 56, 0.14);
+  border-color: #cbd5e1;
+}
+
+.co-portfolio-img-box {
+  width: 100%;
+  height: 185px;
+  background-color: #f1f3f6;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.co-portfolio-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.co-portfolio-card:hover .co-portfolio-img {
+  transform: scale(1.05);
+}
+
+.co-portfolio-bar {
+  background-color: #0c1938;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  gap: 10px;
+}
+
+.co-portfolio-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.co-portfolio-num {
+  font-size: 20px;
+  font-weight: 750;
+  color: #ffffff;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.co-portfolio-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.co-portfolio-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e6005c;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.co-portfolio-card:hover .co-portfolio-arrow-btn {
+  background-color: #ff1a75;
+  transform: scale(1.08);
+  box-shadow: 0 4px 10px rgba(230, 0, 92, 0.4);
+}
+
+/* 7. Brands Section Matrix */
+.co-brands-section {
+  padding: 50px 0 70px 0;
+}
+
+.co-brands-wrapper {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 44px 48px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.co-brands-intro {
+  margin-bottom: 28px;
+  max-width: 680px;
+}
+
+.co-brands-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 10px 0;
+}
+
+.co-brands-intro p {
+  font-size: 14.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.co-brands-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.co-brand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.co-brand-chip:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateY(-2px);
+}
+
+.chip-check {
+  color: #e6005c;
+}
+
+.co-brand-chip:hover .chip-check {
+  color: #ff3385;
+}
+
+/* 8. Industries We Serve */
+.co-industries-section {
+  padding: 70px 0;
+  background: #f8fafc;
+}
+
+.co-industries-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.co-industry-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s ease;
+}
+
+.co-industry-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  transform: translateY(-2px);
+}
+
+.co-industry-bullet {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(230, 0, 92, 0.08);
+  color: #e6005c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.co-industry-title {
+  font-size: 15.5px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.co-industry-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 9. Warehousing, Logistics & Infrastructure */
+.co-logistics-section {
+  padding: 70px 0 90px 0;
+}
+
+.co-logistics-card {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 52px;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 44px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 40px -10px rgba(15, 23, 42, 0.06);
+}
+
+.co-logistics-visual {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.co-logistics-img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  display: block;
+}
+
+.co-logistics-features {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 26px;
+}
+
+.logistics-feat {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.logistics-feat .feat-icon {
+  color: #e6005c;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.logistics-feat strong {
+  display: block;
+  font-size: 15px;
+  color: #0f172a;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.logistics-feat span {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+/* Build Together Showcase Section (Before Footer) */
+.build-together-section {
+  position: relative;
+  width: 100%;
+  min-height: 460px;
+  background-color: #080c1e;
+  background-image: url('/Neon Electrician Tools Showcase.png');
+  background-position: right center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.build-together-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 12, 30, 0.96) 0%,
+    rgba(8, 12, 30, 0.88) 32%,
+    rgba(8, 12, 30, 0.55) 48%,
+    rgba(8, 12, 30, 0.15) 62%,
+    rgba(8, 12, 30, 0) 78%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+.build-together-wrapper {
+  width: 100%;
+  padding-left: clamp(32px, 5.5vw, 90px);
+  padding-right: 32px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.build-together-content {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+  padding: 55px 0;
+  text-align: left;
+}
+
+.build-together-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.build-together-tag {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  color: #cbd5e1;
+  text-transform: uppercase;
+}
+
+.build-together-pink-line {
+  display: inline-block;
+  width: 48px;
+  height: 3px;
+  background-color: #e6005c;
+  border-radius: 2px;
+}
+
+.build-together-title {
+  font-size: 46px;
+  font-weight: 850;
+  color: #ffffff;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 0 0 18px 0;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.build-together-title .title-pink {
+  color: #e6005c;
+  display: inline-block;
+}
+
+.build-together-desc {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: #cbd5e1;
+  margin: 0 0 28px 0;
+  max-width: 520px;
+  font-weight: 450;
+}
+
+.btn-build-together {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #e6005c;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 18px rgba(230, 0, 92, 0.4);
+  font-family: inherit;
+}
+
+.btn-build-together:hover {
+  background-color: #ff1a75;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(230, 0, 92, 0.55);
+}
+
+.btn-build-together svg {
+  transition: transform 0.25s ease;
+}
+
+.btn-build-together:hover svg {
+  transform: translateX(4px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1080px) {
+  .co-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .co-metric-card:nth-child(2) {
+    border-right: none;
+  }
+  .co-intro-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .co-parent-card {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 38px;
+  }
+  .co-parent-stats {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-left: 0;
+    padding-top: 24px;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .co-pillars-grid,
+  .co-portfolio-grid,
+  .co-divisions-grid,
+  .co-industries-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .co-logistics-card {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .co-section-title {
+    font-size: 30px;
+  }
+  .co-portfolio-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .co-portfolio-title {
+    font-size: 30px;
+  }
+  .co-portfolio-img-box {
+    height: 220px;
+  }
+  .co-metrics-grid {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .co-metric-card {
+    border-right: none;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 14px;
+  }
+  .co-metric-card:last-child {
+    border-bottom: none;
+  }
+  .co-intro-check-grid {
+    grid-template-columns: 1fr;
+  }
+  .co-parent-title {
+    font-size: 26px;
+  }
+  .co-parent-stats {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .co-pillars-grid,
+  .co-portfolio-grid,
+  .co-divisions-grid,
+  .co-industries-grid {
+    grid-template-columns: 1fr;
+  }
+  .co-building-img,
+  .co-logistics-img {
+    height: 280px;
+  }
+  .build-together-section {
+    min-height: auto;
+    background-position: 80% center;
+    padding: 30px 0;
+  }
+  .build-together-section::before {
+    background: rgba(8, 12, 30, 0.92);
+  }
+  .build-together-content {
+    max-width: 100%;
+    padding: 20px 0;
+  }
+  .build-together-title {
+    font-size: 32px;
+  }
+  .build-together-desc {
+    font-size: 14.5px;
+  }
+  .btn-build-together {
+    width: 100%;
+    justify-content: center;
+  }
+}

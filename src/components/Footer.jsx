@@ -18,7 +18,7 @@ const Youtube = ({size}) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
 );
 
-const Footer = () => {
+const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectricalAccessories, goToPlumbingMaterials }) => {
   return (
     <footer className="footer-section">
       <div className="container">
@@ -42,10 +42,10 @@ const Footer = () => {
             <ul className="footer-links">
               <li><a href="#">Lighting</a></li>
               <li><a href="#">Wires & Cables</a></li>
-              <li><a href="#">Switches & Sockets</a></li>
+              <li><a href="#electrical-accessories" onClick={(e) => { e.preventDefault(); goToElectricalAccessories && goToElectricalAccessories(); }}>Electrical Accessories</a></li>
               <li><a href="#">Electrical Equipment</a></li>
-              <li><a href="#">Tools & Hardware</a></li>
-              <li><a href="#">Plumbing</a></li>
+              <li><a href="#tools-hardware" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Tools & Hardware</a></li>
+              <li><a href="#plumbing-materials" onClick={(e) => { e.preventDefault(); goToPlumbingMaterials && goToPlumbingMaterials(); }}>Plumbing Materials</a></li>
               <li><a href="#">Offers</a></li>
             </ul>
           </div>
@@ -53,13 +53,12 @@ const Footer = () => {
           <div className="footer-col">
             <h4 className="footer-title">Quick Links</h4>
             <ul className="footer-links">
-              <li><a href="#">About Us</a></li>
-              <li><a href="#">All Products</a></li>
-              <li><a href="#">Brands</a></li>
-              <li><a href="#">FAQ</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); }}>Company Overview</a></li>
+              <li><a href="/about-us">About Us</a></li>
+              <li><a href="/faqs">FAQ</a></li>
+              <li><a href="/contact-us">Contact Us</a></li>
+              <li><a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">Parent Company (Cables House)</a></li>
               <li><a href="#">Track Order</a></li>
-              <li><a href="#">Delivery & Shipping</a></li>
-              <li><a href="#">Returns & Refunds</a></li>
             </ul>
           </div>
 
