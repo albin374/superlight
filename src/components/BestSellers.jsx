@@ -1,45 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, ShoppingCart, ArrowRight } from 'lucide-react';
 import './BestSellers.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
 
-const products = [
+const DEFAULT_PRODUCTS = [
   {
     id: 1,
     name: 'Legrand 2 Gang Switch White',
     price: 'AED 28.00',
-    image: '/switch.png'
+    image: '/switch.png',
+    brand: 'LEGRAND',
+    category_slug: 'switches-sockets-electrical-accessories',
+    subcategory_slug: 'wall-switches-dimmers'
   },
   {
     id: 2,
     name: 'Fluke 62 MAX MINI Thermometer',
     price: 'AED 350.00',
-    image: '/Fluke 62 MAX MINI Thermometer.png'
+    image: '/Fluke 62 MAX MINI Thermometer.png',
+    brand: 'FLUKE',
+    category_slug: 'adhesives-tools-hardware',
+    subcategory_slug: 'hand-tools'
   },
   {
     id: 3,
     name: 'Fluke T140 Voltage Tester with Probes',
     price: 'AED 480.00',
-    image: '/Fluke T140 Voltage Tester with Probes.png'
+    image: '/Fluke T140 Voltage Tester with Probes.png',
+    brand: 'FLUKE',
+    category_slug: 'adhesives-tools-hardware',
+    subcategory_slug: 'hand-tools'
   },
   {
     id: 4,
     name: 'Schneider RCCB 40A 2P',
     price: 'AED 95.00',
-    image: '/prod_mcb_1791451449276.png'
+    image: '/prod_mcb_1791451449276.png',
+    brand: 'SCHNEIDER',
+    category_slug: 'switchgear-control-panel-products',
+    subcategory_slug: 'mcb'
   },
   {
     id: 5,
     name: 'LED Street Light 150W IP65',
     price: 'AED 280.00',
-    image: '/prod_floodlight_1791451459906.png'
+    image: '/prod_floodlight_1791451459906.png',
+    brand: 'PHILIPS',
+    category_slug: 'led-lighting-special-lamp',
+    subcategory_slug: 'street-lights'
   }
 ];
 
 const BestSellers = ({ onProductClick }) => {
+  const [dbProducts, setDbProducts] = useState([]);
   const [waProduct, setWaProduct] = useState(null);
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.products) && data.products.length > 0 && isMounted) {
+          const formatted = data.products.map(p => {
+            const pPrice = typeof p.price === 'number' ? `AED ${p.price.toFixed(2)}` : p.price;
+            const mainImg = (Array.isArray(p.images) && p.images.length > 0) ? p.images[0] : (p.image || '/prod_downlight_1791451418016.png');
+            return {
+              id: `db-${p.id}`,
+              realId: p.id,
+              name: p.name,
+              price: pPrice,
+              image: mainImg,
+              images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [mainImg],
+              brand: p.brand || '',
+              category: p.category_name || '',
+              category_name: p.category_name || '',
+              category_slug: p.category_slug || '',
+              subcategory_name: p.subcategory_name || '',
+              subcategory_slug: p.subcategory_slug || '',
+              sku: p.sku || '',
+              rating: p.rating || 5,
+              reviews: p.reviews_count || 24,
+              description: p.description || '',
+              is_featured: !!p.is_featured,
+              is_bestseller: !!p.is_bestseller,
+              isDbProduct: true
+            };
+          });
+          setDbProducts(formatted);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  const displayedProducts = useMemo(() => {
+    if (dbProducts.length > 0) {
+      const bestsellers = dbProducts.filter(p => p.is_bestseller);
+      if (bestsellers.length > 0) return bestsellers;
+      return dbProducts.slice(0, 6);
+    }
+    return DEFAULT_PRODUCTS;
+  }, [dbProducts]);
 
   return (
     <div className="best-sellers-section">
@@ -50,13 +113,13 @@ const BestSellers = ({ onProductClick }) => {
             <h4 className="best-sellers-subtitle">BEST SELLING PRODUCTS</h4>
             <h2 className="best-sellers-title">Our Best Sellers</h2>
           </div>
-          <a href="#" className="bs-view-all">
+          <a href="/wires-cables" className="bs-view-all">
             View All Products <ArrowRight size={16} />
           </a>
         </div>
 
         <div className="bs-products-grid">
-          {products.map(product => {
+          {displayedProducts.map(product => {
             const isFavorited = isInWishlist(product.id);
 
             return (
