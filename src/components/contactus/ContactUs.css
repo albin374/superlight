@@ -12,7 +12,11 @@
   font-family: 'Outfit', sans-serif;
 }
 
-.contact-page span {
+.contact-page h1 span,
+.contact-page h2 span,
+.contact-page h3 span,
+.contact-page h4 span,
+.contact-page label span {
   color: #e6005c;
 }
 
@@ -259,7 +263,7 @@
 
 .submit-btn {
   background: #e6005c;
-  color: white;
+  color: #ffffff !important;
   border: none;
   padding: 16px 32px;
   font-size: 1rem;
@@ -274,8 +278,72 @@
   transition: background 0.3s;
 }
 
-.submit-btn:hover {
+.submit-btn span,
+.submit-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none;
+}
+
+.submit-btn:hover:not(:disabled) {
   background: #cc0052;
+  color: #ffffff !important;
+}
+
+.submit-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  background: #f43f5e;
+}
+
+.btn-spinner {
+  animation: contactSpin 1s linear infinite;
+}
+
+@keyframes contactSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Contact Feedback Banner */
+.contact-feedback-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 0.93rem;
+  font-weight: 500;
+  margin-bottom: 22px;
+  line-height: 1.45;
+  animation: contactFadeIn 0.3s ease;
+}
+
+.contact-feedback-box.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1.5px solid #bbf7d0;
+}
+
+.contact-feedback-box.success .feedback-icon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.contact-feedback-box.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1.5px solid #fecaca;
+}
+
+.contact-feedback-box.error .feedback-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+@keyframes contactFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Map Section */

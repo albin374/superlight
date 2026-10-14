@@ -58,15 +58,18 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
               <li><a href="/faqs">FAQ</a></li>
               <li><a href="/contact-us">Contact Us</a></li>
               <li><a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">Parent Company (Cables House)</a></li>
-              <li><a href="#">Track Order</a></li>
+              <li><a href="/my-orders">Track Order / My Orders</a></li>
             </ul>
           </div>
 
           <div className="footer-col">
             <h4 className="footer-title">Customer Support</h4>
             <ul className="footer-links">
-              <li><a href="#">Contact Us</a></li>
-              <li><a href="#">Help & Support</a></li>
+              <li><a href="/cart">Shopping Cart</a></li>
+              <li><a href="/wishlist">My Wishlist</a></li>
+              <li><a href="/my-orders">My Orders</a></li>
+              <li><a href="/contact-us">Contact Us</a></li>
+              <li><a href="/faqs">Help & Support</a></li>
               <li><a href="#">Terms & Conditions</a></li>
               <li><a href="#">Privacy Policy</a></li>
             </ul>

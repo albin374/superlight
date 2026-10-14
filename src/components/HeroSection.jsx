@@ -1,11 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { Phone, Mail, Search, User, Heart, ShoppingCart, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Phone, Mail, Search, User, Heart, ShoppingCart, Package, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
+import { useShop } from '../context/ShopContext';
 
-const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFaqs, goToCompanyOverview, goToLightingSolutions, goToCableManagement, goToAdhesivesToolsHardware, goToElectricalAccessories, goToPlumbingMaterials, goToHomeAutomation }) => {
+const HeroSection = ({ 
+  isHome = true, 
+  goHome, 
+  goToAboutUs, 
+  goToContactUs, 
+  goToFaqs, 
+  goToCompanyOverview, 
+  goToLightingSolutions, 
+  goToCableManagement, 
+  goToWiresCables,
+  goToLedLighting,
+  goToSwitchesSockets,
+  goToAdhesivesToolsHardware, 
+  goToElectricalAccessories, 
+  goToPlumbingMaterials, 
+  goToHomeAutomation,
+  goToSwitchgear,
+  goToBuildingMaterials,
+  goToSafetyProducts,
+  goToAcSpareParts
+}) => {
+  const navigate = useNavigate();
+  const { cartCount, wishlistCount, ordersCount } = useShop();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [isOfferingMobileOpen, setIsOfferingMobileOpen] = useState(false);
+  const [isBrandMobileOpen, setIsBrandMobileOpen] = useState(false);
+  const [isAllCatMobileOpen, setIsAllCatMobileOpen] = useState(false);
+  const [isAllCatHovered, setIsAllCatHovered] = useState(false);
+  const navRef = useRef(null);
+  const [navBottomOffset, setNavBottomOffset] = useState(190);
+
+  useEffect(() => {
+    const updateNavOffset = () => {
+      if (navRef.current) {
+        const rect = navRef.current.getBoundingClientRect();
+        setNavBottomOffset(Math.round(rect.bottom + window.scrollY));
+      }
+    };
+    updateNavOffset();
+    window.addEventListener('resize', updateNavOffset);
+    return () => window.removeEventListener('resize', updateNavOffset);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -13,6 +57,107 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMenuData = async () => {
+      try {
+        const [catRes, brandRes] = await Promise.all([
+          fetch('/api/categories').catch(() => null),
+          fetch('/api/brands').catch(() => null)
+        ]);
+        if (catRes && catRes.ok) {
+          const cData = await catRes.json();
+          if (cData.success && Array.isArray(cData.categories) && isMounted) {
+            setCategories(cData.categories);
+          }
+        }
+        if (brandRes && brandRes.ok) {
+          const bData = await brandRes.json();
+          if (bData.success && Array.isArray(bData.brands) && isMounted) {
+            setBrands(bData.brands);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load menu data:', err);
+      }
+    };
+    fetchMenuData();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleCategoryClick = (e, cat, parentCat = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const target = parentCat || cat;
+    const slug = (target?.slug || target?.path || '').toLowerCase();
+    const name = (target?.name || '').toLowerCase();
+
+    setIsAllCatHovered(false);
+    setIsMobileMenuOpen(false);
+
+    if (slug.includes('switchgear') || slug.includes('control-panel') || name.includes('switchgear') || name.includes('control panel')) {
+      if (goToSwitchgear) goToSwitchgear();
+      else navigate('/switchgear-control-panel-products');
+    } else if (slug.includes('building') || name.includes('building') || slug.includes('plumb') || name.includes('plumb')) {
+      if (goToBuildingMaterials) goToBuildingMaterials();
+      else navigate('/building-materials');
+    } else if (slug.includes('safety') || name.includes('safety')) {
+      if (goToSafetyProducts) goToSafetyProducts();
+      else navigate('/safety-products');
+    } else if (slug.includes('spair') || slug.includes('spare') || slug.includes('ac') || name.includes('spare') || name.includes('spair') || name.includes('ac')) {
+      if (goToAcSpareParts) goToAcSpareParts();
+      else navigate('/ac-spare-parts');
+    } else if (slug.includes('cable') || slug.includes('wire') || name.includes('cable') || name.includes('wire')) {
+      if (goToWiresCables) goToWiresCables();
+      else navigate('/wires-cables');
+    } else if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp')) {
+      if (goToLedLighting) goToLedLighting();
+      else navigate('/led-lighting-special-lamp');
+    } else if (slug.includes('switch') || slug.includes('access') || slug.includes('socket') || name.includes('switch')) {
+      if (goToSwitchesSockets) goToSwitchesSockets();
+      else navigate('/switches-sockets-electrical-accessories');
+    } else if (slug.includes('tool') || slug.includes('hardw') || slug.includes('adhes') || name.includes('tool')) {
+      if (goToAdhesivesToolsHardware) goToAdhesivesToolsHardware();
+      else navigate('/adhesives-tools-hardware');
+    } else if (slug.includes('automat') || slug.includes('smart') || name.includes('automation')) {
+      if (goToHomeAutomation) goToHomeAutomation();
+      else navigate('/home-automation');
+    } else {
+      navigate(`/${target.slug || ''}`);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBrandClick = (e, brand) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsMobileMenuOpen(false);
+
+    const bName = (brand?.name || '').toLowerCase();
+    const bSlug = (brand?.slug || '').toLowerCase();
+
+    if (bName.includes('dewalt') || bSlug.includes('dewalt')) {
+      navigate('/dewalt');
+    } else if (bName.includes('makita') || bSlug.includes('makita')) {
+      navigate('/makita');
+    } else if (bName.includes('ducab') || bSlug.includes('ducab')) {
+      navigate('/ducab');
+    } else if (bName.includes('fluke') || bSlug.includes('fluke')) {
+      navigate('/fluke');
+    } else if (bName.includes('philips') || bSlug.includes('philips')) {
+      navigate('/philips');
+    } else if (bName.includes('osram') || bSlug.includes('osram')) {
+      navigate('/osram');
+    } else if (bName.includes('belden') || bSlug.includes('belden')) {
+      navigate('/belden');
+    } else if (bName.includes('legrand') || bSlug.includes('legrand')) {
+      navigate('/legrand');
+    } else if (bName.includes('schneider') || bSlug.includes('schneider')) {
+      navigate('/schneider-electric');
+    } else {
+      navigate(`/brand/${brand.slug || brand.name.toLowerCase()}`);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const slides = [
     { 
@@ -61,16 +206,115 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
         </div>
         <div className="mobile-menu-content">
           <div className="mobile-top-bar-items">
+            <div 
+              className="mobile-menu-item" 
+              onClick={() => { setIsMobileMenuOpen(false); navigate('/wishlist'); }}
+              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
+            >
+              <Heart size={16} /> My Wishlist ({wishlistCount})
+            </div>
+            <div 
+              className="mobile-menu-item" 
+              onClick={() => { setIsMobileMenuOpen(false); navigate('/cart'); }}
+              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
+            >
+              <ShoppingCart size={16} /> Shopping Cart ({cartCount})
+            </div>
+            <div 
+              className="mobile-menu-item" 
+              onClick={() => { setIsMobileMenuOpen(false); navigate('/my-orders'); }}
+              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
+            >
+              <Package size={16} /> My Orders {ordersCount > 0 ? `(${ordersCount})` : ''}
+            </div>
             <div className="mobile-menu-item"><Phone size={16} /> +971 50 123 4567</div>
             <div className="mobile-menu-item"><Mail size={16} /> sales@superlight.ae</div>
-            <div className="mobile-menu-item">Track Order</div>
-            <div className="mobile-menu-item">Help & Support</div>
           </div>
           <div className="mobile-nav-links">
-            <a href="#" style={{color: '#e6005c', display: 'flex', alignItems: 'center', gap: '8px'}}><Menu size={18} /> All Categories</a>
-            <a href="#">BELCABLE</a>
-            <a href="#">SHOP BY BRAND</a>
-            <a href="#">WE ARE OFFERING</a>
+            <div className="mobile-offering-wrapper">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); setIsAllCatMobileOpen(!isAllCatMobileOpen); }}
+                style={{ color: '#e6005c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '700' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Menu size={18} /> All Categories</span>
+                <ChevronDown size={16} style={{ transform: isAllCatMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+              </a>
+              {isAllCatMobileOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0 8px 14px' }}>
+                  {categories.map((cat) => (
+                    <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <a 
+                        href={`#${cat.slug}`} 
+                        onClick={(e) => { handleCategoryClick(e, cat); setIsMobileMenuOpen(false); }}
+                        style={{ fontSize: '13.5px', color: '#1b253c', fontWeight: '700' }}
+                      >
+                        {cat.name}
+                      </a>
+                      {cat.subcategories && cat.subcategories.map((sub) => (
+                        <a
+                          key={sub.id}
+                          href={`#${sub.slug}`}
+                          onClick={(e) => { handleCategoryClick(e, sub, cat); setIsMobileMenuOpen(false); }}
+                          style={{ fontSize: '12.5px', color: '#64748b', paddingLeft: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                        >
+                          <span>{sub.name}</span>
+                          <ChevronRight size={12} />
+                        </a>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mobile-offering-wrapper">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); setIsBrandMobileOpen(!isBrandMobileOpen); }}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span>SHOP BY BRAND</span>
+                <ChevronDown size={16} style={{ transform: isBrandMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+              </a>
+              {isBrandMobileOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px 0 8px 14px' }}>
+                  {brands.map((b) => (
+                    <a 
+                      key={b.id} 
+                      href={`/${b.slug || ''}`} 
+                      onClick={(e) => handleBrandClick(e, b)}
+                      style={{ fontSize: '13.5px', color: '#4b5563', fontWeight: '500' }}
+                    >
+                      {b.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mobile-offering-wrapper">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); setIsOfferingMobileOpen(!isOfferingMobileOpen); }}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span>WE ARE OFFERING</span>
+                <ChevronDown size={16} style={{ transform: isOfferingMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+              </a>
+              {isOfferingMobileOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px 0 8px 14px' }}>
+                  {categories.map((cat) => (
+                    <a 
+                      key={cat.id} 
+                      href={`#${cat.slug}`} 
+                      onClick={(e) => { handleCategoryClick(e, cat); setIsMobileMenuOpen(false); }}
+                      style={{ fontSize: '13.5px', color: '#4b5563', fontWeight: '500' }}
+                    >
+                      {cat.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); setIsMobileMenuOpen(false); }}>COMPANY OVERVIEW</a>
             <a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a>
@@ -133,17 +377,39 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
               </div>
             </div>
             
-            <div className="action-item icon-only">
+            <div 
+              className="action-item icon-only" 
+              onClick={() => navigate('/wishlist')} 
+              style={{ cursor: 'pointer' }}
+              title="My Wishlist"
+            >
               <div className="icon-wrapper">
                 <Heart size={24} className="action-icon" />
-                <span className="badge">0</span>
+                <span className="badge">{wishlistCount}</span>
               </div>
             </div>
 
-            <div className="action-item icon-only">
+            <div 
+              className="action-item icon-only" 
+              onClick={() => navigate('/cart')} 
+              style={{ cursor: 'pointer' }}
+              title="Shopping Cart"
+            >
               <div className="icon-wrapper">
                 <ShoppingCart size={24} className="action-icon" />
-                <span className="badge">0</span>
+                <span className="badge">{cartCount}</span>
+              </div>
+            </div>
+
+            <div 
+              className="action-item icon-only" 
+              onClick={() => navigate('/my-orders')} 
+              style={{ cursor: 'pointer' }}
+              title="My Orders"
+            >
+              <div className="icon-wrapper">
+                <Package size={24} className="action-icon" />
+                {ordersCount > 0 && <span className="badge">{ordersCount}</span>}
               </div>
             </div>
           </div>
@@ -151,190 +417,124 @@ const HeroSection = ({ isHome = true, goHome, goToAboutUs, goToContactUs, goToFa
       </div>
 
       {/* Navigation */}
-      <div className="navigation">
+      <div className="navigation" ref={navRef}>
         <div className="container nav-content">
-          <div className="all-categories-wrapper dropdown">
-            <button className="all-categories-btn">
-              <Menu size={24} strokeWidth={1.5} />
-              <span>All Categories</span>
-              <ArrowRight size={20} strokeWidth={2} />
+          <div 
+            className={`all-categories-wrapper ${isAllCatHovered ? 'hovered' : ''}`}
+            onMouseEnter={() => setIsAllCatHovered(true)}
+            onMouseLeave={() => setIsAllCatHovered(false)}
+          >
+            <button className="all-categories-btn" type="button" aria-expanded={isAllCatHovered}>
+              <div className="all-cat-btn-left">
+                <Menu size={22} strokeWidth={2} />
+                <span>All Categories</span>
+              </div>
+              <ChevronDown size={18} strokeWidth={2.5} className="all-cat-arrow" />
             </button>
-            <div className="dropdown-menu categories-menu">
-              <div className="category-item-container">
-                <a href="#" className="category-item">
-                  <div className="category-item-left">
-                    <Server size={20} strokeWidth={1.5} />
-                    <span>Load Centers & Circuit Breakers</span>
-                  </div>
-                </a>
-                
-                <div className="submenu-panel">
-                  <div className="submenu-column">
-                    <h4>LOAD CENTERS</h4>
-                    <ul>
-                      <li><a href="#">Flush - Curved Doors</a></li>
-                      <li><a href="#">Flush - Flat Doors</a></li>
-                      <li><a href="#">Flush - Square Key</a></li>
-                      <li><a href="#">Surface Curved Doors</a></li>
-                      <li><a href="#">Surface - Flat Doors</a></li>
-                      <li><a href="#">Consumer Units</a></li>
-                    </ul>
-                  </div>
-                  <div className="submenu-column">
-                    <h4>CIRCUIT BREAKERS</h4>
-                    <ul>
-                      <li><a href="#">MCB</a></li>
-                      <li><a href="#">MCCB</a></li>
-                      <li><a href="#">RCBO & RCCB</a></li>
-                      <li><a href="#">ACB</a></li>
-                      <li><a href="#">Switches</a></li>
-                    </ul>
-                  </div>
-                  <div className="submenu-column">
-                    <h4>CIRCUIT BREAKERS ACCESSORIES</h4>
-                    <ul>
-                      <li><a href="#">Bases</a></li>
-                      <li><a href="#">Busbars</a></li>
-                      <li><a href="#">Connectors Adaptors & Plates</a></li>
-                      <li><a href="#">External Neutral CT</a></li>
-                      <li><a href="#">Locks & Blocks</a></li>
-                      <li><a href="#">Motors</a></li>
-                      <li><a href="#">Rotary Handles</a></li>
-                      <li><a href="#">Terminals & Accessories</a></li>
-                      <li><a href="#">Trips & Releases</a></li>
-                      <li><a href="#">VIGI</a></li>
-                    </ul>
-                  </div>
+
+            <div 
+              className="all-categories-mega-menu"
+              style={{ minHeight: `calc(100vh - ${navBottomOffset}px)` }}
+            >
+              <div className="all-cat-container">
+                <div className="all-cat-grid">
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <div key={cat.id} className="all-cat-column">
+                        {/* Main Category Header Button */}
+                        <a 
+                          href={`#${cat.slug}`}
+                          className="all-cat-header-btn"
+                          onClick={(e) => {
+                            handleCategoryClick(e, cat);
+                            setIsAllCatHovered(false);
+                          }}
+                        >
+                          {cat.name}
+                        </a>
+                        
+                        {/* Subcategories Vertical List */}
+                        <div className="all-cat-sub-list">
+                          {cat.subcategories && cat.subcategories.length > 0 ? (
+                            cat.subcategories.map((sub) => (
+                              <a 
+                                key={sub.id}
+                                href={`#${sub.slug}`}
+                                className="all-cat-sub-item"
+                                onClick={(e) => {
+                                  handleCategoryClick(e, sub, cat);
+                                }}
+                              >
+                                <span className="all-cat-sub-name">{sub.name}</span>
+                                <ChevronRight size={14} strokeWidth={2} className="all-cat-sub-chevron" />
+                              </a>
+                            ))
+                          ) : (
+                            <a 
+                              href={`#${cat.slug}`}
+                              className="all-cat-sub-item view-all"
+                              onClick={(e) => {
+                                handleCategoryClick(e, cat);
+                                setIsAllCatHovered(false);
+                              }}
+                            >
+                              <span className="all-cat-sub-name">View all products</span>
+                              <ChevronRight size={14} strokeWidth={2} className="all-cat-sub-chevron" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="all-cat-loading">
+                      Loading categories...
+                    </div>
+                  )}
                 </div>
               </div>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <ToggleRight size={20} strokeWidth={1.5} />
-                  <span>Electrical Switches & Sockets</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Zap size={20} strokeWidth={1.5} />
-                  <span>Cables & Wires</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Box size={20} strokeWidth={1.5} />
-                  <span>Conduits & Boxes</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Layers size={20} strokeWidth={1.5} />
-                  <span>Busbars</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Shield size={20} strokeWidth={1.5} />
-                  <span>Protection</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Sliders size={20} strokeWidth={1.5} />
-                  <span>Control</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Database size={20} strokeWidth={1.5} />
-                  <span>Enclosures</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <ArrowDown size={20} strokeWidth={1.5} />
-                  <span>Earthing & Grounding Equipment</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Activity size={20} strokeWidth={1.5} />
-                  <span>Measurement & Testing</span>
-                </div>
-              </a>
-              <a href="#lighting" className="category-item" onClick={(e) => { e.preventDefault(); goToLightingSolutions && goToLightingSolutions(); }}>
-                <div className="category-item-left">
-                  <Lightbulb size={20} strokeWidth={1.5} />
-                  <span>Lighting</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <BellRing size={20} strokeWidth={1.5} />
-                  <span>Bells</span>
-                </div>
-              </a>
-              <a href="#" className="category-item">
-                <div className="category-item-left">
-                  <Cpu size={20} strokeWidth={1.5} />
-                  <span>Patch Panels</span>
-                </div>
-              </a>
             </div>
           </div>
           
           <ul className="nav-links">
             <li><a href="#">BELCABLE</a></li>
             <li className="dropdown">
-              <a href="#">SHOP BY BRAND</a>
+              <a href="#" onClick={(e) => e.preventDefault()}>SHOP BY BRAND</a>
               <div className="dropdown-menu mega-menu">
-                <div className="mega-menu-item">
-                  <a href="#">
-                    Belden
-                    <span className="best-seller-tag">BEST SELLER</span>
-                  </a>
-                </div>
-                <div className="mega-menu-item"><a href="#">Schneider</a></div>
-                <div className="mega-menu-item"><a href="#">Legrand</a></div>
-                <div className="mega-menu-item"><a href="#">Phlilips</a></div>
-                <div className="mega-menu-item"><a href="#">Osram</a></div>
-                <div className="mega-menu-item"><a href="#">Makita</a></div>
-                <div className="mega-menu-item"><a href="#">Dewalt</a></div>
-                <div className="mega-menu-item"><a href="#">Ducab</a></div>
+                {brands.length > 0 ? (
+                  brands.map((b) => (
+                    <div key={b.id} className="mega-menu-item">
+                      <a href={`/${b.slug || ''}`} onClick={(e) => handleBrandClick(e, b)}>
+                        {b.name}
+                        {b.is_featured ? <span className="best-seller-tag">FEATURED</span> : null}
+                      </a>
+                    </div>
+                  ))
+                ) : (
+                  <div className="mega-menu-item" style={{ gridColumn: 'span 2', color: '#6b7280', fontSize: '14px', fontStyle: 'italic', padding: '8px 0' }}>
+                    Loading brands...
+                  </div>
+                )}
               </div>
             </li>
             <li className="dropdown">
-              <a href="#">WE ARE OFFERING</a>
+              <a href="#" onClick={(e) => e.preventDefault()}>WE ARE OFFERING</a>
               <div className="dropdown-menu mega-menu">
-                <div className="mega-menu-item">
-                  <a href="#">Electrical Switchgear</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#lighting-solutions" onClick={(e) => { e.preventDefault(); goToLightingSolutions && goToLightingSolutions(); }}>Lighting Solutions</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#cables-cable-management" onClick={(e) => { e.preventDefault(); goToCableManagement && goToCableManagement(); }}>Cables & Cable Management</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#electrical-accessories" onClick={(e) => { e.preventDefault(); goToElectricalAccessories && goToElectricalAccessories(); }}>Electrical Accessories</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#home-automation" onClick={(e) => { e.preventDefault(); goToHomeAutomation && goToHomeAutomation(); }}>Home Automation</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#">Electrical Equipment</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#adhesives-sealants" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Adhesives & Sealants</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#plumbing-materials" onClick={(e) => { e.preventDefault(); goToPlumbingMaterials && goToPlumbingMaterials(); }}>Plumbing Materials</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#tools-hardware" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Tools & Hardware</a>
-                </div>
-                <div className="mega-menu-item">
-                  <a href="#">Paints</a>
-                </div>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <div key={cat.id} className="mega-menu-item">
+                      <a 
+                        href={`#${cat.slug}`}
+                        onClick={(e) => handleCategoryClick(e, cat)}
+                      >
+                        {cat.name}
+                      </a>
+                    </div>
+                  ))
+                ) : (
+                  <div className="mega-menu-item" style={{ gridColumn: 'span 2', color: '#6b7280', fontSize: '14px', fontStyle: 'italic', padding: '8px 0' }}>
+                    Loading categories...
+                  </div>
+                )}
               </div>
             </li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); }}>COMPANY OVERVIEW</a></li>

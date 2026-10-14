@@ -1,0 +1,106 @@
+/* Brand Product Page Layout & Sidebar Filters */
+@import '../common/CategoryProductPage.css';
+
+/* Brand Specification Sidebar Card */
+.cpp-brand-spec-card {
+  margin-top: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cpp-brand-spec-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+.cpp-brand-spec-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  height: 64px;
+}
+
+.cpp-brand-spec-logo {
+  max-width: 100%;
+  max-height: 44px;
+  object-fit: contain;
+}
+
+.cpp-brand-spec-title {
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.cpp-brand-spec-tagline {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 14px 0;
+}
+
+.cpp-brand-spec-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 12px 0;
+}
+
+.cpp-brand-spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cpp-brand-spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cpp-spec-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.cpp-spec-val {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.cpp-spec-val.in-stock {
+  color: #059669;
+  font-weight: 700;
+}
+
+.cpp-brand-spec-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e6005c;
+}
+
+.cpp-spec-shield {
+  color: #e6005c;
+  flex-shrink: 0;
+}

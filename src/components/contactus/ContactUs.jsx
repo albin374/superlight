@@ -1,12 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Headphones, Users, ShieldCheck, Gem, 
   MapPin, Phone, Mail, Clock, ArrowRight, 
-  ChevronLeft, ChevronRight 
+  ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Loader2 
 } from 'lucide-react';
 import './ContactUs.css';
 
 const ContactUs = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (feedback.type) setFeedback({ type: '', message: '' });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      setFeedback({ type: 'error', message: 'Please fill in all required fields marked with *' });
+      return;
+    }
+
+    setLoading(true);
+    setFeedback({ type: '', message: '' });
+
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          subject: formData.subject.trim() || 'General Inquiry',
+          message: formData.message.trim()
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setFeedback({
+          type: 'success',
+          message: data.message || 'Thank you! Your message has been sent successfully. Our team will contact you shortly.'
+        });
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: data.message || 'Failed to send message. Please try again later.'
+        });
+      }
+    } catch (err) {
+      console.error('Inquiry submission error:', err);
+      setFeedback({
+        type: 'error',
+        message: 'Unable to connect to the server. Please check your internet connection and try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const brands = [
     { name: "DeWalt", src: "/logo/DeWalt_Logo.svg" },
     { name: "Ducab", src: "/logo/Ducab.png" },
@@ -111,42 +183,96 @@ const ContactUs = () => {
            <h2>Send Us a <span>Message</span></h2>
            <p className="section-subtitle">Fill out the form and our team will get back to you as soon as possible.</p>
            
-           <form className="contact-form" onSubmit={(e) => e.preventDefault()}>
+           <form className="contact-form" onSubmit={handleSubmit}>
+             {feedback.message && (
+               <div className={`contact-feedback-box ${feedback.type}`}>
+                 {feedback.type === 'success' ? (
+                   <CheckCircle2 size={20} className="feedback-icon" />
+                 ) : (
+                   <AlertCircle size={20} className="feedback-icon" />
+                 )}
+                 <span>{feedback.message}</span>
+               </div>
+             )}
+
              <div className="form-row">
                 <div className="form-group">
                    <label>Your Name <span>*</span></label>
-                   <input type="text" placeholder="Enter your name" required />
+                   <input 
+                     type="text" 
+                     name="name" 
+                     value={formData.name} 
+                     onChange={handleChange} 
+                     placeholder="Enter your name" 
+                     required 
+                   />
                 </div>
                 <div className="form-group">
                    <label>Your Email <span>*</span></label>
-                   <input type="email" placeholder="Enter your email" required />
+                   <input 
+                     type="email" 
+                     name="email" 
+                     value={formData.email} 
+                     onChange={handleChange} 
+                     placeholder="Enter your email" 
+                     required 
+                   />
                 </div>
              </div>
              
              <div className="form-row">
                 <div className="form-group">
                    <label>Phone Number</label>
-                   <input type="text" placeholder="Enter your phone number" />
+                   <input 
+                     type="tel" 
+                     name="phone" 
+                     value={formData.phone} 
+                     onChange={handleChange} 
+                     placeholder="Enter your phone number" 
+                   />
                 </div>
                 <div className="form-group">
                    <label>Subject <span>*</span></label>
-                   <select required defaultValue="">
+                   <select 
+                     name="subject" 
+                     value={formData.subject} 
+                     onChange={handleChange} 
+                     required
+                   >
                      <option value="" disabled>Select a subject</option>
-                     <option value="general">General Inquiry</option>
-                     <option value="sales">Sales & Quotations</option>
-                     <option value="support">Technical Support</option>
-                     <option value="partnership">Partnership</option>
+                     <option value="General Inquiry">General Inquiry</option>
+                     <option value="Sales & Quotations">Sales & Quotations</option>
+                     <option value="Technical Support">Technical Support</option>
+                     <option value="Partnership Opportunities">Partnership Opportunities</option>
+                     <option value="Bulk Order Inquiry">Bulk Order Inquiry</option>
                    </select>
                 </div>
              </div>
 
              <div className="form-group full-width">
                 <label>Your Message <span>*</span></label>
-                <textarea placeholder="Type your message here..." rows="5" required></textarea>
+                <textarea 
+                  name="message" 
+                  value={formData.message} 
+                  onChange={handleChange} 
+                  placeholder="Type your message here..." 
+                  rows="5" 
+                  required
+                ></textarea>
              </div>
 
-             <button type="submit" className="submit-btn">
-               Send Message <ArrowRight size={18} />
+             <button type="submit" className="submit-btn" disabled={loading}>
+               {loading ? (
+                 <>
+                   <Loader2 size={18} className="btn-spinner" />
+                   <span>Sending Message...</span>
+                 </>
+               ) : (
+                 <>
+                   <span>Send Message</span>
+                   <ArrowRight size={18} />
+                 </>
+               )}
              </button>
            </form>
         </div>

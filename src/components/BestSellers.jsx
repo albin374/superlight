@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, ShoppingCart, ArrowRight } from 'lucide-react';
 import './BestSellers.css';
+import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
+import { useShop } from '../context/ShopContext';
 
 const products = [
   {
@@ -35,7 +37,10 @@ const products = [
   }
 ];
 
-const BestSellers = () => {
+const BestSellers = ({ onProductClick }) => {
+  const [waProduct, setWaProduct] = useState(null);
+  const { addToCart, toggleWishlist, isInWishlist } = useShop();
+
   return (
     <div className="best-sellers-section">
       <div className="container">
@@ -51,29 +56,73 @@ const BestSellers = () => {
         </div>
 
         <div className="bs-products-grid">
-          {products.map(product => (
-            <div key={product.id} className="bs-product-card">
-              <button className="bs-heart-btn">
-                <Heart size={20} className="heart-icon" />
-              </button>
+          {products.map(product => {
+            const isFavorited = isInWishlist(product.id);
 
-              <div className="bs-product-image-wrapper">
-                <img src={product.image} alt={product.name} className="bs-product-image" />
-              </div>
+            return (
+              <div 
+                key={product.id} 
+                className="bs-product-card"
+                onClick={() => onProductClick && onProductClick(product)}
+                style={{ cursor: 'pointer' }}
+              >
+                <button 
+                  className="bs-heart-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWishlist(product);
+                  }}
+                  title={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  <Heart 
+                    size={20} 
+                    className="heart-icon" 
+                    fill={isFavorited ? '#e6005c' : 'none'} 
+                    color={isFavorited ? '#e6005c' : '#1b253c'} 
+                  />
+                </button>
 
-              <div className="bs-product-details">
-                <h3 className="bs-product-name">{product.name}</h3>
-                <p className="bs-product-price">{product.price}</p>
-                <button className="bs-add-to-cart-btn">
-                  <ShoppingCart size={16} />
-                  Add to Cart
+                <div className="bs-product-image-wrapper">
+                  <img src={product.image} alt={product.name} className="bs-product-image" />
+                </div>
+
+                <div className="bs-product-details">
+                  <h3 className="bs-product-name">{product.name}</h3>
+                  <p className="bs-product-price">{product.price}</p>
+                  <button 
+                    className="bs-add-to-cart-btn" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(product, 1);
+                    }}
+                  >
+                    <ShoppingCart size={16} />
+                    Add to Cart
+                  </button>
+                <button 
+                  type="button" 
+                  className="bs-whatsapp-btn" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setWaProduct(product); 
+                  }}
+                >
+                  <WhatsAppIcon size={16} />
+                  Order via WhatsApp
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
       </div>
+
+      <WhatsAppOrderModal 
+        isOpen={!!waProduct} 
+        product={waProduct} 
+        onClose={() => setWaProduct(null)} 
+      />
     </div>
   );
 };
