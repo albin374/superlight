@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { defaultCategories, defaultProducts } from './seedData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -215,6 +216,62 @@ export function initDatabase() {
     `).run('Superlight Administrator', 'admin@superlight.ae', hashedPassword, 'Super Admin');
 
     console.log('[Database] Default admin created: admin@superlight.ae / Admin@123');
+  }
+
+  // Seed default categories if none exists
+  const checkCats = db.prepare('SELECT count(*) AS count FROM categories').get();
+  if (checkCats.count === 0) {
+    const insertCat = db.prepare(`
+      INSERT INTO categories (id, name, slug, icon, description, parent_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    // Insert parents first (parent_id is null) then subcategories to satisfy foreign keys
+    const parents = defaultCategories.filter(c => !c.parent_id);
+    const children = defaultCategories.filter(c => c.parent_id);
+
+    for (const c of parents) {
+      insertCat.run(c.id, c.name, c.slug, c.icon || 'Box', c.description || '', null);
+    }
+    for (const c of children) {
+      insertCat.run(c.id, c.name, c.slug, c.icon || 'Box', c.description || '', c.parent_id);
+    }
+    console.log(`[Database] Default categories seeded (${defaultCategories.length} categories).`);
+  }
+
+  // Seed default products if none exists
+  const checkProds = db.prepare('SELECT count(*) AS count FROM products').get();
+  if (checkProds.count === 0) {
+    const insertProd = db.prepare(`
+      INSERT INTO products (
+        name, category_id, subcategory_id, brand, price, old_price,
+        image, images, warranty, wattage, model, description,
+        stock, rating, reviews_count, is_featured, is_bestseller
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const p of defaultProducts) {
+      insertProd.run(
+        p.name,
+        p.category_id || null,
+        p.subcategory_id || null,
+        p.brand || 'Superlight',
+        p.price || 0,
+        p.old_price || null,
+        p.image || '',
+        p.images || JSON.stringify([p.image]),
+        p.warranty || null,
+        p.wattage || null,
+        p.model || null,
+        p.description || '',
+        p.stock !== undefined ? p.stock : 50,
+        p.rating !== undefined ? p.rating : 5.0,
+        p.reviews_count !== undefined ? p.reviews_count : 0,
+        p.is_featured ? 1 : 0,
+        p.is_bestseller ? 1 : 0
+      );
+    }
+    console.log(`[Database] Default products seeded (${defaultProducts.length} products).`);
   }
 }
 
