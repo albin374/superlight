@@ -6,7 +6,10 @@ import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
+import dotenv from 'dotenv';
 import db, { initDatabase } from './database.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,8 +19,8 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 
-// Initialize SQL database and tables
-initDatabase();
+// Initialize SQL database
+await initDatabase();
 
 // Middlewares
 app.use(cors());
@@ -72,9 +75,9 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Helper: Log Admin Activity
-const logActivity = (adminId, action, details) => {
+const logActivity = async (adminId, action, details) => {
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO activity_logs (admin_id, action, details)
       VALUES (?, ?, ?)
     `).run(adminId || 1, action, details || '');
@@ -88,7 +91,7 @@ const logActivity = (adminId, action, details) => {
    ========================================================================== */
 
 // POST /api/auth/login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -96,7 +99,7 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   try {
-    const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email.trim().toLowerCase());
+    const admin = await db.prepare('SELECT * FROM admins WHERE email = ?').get(email.trim().toLowerCase());
 
     if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
@@ -113,7 +116,7 @@ app.post('/api/auth/login', (req, res) => {
       { expiresIn: '24h' }
     );
 
-    logActivity(admin.id, 'Admin Login', `Admin ${admin.email} logged in successfully.`);
+    await logActivity(admin.id, 'Admin Login', `Admin ${admin.email} logged in successfully.`);
 
     return res.json({
       success: true,
@@ -133,9 +136,9 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // GET /api/auth/me
-app.get('/api/auth/me', authenticateToken, (req, res) => {
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const admin = db.prepare('SELECT id, name, email, role, created_at FROM admins WHERE id = ?').get(req.user.id);
+    const admin = await db.prepare('SELECT id, name, email, role, created_at FROM admins WHERE id = ?').get(req.user.id);
     if (!admin) {
       return res.status(404).json({ success: false, message: 'Admin not found.' });
     }
@@ -150,18 +153,18 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // GET /api/stats
-app.get('/api/stats', authenticateToken, (req, res) => {
+app.get('/api/stats', authenticateToken, async (req, res) => {
   try {
-    const totalProducts = db.prepare('SELECT count(*) AS count FROM products').get().count;
-    const totalCategories = db.prepare('SELECT count(*) AS count FROM categories').get().count;
-    const totalBrands = db.prepare('SELECT count(*) AS count FROM brands').get().count;
-    const totalOrders = db.prepare('SELECT count(*) AS count FROM orders').get().count;
-    const revenueRow = db.prepare("SELECT sum(total_amount) AS revenue FROM orders WHERE status != 'Cancelled'").get();
-    const totalRevenue = revenueRow.revenue || 0.0;
-    const unreadInquiries = db.prepare("SELECT count(*) AS count FROM inquiries WHERE status = 'Unread'").get().count;
+    const totalProducts = (await db.prepare('SELECT count(*) AS count FROM products').get()).count;
+    const totalCategories = (await db.prepare('SELECT count(*) AS count FROM categories').get()).count;
+    const totalBrands = (await db.prepare('SELECT count(*) AS count FROM brands').get()).count;
+    const totalOrders = (await db.prepare('SELECT count(*) AS count FROM orders').get()).count;
+    const revenueRow = await db.prepare("SELECT sum(total_amount) AS revenue FROM orders WHERE status != 'Cancelled'").get();
+    const totalRevenue = revenueRow && revenueRow.revenue ? Number(revenueRow.revenue) : 0.0;
+    const unreadInquiries = (await db.prepare("SELECT count(*) AS count FROM inquiries WHERE status = 'Unread'").get()).count;
 
     // Category distribution (Main categories only)
-    const categoryBreakdown = db.prepare(`
+    const categoryBreakdown = await db.prepare(`
       SELECT c.id, c.name, count(DISTINCT p.id) as product_count
       FROM categories c
       LEFT JOIN products p ON (p.category_id = c.id OR p.subcategory_id IN (SELECT id FROM categories WHERE parent_id = c.id))
@@ -171,15 +174,20 @@ app.get('/api/stats', authenticateToken, (req, res) => {
     `).all();
 
     // Recent orders
-    const recentOrders = db.prepare(`
+    const recentOrders = await db.prepare(`
       SELECT id, order_number, customer_name, customer_email, total_amount, status, created_at
       FROM orders
       ORDER BY id DESC
       LIMIT 5
     `).all();
 
+    const formattedRecentOrders = recentOrders.map(ord => ({
+      ...ord,
+      total_amount: Number(ord.total_amount || 0)
+    }));
+
     // Low stock products alert
-    const lowStock = db.prepare(`
+    const lowStock = await db.prepare(`
       SELECT id, name, brand, stock, price
       FROM products
       WHERE stock <= 30
@@ -187,18 +195,29 @@ app.get('/api/stats', authenticateToken, (req, res) => {
       LIMIT 5
     `).all();
 
+    const formattedLowStock = lowStock.map(p => ({
+      ...p,
+      price: Number(p.price || 0),
+      stock: Number(p.stock || 0)
+    }));
+
+    const formattedCategoryBreakdown = categoryBreakdown.map(c => ({
+      ...c,
+      product_count: Number(c.product_count || 0)
+    }));
+
     res.json({
       success: true,
       stats: {
-        totalProducts,
-        totalCategories,
-        totalBrands,
-        totalOrders,
+        totalProducts: Number(totalProducts),
+        totalCategories: Number(totalCategories),
+        totalBrands: Number(totalBrands),
+        totalOrders: Number(totalOrders),
         totalRevenue: Number(totalRevenue.toFixed(2)),
-        unreadInquiries,
-        categoryBreakdown,
-        recentOrders,
-        lowStock
+        unreadInquiries: Number(unreadInquiries),
+        categoryBreakdown: formattedCategoryBreakdown,
+        recentOrders: formattedRecentOrders,
+        lowStock: formattedLowStock
       }
     });
   } catch (err) {
@@ -212,7 +231,7 @@ app.get('/api/stats', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // GET /api/products
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
     const { category_id, category, search } = req.query;
     let query = `
@@ -244,7 +263,7 @@ app.get('/api/products', (req, res) => {
 
     query += ` ORDER BY p.id DESC`;
 
-    const products = db.prepare(query).all(...params);
+    const products = await db.prepare(query).all(...params);
     
     // Parse images array if present
     const formattedProducts = products.map(p => {
@@ -260,6 +279,9 @@ app.get('/api/products', (req, res) => {
       }
       return {
         ...p,
+        price: Number(p.price || 0),
+        old_price: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
+        stock: Number(p.stock || 0),
         images: imagesArr
       };
     });
@@ -271,7 +293,7 @@ app.get('/api/products', (req, res) => {
 });
 
 // POST /api/products
-app.post('/api/products', authenticateToken, (req, res) => {
+app.post('/api/products', authenticateToken, async (req, res) => {
   try {
     const { 
       name, 
@@ -318,6 +340,18 @@ app.post('/api/products', authenticateToken, (req, res) => {
       imagesJson = JSON.stringify([primaryImage]);
     }
 
+    let validCatId = null;
+    if (category_id) {
+      const catCheck = await db.prepare('SELECT id FROM categories WHERE id = ?').get(parseInt(category_id));
+      if (catCheck) validCatId = catCheck.id;
+    }
+
+    let validSubCatId = null;
+    if (subcategory_id) {
+      const subCheck = await db.prepare('SELECT id FROM categories WHERE id = ?').get(parseInt(subcategory_id));
+      if (subCheck) validSubCatId = subCheck.id;
+    }
+
     const stmt = db.prepare(`
       INSERT INTO products (
         name, category_id, subcategory_id, brand, price, old_price, 
@@ -327,10 +361,10 @@ app.post('/api/products', authenticateToken, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(
+    const result = await stmt.run(
       name.trim(),
-      category_id ? parseInt(category_id) : null,
-      subcategory_id ? parseInt(subcategory_id) : null,
+      validCatId,
+      validSubCatId,
       brand.trim(),
       parseFloat(price),
       old_price ? parseFloat(old_price) : null,
@@ -346,7 +380,7 @@ app.post('/api/products', authenticateToken, (req, res) => {
     );
 
     const productId = Number(result.lastInsertRowid);
-    logActivity(req.user.id, 'Created Product', `Added product: ${name} (ID: ${productId})`);
+    await logActivity(req.user.id, 'Created Product', `Added product: ${name} (ID: ${productId})`);
 
     res.status(201).json({
       success: true,
@@ -359,7 +393,7 @@ app.post('/api/products', authenticateToken, (req, res) => {
 });
 
 // PUT /api/products/:id
-app.put('/api/products/:id', authenticateToken, (req, res) => {
+app.put('/api/products/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { 
@@ -379,7 +413,7 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
       is_bestseller 
     } = req.body;
 
-    const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM products WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
@@ -394,7 +428,27 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
       imagesJson = images;
     }
 
-    db.prepare(`
+    let targetCatId = existing.category_id;
+    if (category_id !== undefined) {
+      if (category_id) {
+        const cCheck = await db.prepare('SELECT id FROM categories WHERE id = ?').get(parseInt(category_id));
+        targetCatId = cCheck ? cCheck.id : null;
+      } else {
+        targetCatId = null;
+      }
+    }
+
+    let targetSubCatId = existing.subcategory_id;
+    if (subcategory_id !== undefined) {
+      if (subcategory_id) {
+        const scCheck = await db.prepare('SELECT id FROM categories WHERE id = ?').get(parseInt(subcategory_id));
+        targetSubCatId = scCheck ? scCheck.id : null;
+      } else {
+        targetSubCatId = null;
+      }
+    }
+
+    await db.prepare(`
       UPDATE products 
       SET name = ?, category_id = ?, subcategory_id = ?, brand = ?, price = ?, old_price = ?, 
           image = ?, images = ?, warranty = ?, wattage = ?, model = ?, description = ?, 
@@ -402,8 +456,8 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(
       name ? name.trim() : existing.name,
-      category_id !== undefined ? (category_id ? parseInt(category_id) : null) : existing.category_id,
-      subcategory_id !== undefined ? (subcategory_id ? parseInt(subcategory_id) : null) : existing.subcategory_id,
+      targetCatId,
+      targetSubCatId,
       brand ? brand.trim() : existing.brand,
       price !== undefined ? parseFloat(price) : existing.price,
       old_price !== undefined ? (old_price ? parseFloat(old_price) : null) : existing.old_price,
@@ -418,7 +472,7 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
       id
     );
 
-    logActivity(req.user.id, 'Updated Product', `Updated product ID: ${id} (${name || existing.name})`);
+    await logActivity(req.user.id, 'Updated Product', `Updated product ID: ${id} (${name || existing.name})`);
 
     res.json({ success: true, message: 'Product updated successfully.' });
   } catch (err) {
@@ -427,16 +481,16 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/products/:id
-app.delete('/api/products/:id', authenticateToken, (req, res) => {
+app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const product = db.prepare('SELECT name FROM products WHERE id = ?').get(id);
+    const product = await db.prepare('SELECT name FROM products WHERE id = ?').get(id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
-    db.prepare('DELETE FROM products WHERE id = ?').run(id);
-    logActivity(req.user.id, 'Deleted Product', `Deleted product: ${product.name} (ID: ${id})`);
+    await db.prepare('DELETE FROM products WHERE id = ?').run(id);
+    await logActivity(req.user.id, 'Deleted Product', `Deleted product: ${product.name} (ID: ${id})`);
 
     res.json({ success: true, message: 'Product deleted successfully.' });
   } catch (err) {
@@ -449,9 +503,9 @@ app.delete('/api/products/:id', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // GET /api/categories
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
-    const rawCategories = db.prepare(`
+    const rawCategories = await db.prepare(`
       SELECT c.*, count(p.id) as product_count
       FROM categories c
       LEFT JOIN products p ON c.id = p.category_id
@@ -482,7 +536,7 @@ app.get('/api/categories', (req, res) => {
 });
 
 // POST /api/categories
-app.post('/api/categories', authenticateToken, (req, res) => {
+app.post('/api/categories', authenticateToken, async (req, res) => {
   try {
     const { name, slug, icon, description, parent_id, subcategories } = req.body;
     if (!name || !slug) {
@@ -490,12 +544,12 @@ app.post('/api/categories', authenticateToken, (req, res) => {
     }
 
     const cleanSlug = slug.toLowerCase().trim().replace(/\s+/g, '-');
-    const existingSlug = db.prepare('SELECT id FROM categories WHERE slug = ?').get(cleanSlug);
+    const existingSlug = await db.prepare('SELECT id FROM categories WHERE slug = ?').get(cleanSlug);
     if (existingSlug) {
       return res.status(400).json({ success: false, message: `Category with slug '${cleanSlug}' already exists.` });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO categories (name, slug, icon, description, parent_id)
       VALUES (?, ?, ?, ?, ?)
     `).run(name.trim(), cleanSlug, icon || 'Box', description || '', parent_id ? parseInt(parent_id) : null);
@@ -519,15 +573,15 @@ app.post('/api/categories', authenticateToken, (req, res) => {
 
         let finalSubSlug = subSlug;
         let counter = 1;
-        while (db.prepare('SELECT id FROM categories WHERE slug = ?').get(finalSubSlug)) {
+        while (await db.prepare('SELECT id FROM categories WHERE slug = ?').get(finalSubSlug)) {
           finalSubSlug = `${subSlug}-${counter++}`;
         }
 
-        insertSub.run(subName, finalSubSlug, 'Layers', typeof sub === 'object' ? (sub.description || '') : '', categoryId);
+        await insertSub.run(subName, finalSubSlug, 'Layers', typeof sub === 'object' ? (sub.description || '') : '', categoryId);
       }
     }
 
-    logActivity(req.user.id, 'Created Category', `Created category: ${name} (ID: ${categoryId})`);
+    await logActivity(req.user.id, 'Created Category', `Created category: ${name} (ID: ${categoryId})`);
     res.status(201).json({ success: true, message: 'Category created successfully.', categoryId });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -535,12 +589,12 @@ app.post('/api/categories', authenticateToken, (req, res) => {
 });
 
 // PUT /api/categories/:id
-app.put('/api/categories/:id', authenticateToken, (req, res) => {
+app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, icon, description, parent_id, subcategories } = req.body;
 
-    const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Category not found.' });
     }
@@ -549,13 +603,13 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
     const cleanSlug = slug ? slug.toLowerCase().trim().replace(/\s+/g, '-') : existing.slug;
 
     if (cleanSlug !== existing.slug) {
-      const checkSlug = db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(cleanSlug, id);
+      const checkSlug = await db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(cleanSlug, id);
       if (checkSlug) {
         return res.status(400).json({ success: false, message: `Slug '${cleanSlug}' is already taken.` });
       }
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE categories
       SET name = ?, slug = ?, icon = ?, description = ?, parent_id = ?
       WHERE id = ?
@@ -570,13 +624,13 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
 
     // Sync subcategories if provided for a main category
     if (Array.isArray(subcategories)) {
-      const currentSubs = db.prepare('SELECT * FROM categories WHERE parent_id = ?').all(id);
+      const currentSubs = await db.prepare('SELECT * FROM categories WHERE parent_id = ?').all(id);
       const incomingIds = subcategories.filter(s => s.id).map(s => parseInt(s.id));
 
       // 1. Delete removed subcategories
       for (const curSub of currentSubs) {
         if (!incomingIds.includes(curSub.id)) {
-          db.prepare('DELETE FROM categories WHERE id = ?').run(curSub.id);
+          await db.prepare('DELETE FROM categories WHERE id = ?').run(curSub.id);
         }
       }
 
@@ -589,9 +643,9 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
           : subName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
         if (sub.id) {
-          let checkSlug = db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(subSlug, sub.id);
+          let checkSlug = await db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(subSlug, sub.id);
           if (checkSlug) subSlug = `${subSlug}-${sub.id}`;
-          db.prepare(`
+          await db.prepare(`
             UPDATE categories
             SET name = ?, slug = ?, description = ?
             WHERE id = ? AND parent_id = ?
@@ -599,10 +653,10 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
         } else {
           let finalSubSlug = subSlug;
           let counter = 1;
-          while (db.prepare('SELECT id FROM categories WHERE slug = ?').get(finalSubSlug)) {
+          while (await db.prepare('SELECT id FROM categories WHERE slug = ?').get(finalSubSlug)) {
             finalSubSlug = `${subSlug}-${counter++}`;
           }
-          db.prepare(`
+          await db.prepare(`
             INSERT INTO categories (name, slug, icon, description, parent_id)
             VALUES (?, ?, ?, ?, ?)
           `).run(subName, finalSubSlug, 'Layers', sub.description || '', id);
@@ -610,7 +664,7 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
       }
     }
 
-    logActivity(req.user.id, 'Updated Category', `Updated category: ${newName} (ID: ${id})`);
+    await logActivity(req.user.id, 'Updated Category', `Updated category: ${newName} (ID: ${id})`);
     res.json({ success: true, message: 'Category updated successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -618,21 +672,21 @@ app.put('/api/categories/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/categories/:id
-app.delete('/api/categories/:id', authenticateToken, (req, res) => {
+app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+    const cat = await db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!cat) {
       return res.status(404).json({ success: false, message: 'Category not found.' });
     }
 
     // Delete subcategories if this is a parent category
-    db.prepare('DELETE FROM categories WHERE parent_id = ?').run(id);
+    await db.prepare('DELETE FROM categories WHERE parent_id = ?').run(id);
 
     // Delete the category itself
-    db.prepare('DELETE FROM categories WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM categories WHERE id = ?').run(id);
 
-    logActivity(req.user.id, 'Deleted Category', `Deleted category: ${cat.name} (ID: ${id})`);
+    await logActivity(req.user.id, 'Deleted Category', `Deleted category: ${cat.name} (ID: ${id})`);
     res.json({ success: true, message: 'Category deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -644,9 +698,9 @@ app.delete('/api/categories/:id', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // GET /api/brands
-app.get('/api/brands', (req, res) => {
+app.get('/api/brands', async (req, res) => {
   try {
-    const brands = db.prepare(`
+    const brands = await db.prepare(`
       SELECT b.*, count(p.id) as product_count
       FROM brands b
       LEFT JOIN products p ON LOWER(p.brand) = LOWER(b.name)
@@ -664,7 +718,7 @@ app.get('/api/brands', (req, res) => {
 });
 
 // POST /api/brands
-app.post('/api/brands', authenticateToken, (req, res) => {
+app.post('/api/brands', authenticateToken, async (req, res) => {
   try {
     const { name, slug, image, website, description, is_featured } = req.body;
     if (!name || !name.trim()) {
@@ -682,12 +736,12 @@ app.post('/api/brands', authenticateToken, (req, res) => {
 
     if (!cleanSlug) cleanSlug = `brand-${Date.now()}`;
 
-    const existing = db.prepare('SELECT id FROM brands WHERE LOWER(name) = ? OR slug = ?').get(cleanName.toLowerCase(), cleanSlug);
+    const existing = await db.prepare('SELECT id FROM brands WHERE LOWER(name) = ? OR slug = ?').get(cleanName.toLowerCase(), cleanSlug);
     if (existing) {
       return res.status(400).json({ success: false, message: `Brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO brands (name, slug, image, website, description, is_featured)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
@@ -700,7 +754,7 @@ app.post('/api/brands', authenticateToken, (req, res) => {
     );
 
     const brandId = Number(result.lastInsertRowid);
-    logActivity(req.user.id, 'Created Brand', `Created brand: ${cleanName} (ID: ${brandId})`);
+    await logActivity(req.user.id, 'Created Brand', `Created brand: ${cleanName} (ID: ${brandId})`);
 
     res.status(201).json({
       success: true,
@@ -713,12 +767,12 @@ app.post('/api/brands', authenticateToken, (req, res) => {
 });
 
 // PUT /api/brands/:id
-app.put('/api/brands/:id', authenticateToken, (req, res) => {
+app.put('/api/brands/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, image, website, description, is_featured } = req.body;
 
-    const existing = db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Brand not found.' });
     }
@@ -729,12 +783,12 @@ app.put('/api/brands/:id', authenticateToken, (req, res) => {
       : existing.slug;
 
     // Check duplicate name or slug on other brands
-    const duplicate = db.prepare('SELECT id FROM brands WHERE (LOWER(name) = ? OR slug = ?) AND id != ?').get(cleanName.toLowerCase(), cleanSlug, id);
+    const duplicate = await db.prepare('SELECT id FROM brands WHERE (LOWER(name) = ? OR slug = ?) AND id != ?').get(cleanName.toLowerCase(), cleanSlug, id);
     if (duplicate) {
       return res.status(400).json({ success: false, message: `Another brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE brands
       SET name = ?, slug = ?, image = ?, website = ?, description = ?, is_featured = ?
       WHERE id = ?
@@ -748,7 +802,7 @@ app.put('/api/brands/:id', authenticateToken, (req, res) => {
       id
     );
 
-    logActivity(req.user.id, 'Updated Brand', `Updated brand: ${cleanName} (ID: ${id})`);
+    await logActivity(req.user.id, 'Updated Brand', `Updated brand: ${cleanName} (ID: ${id})`);
 
     res.json({
       success: true,
@@ -760,17 +814,17 @@ app.put('/api/brands/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/brands/:id
-app.delete('/api/brands/:id', authenticateToken, (req, res) => {
+app.delete('/api/brands/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const brand = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
     if (!brand) {
       return res.status(404).json({ success: false, message: 'Brand not found.' });
     }
 
-    db.prepare('DELETE FROM brands WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM brands WHERE id = ?').run(id);
 
-    logActivity(req.user.id, 'Deleted Brand', `Deleted brand: ${brand.name} (ID: ${id})`);
+    await logActivity(req.user.id, 'Deleted Brand', `Deleted brand: ${brand.name} (ID: ${id})`);
 
     res.json({
       success: true,
@@ -786,7 +840,7 @@ app.delete('/api/brands/:id', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // POST /api/orders (Public endpoint for placing orders via WhatsApp / Web store)
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const {
       order_number,
@@ -817,17 +871,17 @@ app.post('/api/orders', (req, res) => {
       ? order_number.trim()
       : `SL-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    let checkExisting = db.prepare('SELECT id FROM orders WHERE order_number = ?').get(finalOrderNumber);
+    let checkExisting = await db.prepare('SELECT id FROM orders WHERE order_number = ?').get(finalOrderNumber);
     let counter = 1;
     while (checkExisting) {
       finalOrderNumber = `SL-${Math.floor(100000 + Math.random() * 900000)}-${counter++}`;
-      checkExisting = db.prepare('SELECT id FROM orders WHERE order_number = ?').get(finalOrderNumber);
+      checkExisting = await db.prepare('SELECT id FROM orders WHERE order_number = ?').get(finalOrderNumber);
     }
 
     const itemsArray = Array.isArray(items) ? items : [];
     const itemsJson = JSON.stringify(itemsArray);
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO orders (
         order_number, customer_name, customer_email, customer_phone,
         total_amount, status, items_json, delivery_location, notes, order_source
@@ -849,7 +903,7 @@ app.post('/api/orders', (req, res) => {
     const orderId = Number(result.lastInsertRowid);
 
     try {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO activity_logs (admin_id, action, details)
         VALUES (NULL, 'New Order Placed', ?)
       `).run(`Order #${finalOrderNumber} placed by ${cleanName} via ${order_source} (AED ${numTotal.toFixed(2)})`);
@@ -882,21 +936,22 @@ app.post('/api/orders', (req, res) => {
 });
 
 // POST /api/orders/lookup (Public endpoint for user to query and sync their orders)
-app.post('/api/orders/lookup', (req, res) => {
+app.post('/api/orders/lookup', async (req, res) => {
   try {
     const { order_numbers, phone } = req.body;
     let orders = [];
 
     if (Array.isArray(order_numbers) && order_numbers.length > 0) {
       const placeholders = order_numbers.map(() => '?').join(',');
-      orders = db.prepare(`SELECT * FROM orders WHERE order_number IN (${placeholders}) ORDER BY id DESC`).all(...order_numbers);
+      orders = await db.prepare(`SELECT * FROM orders WHERE order_number IN (${placeholders}) ORDER BY id DESC`).all(...order_numbers);
     } else if (phone && phone.trim()) {
       const cleanPhone = phone.trim();
-      orders = db.prepare(`SELECT * FROM orders WHERE customer_phone LIKE ? ORDER BY id DESC`).all(`%${cleanPhone}%`);
+      orders = await db.prepare(`SELECT * FROM orders WHERE customer_phone LIKE ? ORDER BY id DESC`).all(`%${cleanPhone}%`);
     }
 
     const formatted = orders.map(o => ({
       ...o,
+      total_amount: Number(o.total_amount || 0),
       items: o.items_json ? JSON.parse(o.items_json) : []
     }));
 
@@ -907,11 +962,12 @@ app.post('/api/orders/lookup', (req, res) => {
 });
 
 // GET /api/orders
-app.get('/api/orders', authenticateToken, (req, res) => {
+app.get('/api/orders', authenticateToken, async (req, res) => {
   try {
-    const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+    const orders = await db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
     const formattedOrders = orders.map(ord => ({
       ...ord,
+      total_amount: Number(ord.total_amount || 0),
       items: ord.items_json ? JSON.parse(ord.items_json) : []
     }));
     res.json({ success: true, count: formattedOrders.length, orders: formattedOrders });
@@ -921,7 +977,7 @@ app.get('/api/orders', authenticateToken, (req, res) => {
 });
 
 // PUT /api/orders/:id/status
-app.put('/api/orders/:id/status', authenticateToken, (req, res) => {
+app.put('/api/orders/:id/status', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -931,8 +987,8 @@ app.put('/api/orders/:id/status', authenticateToken, (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid order status.' });
     }
 
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
-    logActivity(req.user.id, 'Updated Order Status', `Order ID ${id} marked as ${status}`);
+    await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
+    await logActivity(req.user.id, 'Updated Order Status', `Order ID ${id} marked as ${status}`);
 
     res.json({ success: true, message: `Order status updated to ${status}.` });
   } catch (err) {
@@ -945,7 +1001,7 @@ app.put('/api/orders/:id/status', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // POST /api/inquiries (Public endpoint for Send Us a Message contact form)
-app.post('/api/inquiries', (req, res) => {
+app.post('/api/inquiries', async (req, res) => {
   try {
     const { name, email, phone, subject, message } = req.body;
 
@@ -965,7 +1021,7 @@ app.post('/api/inquiries', (req, res) => {
     const cleanSubject = subject && subject.trim() ? subject.trim() : 'General Inquiry';
     const cleanMessage = message.trim();
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO inquiries (name, email, phone, subject, message, status)
       VALUES (?, ?, ?, ?, ?, 'Unread')
     `).run(cleanName, cleanEmail, cleanPhone, cleanSubject, cleanMessage);
@@ -984,9 +1040,9 @@ app.post('/api/inquiries', (req, res) => {
 });
 
 // GET /api/inquiries
-app.get('/api/inquiries', authenticateToken, (req, res) => {
+app.get('/api/inquiries', authenticateToken, async (req, res) => {
   try {
-    const inquiries = db.prepare('SELECT * FROM inquiries ORDER BY id DESC').all();
+    const inquiries = await db.prepare('SELECT * FROM inquiries ORDER BY id DESC').all();
     res.json({ success: true, count: inquiries.length, inquiries });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -994,12 +1050,12 @@ app.get('/api/inquiries', authenticateToken, (req, res) => {
 });
 
 // PUT /api/inquiries/:id/status
-app.put('/api/inquiries/:id/status', authenticateToken, (req, res) => {
+app.put('/api/inquiries/:id/status', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    db.prepare('UPDATE inquiries SET status = ? WHERE id = ?').run(status, id);
+    await db.prepare('UPDATE inquiries SET status = ? WHERE id = ?').run(status, id);
     res.json({ success: true, message: 'Inquiry status updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1007,10 +1063,10 @@ app.put('/api/inquiries/:id/status', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/inquiries/:id
-app.delete('/api/inquiries/:id', authenticateToken, (req, res) => {
+app.delete('/api/inquiries/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM inquiries WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM inquiries WHERE id = ?').run(id);
     res.json({ success: true, message: 'Inquiry deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1022,9 +1078,9 @@ app.delete('/api/inquiries/:id', authenticateToken, (req, res) => {
    ========================================================================== */
 
 // GET /api/logs
-app.get('/api/logs', authenticateToken, (req, res) => {
+app.get('/api/logs', authenticateToken, async (req, res) => {
   try {
-    const logs = db.prepare(`
+    const logs = await db.prepare(`
       SELECT l.*, a.name as admin_name, a.email as admin_email
       FROM activity_logs l
       LEFT JOIN admins a ON l.admin_id = a.id
@@ -1038,14 +1094,31 @@ app.get('/api/logs', authenticateToken, (req, res) => {
 });
 
 // GET /api/database/tables
-app.get('/api/database/tables', authenticateToken, (req, res) => {
+app.get('/api/database/tables', authenticateToken, async (req, res) => {
   try {
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
     const tableData = {};
-    for (const t of tables) {
-      const count = db.prepare(`SELECT count(*) as count FROM ${t.name}`).get().count;
-      const columns = db.prepare(`PRAGMA table_info(${t.name})`).all();
-      tableData[t.name] = { count, columns };
+    if (db.isMySQL) {
+      const [rows] = await db.pool.query('SHOW TABLES');
+      const tableNames = rows.map(r => Object.values(r)[0]);
+      for (const t of tableNames) {
+        const [cRows] = await db.pool.query(`SELECT count(*) as count FROM \`${t}\``);
+        const [cols] = await db.pool.query(`SHOW COLUMNS FROM \`${t}\``);
+        const formattedCols = cols.map(c => ({
+          name: c.Field,
+          type: c.Type,
+          notnull: c.Null === 'NO' ? 1 : 0,
+          dflt_value: c.Default,
+          pk: c.Key === 'PRI' ? 1 : 0
+        }));
+        tableData[t] = { count: Number(cRows[0].count), columns: formattedCols };
+      }
+    } else {
+      const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+      for (const t of tables) {
+        const count = (await db.prepare(`SELECT count(*) as count FROM "${t.name}"`).get()).count;
+        const columns = await db.prepare(`PRAGMA table_info("${t.name}")`).all();
+        tableData[t.name] = { count: Number(count), columns };
+      }
     }
     res.json({ success: true, tables: tableData });
   } catch (err) {
@@ -1054,14 +1127,14 @@ app.get('/api/database/tables', authenticateToken, (req, res) => {
 });
 
 // POST /api/database/query (Read-only SQL Query runner for Admin SQL Console)
-app.post('/api/database/query', authenticateToken, (req, res) => {
+app.post('/api/database/query', authenticateToken, async (req, res) => {
   try {
     const { sql } = req.body;
     if (!sql || !sql.trim().toUpperCase().startsWith('SELECT')) {
       return res.status(400).json({ success: false, message: 'Only SELECT SQL queries are allowed in the console.' });
     }
 
-    const rows = db.prepare(sql).all();
+    const rows = await db.prepare(sql).all();
     res.json({ success: true, count: rows.length, rows });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

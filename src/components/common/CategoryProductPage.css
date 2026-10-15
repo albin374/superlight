@@ -784,6 +784,23 @@
   background: #c2004d;
 }
 
+/* Card Actions Container */
+.cpp-card-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: auto;
+}
+
+/* Desktop: Hide mobile-only elements on screens > 768px */
+@media (min-width: 769px) {
+  .cpp-mobile-bottom-bar,
+  .cpp-mobile-sheet-overlay,
+  .cpp-mobile-subcat-pills {
+    display: none !important;
+  }
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1320px) {
   .cpp-products-grid {
@@ -817,21 +834,521 @@
 }
 
 @media (max-width: 768px) {
+  /* Hide the desktop inline sidebar on mobile */
+  .cpp-sidebar {
+    display: none !important;
+  }
+
+  .cpp-page {
+    padding-bottom: 70px;
+  }
+
+  .cpp-layout-container {
+    padding: 0 14px;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 0;
+  }
+
+  .cpp-main-content {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 0 60px 0;
+  }
+
   .cpp-products-grid {
-    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto;
+    box-sizing: border-box;
   }
+
+  /* Compact Product Card on Mobile (1 product per row, reduced length/height) */
+  .cpp-product-card {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+
+  .cpp-image-wrapper {
+    height: 115px;
+    margin-bottom: 6px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cpp-product-img {
+    max-width: 100%;
+    max-height: 110px;
+    object-fit: contain;
+  }
+
+  .cpp-brand-name {
+    font-size: 10.5px;
+    margin-bottom: 2px;
+  }
+
+  .cpp-product-title {
+    font-size: 13px;
+    line-height: 1.3;
+    margin: 0 0 3px 0;
+    min-height: unset;
+  }
+
+  .cpp-rating-row {
+    margin-bottom: 3px;
+    gap: 4px;
+  }
+
+  .cpp-price-row {
+    margin-bottom: 6px;
+    margin-top: 2px;
+    gap: 6px;
+  }
+
+  .cpp-current-price {
+    font-size: 15.5px;
+  }
+
+  .cpp-old-price {
+    font-size: 12px;
+  }
+
+  .cpp-card-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .cpp-card-actions .cpp-add-cart-btn,
+  .cpp-card-actions .cpp-whatsapp-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
+    padding: 7px 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    height: 35px;
+    border-radius: 8px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+
+  .cpp-card-actions .cpp-add-cart-btn svg,
+  .cpp-card-actions .cpp-whatsapp-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
   .cpp-hero-title {
-    font-size: 32px;
+    font-size: 30px;
   }
+
+  /* Hide Subcategory Pills & Top Controls from mobile screen */
+  .cpp-mobile-subcat-pills {
+    display: none !important;
+  }
+
+  .cpp-top-controls {
+    display: none !important;
+  }
+
+  .cpp-top-bar {
+    margin-bottom: 14px;
+  }
+
+  .cpp-sort-wrapper {
+    display: none; /* Sort is now accessed via the bottom bar */
+  }
+
+  /* Mobile Bottom Fixed Bar */
+  .cpp-mobile-bottom-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 52px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -3px 14px rgba(15, 23, 42, 0.08);
+    z-index: 9999;
+    align-items: stretch;
+  }
+
+  .cpp-mobile-bottom-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid #f1f5f9;
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    padding: 0 8px;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    transition: background-color 0.15s, color 0.15s;
+    position: relative;
+  }
+
+  .cpp-mobile-bottom-btn:last-child {
+    border-right: none;
+  }
+
+  .cpp-mobile-bottom-btn:active {
+    background-color: #f8fafc;
+  }
+
+  .cpp-mobile-bottom-btn.active {
+    color: #e6005c;
+  }
+
+  .cpp-mobile-bottom-btn svg {
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  .cpp-mobile-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #e6005c;
+    display: inline-block;
+    margin-left: 2px;
+    flex-shrink: 0;
+  }
+
+  .cpp-mobile-filter-badge {
+    background-color: #e6005c;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+  }
+
+  /* Mobile Bottom Sheet Overlay */
+  .cpp-mobile-sheet-overlay {
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 10000;
+    align-items: flex-end;
+    animation: cppOverlayFadeIn 0.2s ease-out;
+  }
+
+  .cpp-mobile-sheet {
+    width: 100%;
+    max-height: 82vh;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: cppSheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+
+  .cpp-mobile-sheet-drag-handle {
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: #cbd5e1;
+    margin: 8px auto 0 auto;
+  }
+
+  .cpp-mobile-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .cpp-mobile-sheet-title {
+    font-size: 17px;
+    font-weight: 750;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .cpp-mobile-sheet-subtitle {
+    font-size: 12px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+  }
+
+  .cpp-mobile-sheet-reset-btn {
+    background: none;
+    border: none;
+    color: #e6005c;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .cpp-mobile-sheet-close {
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: background 0.15s;
+  }
+
+  .cpp-mobile-sheet-close:active {
+    background: #e2e8f0;
+  }
+
+  .cpp-mobile-sheet-body {
+    padding: 14px 20px 24px 20px;
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Subcategories in Sheet */
+  .cpp-mobile-subcat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cpp-mobile-subcat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .cpp-mobile-subcat-row:active,
+  .cpp-mobile-subcat-row.selected {
+    background: #fdf2f6;
+  }
+
+  .cpp-mobile-subcat-row-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cpp-mobile-radio-indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s;
+  }
+
+  .cpp-mobile-subcat-row.selected .cpp-mobile-radio-indicator,
+  .cpp-mobile-radio-indicator.checked {
+    border-color: #e6005c;
+  }
+
+  .cpp-mobile-radio-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #e6005c;
+  }
+
+  .cpp-mobile-subcat-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .cpp-mobile-subcat-row.selected .cpp-mobile-subcat-label {
+    color: #e6005c;
+    font-weight: 700;
+  }
+
+  .cpp-mobile-subcat-count {
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  /* Sort Rows in Sheet */
+  .cpp-mobile-sort-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cpp-mobile-sort-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .cpp-mobile-sort-row:active,
+  .cpp-mobile-sort-row.selected {
+    background: #fdf2f6;
+  }
+
+  .cpp-mobile-sort-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .cpp-mobile-sort-row.selected .cpp-mobile-sort-label {
+    color: #e6005c;
+    font-weight: 700;
+  }
+
+  /* Filter Sections in Sheet */
+  .cpp-mobile-filter-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cpp-mobile-section-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+  }
+
+  /* Brand list scrolling in Filter sheet */
+  .cpp-mobile-brand-scroll {
+    max-height: 200px;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+    margin-bottom: 6px;
+  }
+
+  .cpp-mobile-brand-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .cpp-mobile-brand-scroll::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .cpp-mobile-brand-scroll .cpp-brand-item {
+    padding: 8px 6px;
+  }
+
+  .cpp-mobile-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 18px 0;
+    clear: both;
+  }
+
+  .cpp-mobile-sheet-footer {
+    display: flex;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid #f1f5f9;
+    background: #ffffff;
+  }
+
+  .cpp-mobile-sheet-clear-btn {
+    flex: 1;
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .cpp-mobile-sheet-apply-btn {
+    flex: 2;
+    background: #e6005c;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(230, 0, 92, 0.25);
+  }
+}
+
+@keyframes cppOverlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cppSheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @media (max-width: 520px) {
   .cpp-products-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto;
   }
   .cpp-top-bar {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 

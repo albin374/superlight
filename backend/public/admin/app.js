@@ -3,6 +3,10 @@
 const API_BASE = '/api';
 let authToken = localStorage.getItem('superlight_admin_token') || null;
 let currentAdmin = null;
+try {
+  const cachedAdmin = localStorage.getItem('superlight_admin_user');
+  if (cachedAdmin) currentAdmin = JSON.parse(cachedAdmin);
+} catch (e) {}
 let allCategories = [];
 let allProducts = [];
 let allBrands = [];
@@ -18,9 +22,15 @@ const pageTitle = document.getElementById('pageTitle');
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
   setupEventListeners();
 
   if (authToken) {
+    // Show dashboard immediately - no flash of login screen!
+    showApp();
+    // Validate session in background
     verifySession();
   } else {
     showLogin();
@@ -178,16 +188,20 @@ async function verifySession() {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
+    if (res.status === 401 || res.status === 403) {
+      handleLogout();
+      return;
+    }
     const data = await res.json();
     if (data.success && data.user) {
       currentAdmin = data.user;
-      showApp();
+      localStorage.setItem('superlight_admin_user', JSON.stringify(currentAdmin));
+      renderAdminProfile();
     } else {
       handleLogout();
     }
   } catch (err) {
     console.error('Session verify error:', err);
-    handleLogout();
   }
 }
 
@@ -215,6 +229,8 @@ async function handleLogin(e) {
       authToken = data.token;
       currentAdmin = data.user;
       localStorage.setItem('superlight_admin_token', authToken);
+      localStorage.setItem('superlight_admin_user', JSON.stringify(currentAdmin));
+      document.documentElement.classList.add('auth-verified');
       showToast(`Welcome back, ${currentAdmin.name}!`, 'success');
       showApp();
     } else {
@@ -234,6 +250,9 @@ function handleLogout() {
   authToken = null;
   currentAdmin = null;
   localStorage.removeItem('superlight_admin_token');
+  localStorage.removeItem('superlight_admin_user');
+  localStorage.removeItem('superlight_admin_tab');
+  document.documentElement.classList.remove('auth-verified');
   const adminName = document.getElementById('adminName');
   const adminEmail = document.getElementById('adminEmail');
   const adminAvatar = document.getElementById('adminAvatar');
@@ -245,14 +264,12 @@ function handleLogout() {
 }
 
 function showLogin() {
+  document.documentElement.classList.remove('auth-verified');
   loginScreen.style.display = 'flex';
   adminApp.style.display = 'none';
 }
 
-function showApp() {
-  loginScreen.style.display = 'none';
-  adminApp.style.display = 'flex';
-
+function renderAdminProfile() {
   if (currentAdmin) {
     const adminName = document.getElementById('adminName');
     const adminEmail = document.getElementById('adminEmail');
@@ -267,16 +284,35 @@ function showApp() {
       adminAvatar.innerText = initials || 'A';
     }
   }
+}
+
+function showApp() {
+  document.documentElement.classList.add('auth-verified');
+  loginScreen.style.display = 'none';
+  adminApp.style.display = 'flex';
+
+  renderAdminProfile();
 
   // Load initial datasets
   loadCategories();
   loadBrands();
   loadDashboardStats();
-  switchTab('dashboard');
+
+  const savedTab = localStorage.getItem('superlight_admin_tab') || 'dashboard';
+  switchTab(savedTab);
 }
 
 // Switch navigation tabs
 function switchTab(tabId) {
+  const validTabs = ['dashboard', 'products', 'categories', 'brands', 'orders', 'inquiries'];
+  if (!validTabs.includes(tabId)) tabId = 'dashboard';
+  localStorage.setItem('superlight_admin_tab', tabId);
+
+  // Clean URL to ensure no # hash appears in address bar
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
   // Update sidebar active
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-tab') === tabId);
@@ -345,10 +381,10 @@ async function loadDashboardStats() {
         ordersTbody.innerHTML = stats.recentOrders.map(ord => `
           <tr>
             <td><strong>${ord.order_number}</strong></td>
-            <td>${escapeHtml(ord.customer_name)}</td>
-            <td><strong>AED ${ord.total_amount.toFixed(2)}</strong></td>
-            <td><span class="status-chip ${ord.status.toLowerCase()}">${ord.status}</span></td>
-            <td>${new Date(ord.created_at).toLocaleDateString()}</td>
+            <td>${escapeHtml(ord.customer_name || 'Customer')}</td>
+            <td><strong>AED ${Number(ord.total_amount || 0).toFixed(2)}</strong></td>
+            <td><span class="status-chip ${(ord.status || 'pending').toLowerCase()}">${ord.status || 'Pending'}</span></td>
+            <td>${ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'N/A'}</td>
           </tr>
         `).join('');
       }

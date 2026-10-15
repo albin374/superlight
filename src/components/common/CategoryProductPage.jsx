@@ -10,7 +10,11 @@ import {
   ChevronDown, 
   Search, 
   LayoutGrid, 
-  List 
+  List,
+  Filter,
+  ArrowUpDown,
+  X,
+  Layers
 } from 'lucide-react';
 import './CategoryProductPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './WhatsAppOrderModal';
@@ -127,6 +131,7 @@ const CategoryProductPage = ({
   const [isSubcategoriesOpen, setIsSubcategoriesOpen] = useState(true);
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
+  const [activeMobileSheet, setActiveMobileSheet] = useState(null); // 'subcategories' | 'filter' | 'sort' | null
 
   // Global Shop State
   const { addToCart: shopAddToCart, toggleWishlist: shopToggleWishlist, isInWishlist } = useShop();
@@ -140,7 +145,20 @@ const CategoryProductPage = ({
     setSelectedSubcategory('all');
     setSelectedBrands([]);
     setBrandSearch('');
+    setActiveMobileSheet(null);
   }, [currentPath]);
+
+  // Lock body scroll when mobile sheet is open
+  useEffect(() => {
+    if (activeMobileSheet) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeMobileSheet]);
 
   // Fetch live products, categories and brands from API
   useEffect(() => {
@@ -729,37 +747,40 @@ const CategoryProductPage = ({
                         )}
                       </div>
 
-                      {/* Add to Cart Button */}
-                      <button 
-                        type="button"
-                        className={`cpp-add-cart-btn ${isAdded ? 'added' : ''}`}
-                        onClick={(e) => handleAddToCart(e, product)}
-                      >
-                        {isAdded ? (
-                          <>
-                            <Check size={16} />
-                            Added to Cart
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart size={16} />
-                            Add to Cart
-                          </>
-                        )}
-                      </button>
+                      {/* Action Buttons */}
+                      <div className="cpp-card-actions">
+                        <button 
+                          type="button"
+                          className={`cpp-add-cart-btn ${isAdded ? 'added' : ''}`}
+                          onClick={(e) => handleAddToCart(e, product)}
+                        >
+                          {isAdded ? (
+                            <>
+                              <Check size={16} />
+                              <span>Added</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart size={16} />
+                              <span>Add to Cart</span>
+                            </>
+                          )}
+                        </button>
 
-                      {/* Order via WhatsApp Button */}
-                      <button 
-                        type="button"
-                        className="cpp-whatsapp-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWaProduct(product);
-                        }}
-                      >
-                        <WhatsAppIcon size={16} />
-                        Order via WhatsApp
-                      </button>
+                        <button 
+                          type="button"
+                          className="cpp-whatsapp-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWaProduct(product);
+                          }}
+                          title="Order via WhatsApp"
+                          aria-label="Order via WhatsApp"
+                        >
+                          <WhatsAppIcon size={15} />
+                          <span>Order via</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -775,6 +796,247 @@ const CategoryProductPage = ({
           )}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Fixed at bottom on mobile) */}
+      <div className="cpp-mobile-bottom-bar">
+        <button
+          type="button"
+          className={`cpp-mobile-bottom-btn ${selectedSubcategory !== 'all' ? 'active' : ''}`}
+          onClick={() => setActiveMobileSheet('subcategories')}
+        >
+          <Layers size={16} />
+          <span>Subcategories</span>
+          {selectedSubcategory !== 'all' && <span className="cpp-mobile-active-dot" />}
+        </button>
+
+        <button
+          type="button"
+          className={`cpp-mobile-bottom-btn ${(selectedBrands.length > 0 || maxPrice < 2000) ? 'active' : ''}`}
+          onClick={() => setActiveMobileSheet('filter')}
+        >
+          <Filter size={16} />
+          <span>Filter</span>
+          {(selectedBrands.length > 0 || maxPrice < 2000) && (
+            <span className="cpp-mobile-filter-badge">
+              {selectedBrands.length + (maxPrice < 2000 ? 1 : 0)}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`cpp-mobile-bottom-btn ${sortBy !== 'default' ? 'active' : ''}`}
+          onClick={() => setActiveMobileSheet('sort')}
+        >
+          <ArrowUpDown size={16} />
+          <span>Sort</span>
+          {sortBy !== 'default' && <span className="cpp-mobile-active-dot" />}
+        </button>
+      </div>
+
+      {/* Mobile Bottom Sheets (Subcategories, Filter, Sort) */}
+      {activeMobileSheet && (
+        <div className="cpp-mobile-sheet-overlay" onClick={() => setActiveMobileSheet(null)}>
+          <div className="cpp-mobile-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="cpp-mobile-sheet-drag-handle"></div>
+
+            {/* 1. Subcategories Sheet */}
+            {activeMobileSheet === 'subcategories' && (
+              <>
+                <div className="cpp-mobile-sheet-header">
+                  <div>
+                    <h3 className="cpp-mobile-sheet-title">Select Subcategory</h3>
+                    <p className="cpp-mobile-sheet-subtitle">{dynamicSubcategories.length} subcategories available</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="cpp-mobile-sheet-close"
+                    onClick={() => setActiveMobileSheet(null)}
+                    aria-label="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="cpp-mobile-sheet-body">
+                  <div className="cpp-mobile-subcat-list">
+                    {dynamicSubcategories.map((sub) => {
+                      const isSelected = selectedSubcategory === sub.id;
+                      return (
+                        <div
+                          key={sub.id}
+                          className={`cpp-mobile-subcat-row ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedSubcategory(sub.id);
+                            setActiveMobileSheet(null);
+                          }}
+                        >
+                          <div className="cpp-mobile-subcat-row-left">
+                            <div className={`cpp-mobile-radio-indicator ${isSelected ? 'checked' : ''}`}>
+                              {isSelected && <div className="cpp-mobile-radio-dot" />}
+                            </div>
+                            <span className="cpp-mobile-subcat-label">{sub.name}</span>
+                          </div>
+                          <span className="cpp-mobile-subcat-count">({sub.count})</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 2. Filter Sheet: Brand & Price Range (AED) only */}
+            {activeMobileSheet === 'filter' && (
+              <>
+                <div className="cpp-mobile-sheet-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 className="cpp-mobile-sheet-title">Filters</h3>
+                    {(selectedBrands.length > 0 || maxPrice < 2000) && (
+                      <button 
+                        type="button" 
+                        className="cpp-mobile-sheet-reset-btn"
+                        onClick={() => {
+                          setSelectedBrands([]);
+                          setBrandSearch('');
+                          setMaxPrice(2000);
+                        }}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <button 
+                    type="button" 
+                    className="cpp-mobile-sheet-close"
+                    onClick={() => setActiveMobileSheet(null)}
+                    aria-label="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="cpp-mobile-sheet-body">
+                  {/* Brand Filter */}
+                  <div className="cpp-mobile-filter-section">
+                    <h4 className="cpp-mobile-section-title">Brand</h4>
+                    <div className="cpp-brand-list cpp-mobile-brand-scroll">
+                      {dynamicBrands.map((b) => {
+                        const isChecked = selectedBrands.includes(b.name);
+                        return (
+                          <div 
+                            key={b.id} 
+                            className="cpp-brand-item"
+                            onClick={() => handleBrandToggle(b.name)}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <div className="cpp-brand-left">
+                              <div className={`cpp-custom-checkbox ${isChecked ? 'checked' : ''}`}>
+                                {isChecked && <Check size={12} strokeWidth={3} />}
+                              </div>
+                              <span className="cpp-brand-name-label">{b.name}</span>
+                            </div>
+                            <span className="cpp-brand-count">({b.count})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="cpp-mobile-divider" />
+
+                  {/* Price Range (AED) */}
+                  <div className="cpp-mobile-filter-section">
+                    <h4 className="cpp-mobile-section-title">Price Range (AED)</h4>
+                    <div className="cpp-slider-wrapper" style={{ marginTop: '14px' }}>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="2000" 
+                        step="25"
+                        value={maxPrice} 
+                        onChange={(e) => setMaxPrice(Number(e.target.value))}
+                        className="cpp-price-slider"
+                        style={{
+                          background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(maxPrice / 2000) * 100}%, #e2e8f0 ${(maxPrice / 2000) * 100}%, #e2e8f0 100%)`
+                        }}
+                      />
+                      <div className="cpp-slider-labels">
+                        <span className="cpp-price-min">AED 0</span>
+                        <span className="cpp-price-max">AED {maxPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cpp-mobile-sheet-footer">
+                  <button 
+                    type="button"
+                    className="cpp-mobile-sheet-clear-btn"
+                    onClick={() => {
+                      setSelectedBrands([]);
+                      setBrandSearch('');
+                      setMaxPrice(2000);
+                    }}
+                  >
+                    Clear All
+                  </button>
+                  <button 
+                    type="button"
+                    className="cpp-mobile-sheet-apply-btn"
+                    onClick={() => setActiveMobileSheet(null)}
+                  >
+                    Apply ({filteredProducts.length} Products)
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* 3. Sort Sheet */}
+            {activeMobileSheet === 'sort' && (
+              <>
+                <div className="cpp-mobile-sheet-header">
+                  <h3 className="cpp-mobile-sheet-title">Sort By</h3>
+                  <button 
+                    type="button" 
+                    className="cpp-mobile-sheet-close"
+                    onClick={() => setActiveMobileSheet(null)}
+                    aria-label="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="cpp-mobile-sheet-body">
+                  <div className="cpp-mobile-sort-list">
+                    {[
+                      { value: 'default', label: 'Default / Popularity' },
+                      { value: 'price-low', label: 'Price: Low to High' },
+                      { value: 'price-high', label: 'Price: High to Low' },
+                      { value: 'rating', label: 'Customer Rating' }
+                    ].map((opt) => {
+                      const isSelected = sortBy === opt.value;
+                      return (
+                        <div
+                          key={opt.value}
+                          className={`cpp-mobile-sort-row ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSortBy(opt.value);
+                            setActiveMobileSheet(null);
+                          }}
+                        >
+                          <span className="cpp-mobile-sort-label">{opt.label}</span>
+                          <div className={`cpp-mobile-radio-indicator ${isSelected ? 'checked' : ''}`}>
+                            {isSelected && <div className="cpp-mobile-radio-dot" />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* WhatsApp Order Modal */}
       <WhatsAppOrderModal 

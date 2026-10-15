@@ -215,7 +215,6 @@
   color: white;
 }
 
-.all-categories-wrapper:hover .all-cat-arrow,
 .all-categories-wrapper.hovered .all-cat-arrow {
   transform: rotate(180deg);
 }
@@ -263,7 +262,6 @@
   height: 14px;
 }
 
-.all-categories-wrapper:hover .all-categories-mega-menu,
 .all-categories-wrapper.hovered .all-categories-mega-menu {
   opacity: 1;
   visibility: visible;
@@ -727,8 +725,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 32px;
+  padding: 20px 24px;
   border-bottom: 1px solid #f3f4f6;
+}
+
+.mobile-drawer-logo {
+  height: 36px;
+  max-height: 40px;
+  max-width: 190px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .close-menu-btn {
@@ -759,6 +766,21 @@
   color: #4b5563;
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mobile-menu-item:hover {
+  color: #e6005c;
+}
+
+.mobile-menu-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .mobile-nav-links {
@@ -804,46 +826,113 @@
     display: none; /* Hide top bar on mobile */
   }
 
-  .mobile-menu-btn {
-    display: block;
-    margin-right: 8px;
-    flex-shrink: 0;
+  .main-header {
+    padding: 10px 0 12px 0;
+    overflow-x: hidden;
+  }
+
+  .main-header .container {
+    padding: 0 16px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
 
   .main-header-content {
-    flex-wrap: wrap;
-    gap: 16px 0;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "menu logo actions"
+      "search search search";
     align-items: center;
+    row-gap: 12px;
+    column-gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mobile-menu-btn {
+    grid-area: menu;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    margin: 0;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #1b253c;
   }
 
   .logo {
-    flex: 1 1 auto;
+    grid-area: logo;
     display: flex;
     justify-content: center;
+    align-items: center;
     min-width: 0;
+    padding: 0 2px;
+    overflow: hidden;
   }
 
-  .logo-image {
-    height: 28px;
-    max-width: 100%;
+  .main-header .logo-image {
+    height: 20px;
+    max-height: 22px;
+    max-width: 125px;
+    width: auto;
+    object-fit: contain;
+    display: block;
   }
 
   .user-actions {
-    gap: 12px;
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
     flex-shrink: 0;
+    padding-right: 10px;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
+
+  .action-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    cursor: pointer;
   }
 
   .action-icon {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .badge {
+    top: -5px;
+    right: -5px;
+    width: 15px;
+    height: 15px;
+    font-size: 8.5px;
+    border-width: 1.5px;
   }
 
   .search-container {
-    margin: 0;
-    order: 3;
-    max-width: 100%;
-    flex: 100%;
+    grid-area: search;
+    width: 90%;
+    max-width: 380px;
+    margin: 0 auto;
+    justify-self: center;
+    border-radius: 6px;
+  }
+
+  .search-input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .search-button {
+    padding: 0 16px;
   }
 
   .action-text {
@@ -907,3 +996,70 @@
     display: none; /* Hide slider arrows and dots on mobile */
   }
 }
+
+@media (max-width: 420px) {
+  .main-header-content {
+    column-gap: 4px;
+    row-gap: 10px;
+  }
+
+  .main-header .logo-image {
+    max-width: 115px;
+    height: 19px;
+  }
+
+  .user-actions {
+    gap: 7px;
+    padding-right: 8px;
+  }
+
+  .action-icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .search-container {
+    width: 88%;
+    max-width: 330px;
+  }
+}
+
+@media (max-width: 360px) {
+  .main-header .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .main-header-content {
+    column-gap: 3px;
+  }
+
+  .main-header .logo-image {
+    max-width: 105px;
+    height: 18px;
+  }
+
+  .user-actions {
+    gap: 5px;
+    padding-right: 6px;
+  }
+
+  .action-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .badge {
+    width: 13.5px;
+    height: 13.5px;
+    font-size: 7.5px;
+    top: -4px;
+    right: -4px;
+  }
+
+  .search-container {
+    width: 86%;
+    max-width: 300px;
+  }
+}
+

@@ -25,3 +25,14 @@ backend/uploads/*
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*
+backend/.env
+
+# Local migration scripts & dumps
+backend/importToAiven.js
+backend/exportMysql.js
+backend/exportSql.js
+backend/*.sql

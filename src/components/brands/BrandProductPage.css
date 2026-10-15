@@ -104,3 +104,21 @@
   color: #e6005c;
   flex-shrink: 0;
 }
+
+/* Active brand highlight styling in sidebar and mobile filter */
+.cpp-brand-item.active-brand {
+  background: #fdf2f6;
+  border-radius: 8px;
+}
+
+.cpp-brand-item.active-brand .cpp-brand-name-label {
+  color: #e6005c !important;
+  font-weight: 700 !important;
+}
+
+.cpp-brand-item.active-brand .cpp-custom-checkbox {
+  border-color: #e6005c;
+  background-color: #e6005c;
+  color: #ffffff;
+}
+

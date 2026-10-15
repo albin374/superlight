@@ -515,6 +515,12 @@ body {
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.metric-card:active {
+  transform: translateY(-1px) scale(0.99);
 }
 
 .metric-card::after {

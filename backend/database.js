@@ -1,278 +1,120 @@
-import { DatabaseSync } from 'node:sqlite';
-import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { defaultCategories, defaultProducts } from './seedData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database file path
-const dbPath = path.join(__dirname, 'superlight.db');
-const db = new DatabaseSync(dbPath);
+// Load .env from backend folder or process environment
+dotenv.config({ path: path.join(__dirname, '.env') });
 
-// Enable foreign keys and WAL mode for reliability and speed
-db.exec('PRAGMA foreign_keys = ON;');
-db.exec('PRAGMA journal_mode = WAL;');
+const isMySQLConfigured = !!(process.env.MYSQL_HOST || process.env.DATABASE_URL);
 
-/**
- * Initialize SQL Database Tables and seed default data
- */
-export function initDatabase() {
-  console.log(`[Database] Initializing SQL Database at: ${dbPath}`);
+let dbInstance = null;
+let initDbFunc = null;
 
-  // 1. Admins Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS admins (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'Super Admin',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+if (isMySQLConfigured) {
+  const mysql = await import('mysql2/promise');
 
-  // 2. Categories Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      icon TEXT,
-      description TEXT,
-      parent_id INTEGER DEFAULT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(parent_id) REFERENCES categories(id) ON DELETE CASCADE
-    );
-  `);
+  console.log(`[Database] Connecting to Aiven MySQL Cloud Database at ${process.env.MYSQL_HOST || 'via URL'}...`);
 
-  // 3. Products Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      category_id INTEGER,
-      subcategory_id INTEGER,
-      brand TEXT NOT NULL,
-      price REAL NOT NULL,
-      old_price REAL,
-      image TEXT NOT NULL,
-      images TEXT,
-      warranty TEXT,
-      wattage TEXT,
-      model TEXT,
-      description TEXT,
-      stock INTEGER DEFAULT 50,
-      rating REAL DEFAULT 5.0,
-      reviews_count INTEGER DEFAULT 0,
-      is_featured INTEGER DEFAULT 0,
-      is_bestseller INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE SET NULL,
-      FOREIGN KEY(subcategory_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-  `);
+  const pool = mysql.default.createPool({
+    host: process.env.MYSQL_HOST,
+    port: Number(process.env.MYSQL_PORT) || 3306,
+    user: process.env.MYSQL_USER || 'avnadmin',
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE || 'defaultdb',
+    ssl: {
+      rejectUnauthorized: false
+    },
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
+  });
 
-  // Migration for new product columns
-  try {
-    const tableInfo = db.prepare("PRAGMA table_info(products)").all();
-    const existingCols = tableInfo.map(c => c.name);
+  const formatArgs = (args) => {
+    if (!args || args.length === 0) return [];
+    if (args.length === 1 && Array.isArray(args[0])) return args[0];
+    return args;
+  };
 
-    if (!existingCols.includes('subcategory_id')) {
-      db.exec("ALTER TABLE products ADD COLUMN subcategory_id INTEGER;");
+  dbInstance = {
+    isMySQL: true,
+    pool,
+    prepare: (sql) => ({
+      all: async (...args) => {
+        const [rows] = await pool.query(sql, formatArgs(args));
+        return rows;
+      },
+      get: async (...args) => {
+        const [rows] = await pool.query(sql, formatArgs(args));
+        return rows[0] || null;
+      },
+      run: async (...args) => {
+        const [result] = await pool.query(sql, formatArgs(args));
+        return {
+          lastInsertRowid: result.insertId,
+          insertId: result.insertId,
+          changes: result.affectedRows,
+          affectedRows: result.affectedRows
+        };
+      }
+    }),
+    exec: async (sql) => {
+      await pool.query(sql);
     }
-    if (!existingCols.includes('images')) {
-      db.exec("ALTER TABLE products ADD COLUMN images TEXT;");
+  };
+
+  initDbFunc = async () => {
+    try {
+      const [res] = await pool.query('SELECT 1 as connected');
+      console.log(' [Aiven MySQL] Cloud database connected and verified successfully!');
+    } catch (err) {
+      console.error('❌ [Aiven MySQL] Connection error:', err.message);
     }
-    if (!existingCols.includes('warranty')) {
-      db.exec("ALTER TABLE products ADD COLUMN warranty TEXT;");
+  };
+
+} else {
+  // SQLite Fallback for local offline testing
+  const { DatabaseSync } = await import('node:sqlite');
+  const dbPath = path.join(__dirname, 'superlight.db');
+  console.log(`[Database] Using local SQLite database at: ${dbPath}`);
+
+  const sqliteDb = new DatabaseSync(dbPath);
+  sqliteDb.exec('PRAGMA foreign_keys = ON;');
+  sqliteDb.exec('PRAGMA journal_mode = WAL;');
+
+  dbInstance = {
+    isMySQL: false,
+    sqliteDb,
+    prepare: (sql) => {
+      const stmt = sqliteDb.prepare(sql);
+      return {
+        all: async (...args) => {
+          const flat = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          return stmt.all(...flat);
+        },
+        get: async (...args) => {
+          const flat = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          return stmt.get(...flat);
+        },
+        run: async (...args) => {
+          const flat = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+          return stmt.run(...flat);
+        }
+      };
+    },
+    exec: async (sql) => {
+      sqliteDb.exec(sql);
     }
-    if (!existingCols.includes('wattage')) {
-      db.exec("ALTER TABLE products ADD COLUMN wattage TEXT;");
-    }
-    if (!existingCols.includes('model')) {
-      db.exec("ALTER TABLE products ADD COLUMN model TEXT;");
-    }
-    if (!existingCols.includes('is_bestseller')) {
-      db.exec("ALTER TABLE products ADD COLUMN is_bestseller INTEGER DEFAULT 0;");
-    }
-  } catch (mErr) {
-    console.error('[Database] Products migration note:', mErr.message);
-  }
+  };
 
-  // 4. Orders Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_number TEXT NOT NULL UNIQUE,
-      customer_name TEXT NOT NULL,
-      customer_email TEXT NOT NULL,
-      customer_phone TEXT,
-      total_amount REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'Pending',
-      items_json TEXT,
-      delivery_location TEXT,
-      notes TEXT,
-      order_source TEXT DEFAULT 'WhatsApp',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Migration for orders table columns
-  try {
-    const ordersInfo = db.prepare("PRAGMA table_info(orders)").all();
-    const existingOrderCols = ordersInfo.map(c => c.name);
-
-    if (!existingOrderCols.includes('delivery_location')) {
-      db.exec("ALTER TABLE orders ADD COLUMN delivery_location TEXT;");
-    }
-    if (!existingOrderCols.includes('notes')) {
-      db.exec("ALTER TABLE orders ADD COLUMN notes TEXT;");
-    }
-    if (!existingOrderCols.includes('order_source')) {
-      db.exec("ALTER TABLE orders ADD COLUMN order_source TEXT DEFAULT 'WhatsApp';");
-    }
-  } catch (oErr) {
-    console.error('[Database] Orders migration note:', oErr.message);
-  }
-
-  // 5. Inquiries / Contact Messages Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS inquiries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      subject TEXT,
-      message TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'Unread',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // 6. Activity Logs Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS activity_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      admin_id INTEGER,
-      action TEXT NOT NULL,
-      details TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // 7. Brands Table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS brands (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      slug TEXT NOT NULL UNIQUE,
-      image TEXT,
-      website TEXT,
-      description TEXT,
-      is_featured INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Seed default brands if none exists
-  const checkBrands = db.prepare('SELECT count(*) AS count FROM brands').get();
-  if (checkBrands.count === 0) {
-    const defaultBrands = [
-      { name: 'Schneider Electric', slug: 'schneider-electric', image: '/logo/Schneider Electric.png', is_featured: 1 },
-      { name: 'Legrand', slug: 'legrand', image: '/logo/Legrand.png', is_featured: 1 },
-      { name: 'Philips', slug: 'philips', image: '/logo/philips.png', is_featured: 1 },
-      { name: 'Osram', slug: 'osram', image: '/logo/osram.png', is_featured: 1 },
-      { name: 'Makita', slug: 'makita', image: '/logo/makitha.png', is_featured: 1 },
-      { name: 'DeWalt', slug: 'dewalt', image: '/logo/DeWalt_Logo.svg', is_featured: 1 },
-      { name: 'Belden', slug: 'belden', image: '/logo/belden.png', is_featured: 1 },
-      { name: 'Fluke', slug: 'fluke', image: '/logo/Fluke_Logo2.webp', is_featured: 1 },
-      { name: 'Ducab', slug: 'ducab', image: '/logo/Ducab.png', is_featured: 1 },
-      { name: 'Marshall-Tufflex', slug: 'marshall-tufflex', image: '/logo/Marshall-Tufflex.png', is_featured: 0 },
-      { name: 'ABB', slug: 'abb', image: '/logo/ABB.png', is_featured: 0 }
-    ];
-
-    const insertBrand = db.prepare(`
-      INSERT INTO brands (name, slug, image, is_featured)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    for (const b of defaultBrands) {
-      insertBrand.run(b.name, b.slug, b.image, b.is_featured);
-    }
-    console.log('[Database] Default brands seeded.');
-  }
-
-  // Seed default admin if none exists
-  const checkAdmin = db.prepare('SELECT count(*) AS count FROM admins').get();
-  if (checkAdmin.count === 0) {
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync('Admin@123', salt);
-    
-    db.prepare(`
-      INSERT INTO admins (name, email, password, role)
-      VALUES (?, ?, ?, ?)
-    `).run('Superlight Administrator', 'admin@superlight.ae', hashedPassword, 'Super Admin');
-
-    console.log('[Database] Default admin created: admin@superlight.ae / Admin@123');
-  }
-
-  // Seed default categories if none exists
-  const checkCats = db.prepare('SELECT count(*) AS count FROM categories').get();
-  if (checkCats.count === 0) {
-    const insertCat = db.prepare(`
-      INSERT INTO categories (id, name, slug, icon, description, parent_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    // Insert parents first (parent_id is null) then subcategories to satisfy foreign keys
-    const parents = defaultCategories.filter(c => !c.parent_id);
-    const children = defaultCategories.filter(c => c.parent_id);
-
-    for (const c of parents) {
-      insertCat.run(c.id, c.name, c.slug, c.icon || 'Box', c.description || '', null);
-    }
-    for (const c of children) {
-      insertCat.run(c.id, c.name, c.slug, c.icon || 'Box', c.description || '', c.parent_id);
-    }
-    console.log(`[Database] Default categories seeded (${defaultCategories.length} categories).`);
-  }
-
-  // Seed default products if none exists
-  const checkProds = db.prepare('SELECT count(*) AS count FROM products').get();
-  if (checkProds.count === 0) {
-    const insertProd = db.prepare(`
-      INSERT INTO products (
-        name, category_id, subcategory_id, brand, price, old_price,
-        image, images, warranty, wattage, model, description,
-        stock, rating, reviews_count, is_featured, is_bestseller
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    for (const p of defaultProducts) {
-      insertProd.run(
-        p.name,
-        p.category_id || null,
-        p.subcategory_id || null,
-        p.brand || 'Superlight',
-        p.price || 0,
-        p.old_price || null,
-        p.image || '',
-        p.images || JSON.stringify([p.image]),
-        p.warranty || null,
-        p.wattage || null,
-        p.model || null,
-        p.description || '',
-        p.stock !== undefined ? p.stock : 50,
-        p.rating !== undefined ? p.rating : 5.0,
-        p.reviews_count !== undefined ? p.reviews_count : 0,
-        p.is_featured ? 1 : 0,
-        p.is_bestseller ? 1 : 0
-      );
-    }
-    console.log(`[Database] Default products seeded (${defaultProducts.length} products).`);
-  }
+  initDbFunc = () => {
+    console.log('[SQLite] Local database initialized.');
+  };
 }
 
-export default db;
+export const initDatabase = initDbFunc;
+export default dbInstance;

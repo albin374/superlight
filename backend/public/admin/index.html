@@ -8,6 +8,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <script>
+    // Prevent flash of login screen if token exists
+    (function() {
+      try {
+        if (localStorage.getItem('superlight_admin_token')) {
+          document.documentElement.classList.add('auth-verified');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    /* If user has stored token, keep loginScreen hidden and show dashboard instantly */
+    html.auth-verified #loginScreen {
+      display: none !important;
+    }
+    html.auth-verified #adminApp {
+      display: flex !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -92,10 +111,6 @@
       </nav>
 
       <div class="sidebar-footer">
-        <a href="/" target="_blank" class="storefront-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-          <span>View Public Store</span>
-        </a>
         <button id="logoutBtn" class="logout-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           <span>Log Out</span>
@@ -132,47 +147,47 @@
         <section id="tab-dashboard" class="tab-pane active">
           <!-- Metrics Cards -->
           <div class="metrics-grid">
-            <div class="metric-card">
+            <div class="metric-card clickable" onclick="switchTab('products')" title="Click to view Products Catalog">
               <div class="metric-icon pink">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2z"></path></svg>
               </div>
               <div class="metric-body">
                 <span class="metric-label">Total Products</span>
                 <h3 id="statTotalProducts" class="metric-value">--</h3>
-                <span class="metric-subtext">Across all categories</span>
+                <span class="metric-subtext">Across all categories &rarr;</span>
               </div>
             </div>
 
-            <div class="metric-card">
+            <div class="metric-card clickable" onclick="switchTab('orders')" title="Click to view Customer Orders">
               <div class="metric-icon blue">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
               </div>
               <div class="metric-body">
                 <span class="metric-label">Total Orders</span>
                 <h3 id="statTotalOrders" class="metric-value">--</h3>
-                <span class="metric-subtext">Active & completed</span>
+                <span class="metric-subtext">Active & completed &rarr;</span>
               </div>
             </div>
 
-            <div class="metric-card">
+            <div class="metric-card clickable" onclick="switchTab('orders')" title="Click to view Customer Orders & Revenue">
               <div class="metric-icon green">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
               </div>
               <div class="metric-body">
                 <span class="metric-label">Gross Revenue</span>
                 <h3 id="statTotalRevenue" class="metric-value">--</h3>
-                <span class="metric-subtext">AED currency</span>
+                <span class="metric-subtext">AED currency &rarr;</span>
               </div>
             </div>
 
-            <div class="metric-card">
+            <div class="metric-card clickable" onclick="switchTab('inquiries')" title="Click to view Inquiries & Leads">
               <div class="metric-icon orange">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
               </div>
               <div class="metric-body">
                 <span class="metric-label">New Inquiries</span>
                 <h3 id="statUnreadInquiries" class="metric-value">--</h3>
-                <span class="metric-subtext">Pending response</span>
+                <span class="metric-subtext">Pending response &rarr;</span>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, Mail, Search, User, Heart, ShoppingCart, Package, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
 import { useShop } from '../context/ShopContext';
@@ -26,6 +26,8 @@ const HeroSection = ({
   goToAcSpareParts
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMenuLockedRef = useRef(false);
   const { cartCount, wishlistCount, ordersCount } = useShop();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -35,9 +37,16 @@ const HeroSection = ({
   const [isOfferingMobileOpen, setIsOfferingMobileOpen] = useState(false);
   const [isBrandMobileOpen, setIsBrandMobileOpen] = useState(false);
   const [isAllCatMobileOpen, setIsAllCatMobileOpen] = useState(false);
+  const [expandedMobileCatId, setExpandedMobileCatId] = useState(null);
   const [isAllCatHovered, setIsAllCatHovered] = useState(false);
   const navRef = useRef(null);
   const [navBottomOffset, setNavBottomOffset] = useState(190);
+
+  useEffect(() => {
+    isMenuLockedRef.current = false;
+    setIsAllCatHovered(false);
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const updateNavOffset = () => {
@@ -92,6 +101,7 @@ const HeroSection = ({
     const slug = (target?.slug || target?.path || '').toLowerCase();
     const name = (target?.name || '').toLowerCase();
 
+    isMenuLockedRef.current = true;
     setIsAllCatHovered(false);
     setIsMobileMenuOpen(false);
 
@@ -130,6 +140,8 @@ const HeroSection = ({
 
   const handleBrandClick = (e, brand) => {
     if (e && e.preventDefault) e.preventDefault();
+    isMenuLockedRef.current = true;
+    setIsAllCatHovered(false);
     setIsMobileMenuOpen(false);
 
     const bName = (brand?.name || '').toLowerCase();
@@ -199,71 +211,88 @@ const HeroSection = ({
       <div className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)}></div>
       <div className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="mobile-menu-header">
-          <img src="/Superlight-Logo-01.svg" alt="Superlight" className="logo-image" style={{height: '35px'}} />
+          <img src="/Superlight-Logo-01.svg" alt="Superlight" className="mobile-drawer-logo" />
           <button className="close-menu-btn" onClick={() => setIsMobileMenuOpen(false)}>
             <X size={24} />
           </button>
         </div>
         <div className="mobile-menu-content">
-          <div className="mobile-top-bar-items">
-            <div 
-              className="mobile-menu-item" 
-              onClick={() => { setIsMobileMenuOpen(false); navigate('/wishlist'); }}
-              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
-            >
-              <Heart size={16} /> My Wishlist ({wishlistCount})
-            </div>
-            <div 
-              className="mobile-menu-item" 
-              onClick={() => { setIsMobileMenuOpen(false); navigate('/cart'); }}
-              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
-            >
-              <ShoppingCart size={16} /> Shopping Cart ({cartCount})
-            </div>
-            <div 
-              className="mobile-menu-item" 
-              onClick={() => { setIsMobileMenuOpen(false); navigate('/my-orders'); }}
-              style={{ cursor: 'pointer', color: '#e6005c', fontWeight: '700' }}
-            >
-              <Package size={16} /> My Orders {ordersCount > 0 ? `(${ordersCount})` : ''}
-            </div>
-            <div className="mobile-menu-item"><Phone size={16} /> +971 50 123 4567</div>
-            <div className="mobile-menu-item"><Mail size={16} /> sales@superlight.ae</div>
-          </div>
           <div className="mobile-nav-links">
             <div className="mobile-offering-wrapper">
               <a 
                 href="#" 
-                onClick={(e) => { e.preventDefault(); setIsAllCatMobileOpen(!isAllCatMobileOpen); }}
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  setIsAllCatMobileOpen(!isAllCatMobileOpen); 
+                  if (isAllCatMobileOpen) setExpandedMobileCatId(null);
+                }}
                 style={{ color: '#e6005c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '700' }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Menu size={18} /> All Categories</span>
                 <ChevronDown size={16} style={{ transform: isAllCatMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </a>
               {isAllCatMobileOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0 8px 14px' }}>
-                  {categories.map((cat) => (
-                    <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <a 
-                        href={`#${cat.slug}`} 
-                        onClick={(e) => { handleCategoryClick(e, cat); setIsMobileMenuOpen(false); }}
-                        style={{ fontSize: '13.5px', color: '#1b253c', fontWeight: '700' }}
-                      >
-                        {cat.name}
-                      </a>
-                      {cat.subcategories && cat.subcategories.map((sub) => (
-                        <a
-                          key={sub.id}
-                          href={`#${sub.slug}`}
-                          onClick={(e) => { handleCategoryClick(e, sub, cat); setIsMobileMenuOpen(false); }}
-                          style={{ fontSize: '12.5px', color: '#64748b', paddingLeft: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0 10px 14px' }}>
+                  {categories.map((cat) => {
+                    const isExpanded = expandedMobileCatId === cat.id;
+                    const hasSub = cat.subcategories && cat.subcategories.length > 0;
+                    return (
+                      <div key={cat.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div
+                          onClick={(e) => {
+                            if (hasSub) {
+                              e.preventDefault();
+                              setExpandedMobileCatId(isExpanded ? null : cat.id);
+                            } else {
+                              handleCategoryClick(e, cat);
+                              setIsMobileMenuOpen(false);
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '9px 0',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            color: isExpanded ? '#e6005c' : '#1b253c',
+                            fontWeight: '700',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            transition: 'color 0.2s',
+                            lineHeight: '1.35'
+                          }}
                         >
-                          <span>{sub.name}</span>
-                          <ChevronRight size={12} />
-                        </a>
-                      ))}
-                    </div>
-                  ))}
+                          <span>{cat.name}</span>
+                          {hasSub && (
+                            <ChevronDown
+                              size={15}
+                              style={{
+                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                                color: isExpanded ? '#e6005c' : '#64748b'
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {isExpanded && hasSub && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '6px 0 12px 14px' }}>
+                            {cat.subcategories.map((sub) => (
+                              <a
+                                key={sub.id}
+                                href={`#${sub.slug}`}
+                                onClick={(e) => { handleCategoryClick(e, sub, cat); setIsMobileMenuOpen(false); }}
+                                style={{ fontSize: '13px', color: '#64748b', padding: '4px 0', textDecoration: 'none', display: 'block', lineHeight: '1.4' }}
+                              >
+                                {sub.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -277,13 +306,13 @@ const HeroSection = ({
                 <ChevronDown size={16} style={{ transform: isBrandMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </a>
               {isBrandMobileOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px 0 8px 14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0 10px 14px' }}>
                   {brands.map((b) => (
                     <a 
                       key={b.id} 
                       href={`/${b.slug || ''}`} 
                       onClick={(e) => handleBrandClick(e, b)}
-                      style={{ fontSize: '13.5px', color: '#4b5563', fontWeight: '500' }}
+                      style={{ fontSize: '13px', color: '#4b5563', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', padding: '5px 0' }}
                     >
                       {b.name}
                     </a>
@@ -301,13 +330,13 @@ const HeroSection = ({
                 <ChevronDown size={16} style={{ transform: isOfferingMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </a>
               {isOfferingMobileOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px 0 8px 14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0 10px 14px' }}>
                   {categories.map((cat) => (
                     <a 
                       key={cat.id} 
                       href={`#${cat.slug}`} 
                       onClick={(e) => { handleCategoryClick(e, cat); setIsMobileMenuOpen(false); }}
-                      style={{ fontSize: '13.5px', color: '#4b5563', fontWeight: '500' }}
+                      style={{ fontSize: '13px', color: '#4b5563', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', padding: '5px 0' }}
                     >
                       {cat.name}
                     </a>
@@ -315,9 +344,20 @@ const HeroSection = ({
                 </div>
               )}
             </div>
-            <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); goToAboutUs && goToAboutUs(); setIsMobileMenuOpen(false); }}>ABOUT US</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); setIsMobileMenuOpen(false); }}>COMPANY OVERVIEW</a>
             <a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs && goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); goToFaqs && goToFaqs(); setIsMobileMenuOpen(false); }}>FAQS</a>
+          </div>
+
+          <div className="mobile-menu-contact">
+            <a href="tel:+971501234567" className="mobile-menu-item">
+              <Phone size={16} /> <span>+971 50 123 4567</span>
+            </a>
+            <a href="mailto:sales@superlight.ae" className="mobile-menu-item">
+              <Mail size={16} /> <span>sales@superlight.ae</span>
+            </a>
           </div>
         </div>
       </div>
@@ -421,10 +461,25 @@ const HeroSection = ({
         <div className="container nav-content">
           <div 
             className={`all-categories-wrapper ${isAllCatHovered ? 'hovered' : ''}`}
-            onMouseEnter={() => setIsAllCatHovered(true)}
-            onMouseLeave={() => setIsAllCatHovered(false)}
+            onMouseEnter={() => {
+              if (!isMenuLockedRef.current) {
+                setIsAllCatHovered(true);
+              }
+            }}
+            onMouseLeave={() => {
+              isMenuLockedRef.current = false;
+              setIsAllCatHovered(false);
+            }}
           >
-            <button className="all-categories-btn" type="button" aria-expanded={isAllCatHovered}>
+            <button 
+              className="all-categories-btn" 
+              type="button" 
+              aria-expanded={isAllCatHovered}
+              onClick={() => {
+                isMenuLockedRef.current = false;
+                setIsAllCatHovered(prev => !prev);
+              }}
+            >
               <div className="all-cat-btn-left">
                 <Menu size={22} strokeWidth={2} />
                 <span>All Categories</span>
