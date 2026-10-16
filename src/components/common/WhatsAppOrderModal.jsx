@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Send, CheckCircle2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { getProductCategorySlug, getProductSubcategorySlug } from '../../utils/productUrl';
 import './WhatsAppOrderModal.css';
 
 // Crisp WhatsApp SVG Icon
@@ -77,7 +78,13 @@ const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
           price: `${currencyPrefix}${numericPrice.toFixed(2)}`,
           numericPrice: numericPrice,
           brand: product.brand || 'Super Light',
-          image: product.image
+          image: product.image,
+          images: Array.isArray(product.images) && product.images.length > 0 ? product.images : (product.image ? [product.image] : []),
+          category_slug: product.category_slug || getProductCategorySlug(product),
+          category_name: product.category_name || product.category || '',
+          subcategory_slug: product.subcategory_slug || getProductSubcategorySlug(product),
+          subcategory_name: product.subcategory_name || product.subcategory || '',
+          slug: product.slug || ''
         }
       ],
       order_source: 'WhatsApp'

@@ -14,9 +14,9 @@ import {
   ShoppingCart, 
   Zap, 
   Heart, 
-  ArrowRight,
-  Star
+  ArrowRight
 } from 'lucide-react';
+
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
 import { 
@@ -52,55 +52,82 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
 
   // Sync / resolve product on URL change or navigation
   useEffect(() => {
-    if (propProduct) {
-      setActiveProduct(propProduct);
-      return;
-    }
-    if (location.state?.product) {
-      setActiveProduct(location.state.product);
-      return;
+    // 1. Initial quick seed from prop or location state
+    const seed = propProduct || location.state?.product;
+    if (seed) {
+      const initialImages = Array.isArray(seed.images) && seed.images.length > 0
+        ? seed.images
+        : (seed.image ? [seed.image] : []);
+
+      setActiveProduct(prev => ({
+        ...prev,
+        ...seed,
+        images: initialImages.length > 0 ? initialImages : prev?.images
+      }));
     }
 
+    // 2. Immediate check in STATIC_CATALOG for instant sync resolution
     if (urlProductSlug) {
-      // 1. Try static catalog first for instant response
       const staticMatch = findProductInCatalog(STATIC_CATALOG, urlProductSlug, urlCategorySlug);
       if (staticMatch) {
-        setActiveProduct(staticMatch);
+        const staticImages = Array.isArray(staticMatch.images) && staticMatch.images.length > 0
+          ? staticMatch.images
+          : (staticMatch.image ? [staticMatch.image] : []);
+
+        setActiveProduct(prev => ({
+          ...prev,
+          ...staticMatch,
+          images: staticImages.length > 0 ? staticImages : prev?.images
+        }));
+
+        if (staticImages.length > 0) {
+          setActiveImage(staticImages[0]);
+        }
       }
-
-      // 2. Query live database products
-      let isMounted = true;
-      fetch('/api/products')
-        .then(res => res.json())
-        .then(data => {
-          if (!isMounted) return;
-          if (data && data.success && Array.isArray(data.products)) {
-            const apiMatch = findProductInCatalog(data.products, urlProductSlug, urlCategorySlug);
-            if (apiMatch) {
-              const pPrice = typeof apiMatch.price === 'number' ? `AED ${apiMatch.price.toFixed(2)}` : apiMatch.price;
-              const mainImg = (Array.isArray(apiMatch.images) && apiMatch.images.length > 0)
-                ? apiMatch.images[0]
-                : (apiMatch.image || '/prod_downlight_1791451418016.png');
-
-              setActiveProduct({
-                ...apiMatch,
-                realId: apiMatch.id,
-                price: pPrice,
-                image: mainImg,
-                images: Array.isArray(apiMatch.images) && apiMatch.images.length > 0 ? apiMatch.images : [mainImg],
-                brand: apiMatch.brand || 'PHILIPS',
-                subcategory: apiMatch.subcategory_name || '',
-                category: apiMatch.category_name || ''
-              });
-            }
-          }
-        })
-        .catch(err => {
-          console.warn('[ProductDetails] Error fetching /api/products:', err);
-        });
-
-      return () => { isMounted = false; };
     }
+
+    // 3. Query live database products to ensure complete product details & actual images
+    let isMounted = true;
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data && data.success && Array.isArray(data.products)) {
+          const targetProd = propProduct || location.state?.product;
+          const targetId = targetProd?.realId || targetProd?.id;
+          const cleanId = String(targetId || '').replace(/^db-/, '');
+
+          const apiMatch = (cleanId && data.products.find(p => String(p.id) === cleanId))
+            || findProductInCatalog(data.products, urlProductSlug, urlCategorySlug)
+            || (targetProd?.name && data.products.find(p => p.name && p.name.toLowerCase() === targetProd.name.toLowerCase()));
+
+          if (apiMatch) {
+            const pPrice = typeof apiMatch.price === 'number' ? `AED ${apiMatch.price.toFixed(2)}` : apiMatch.price;
+            const fullImages = (Array.isArray(apiMatch.images) && apiMatch.images.length > 0)
+              ? apiMatch.images
+              : (apiMatch.image ? [apiMatch.image] : ['/prod_downlight_1791451418016.png']);
+            const mainImg = fullImages[0];
+
+            setActiveProduct({
+              ...apiMatch,
+              realId: apiMatch.id,
+              price: pPrice,
+              image: mainImg,
+              images: fullImages,
+              brand: apiMatch.brand || 'PHILIPS',
+              subcategory: apiMatch.subcategory_name || '',
+              category: apiMatch.category_name || ''
+            });
+
+            setActiveImage(curr => (fullImages.includes(curr) ? curr : mainImg));
+          }
+        }
+      })
+      .catch(err => {
+        console.warn('[ProductDetails] Error fetching /api/products:', err);
+      });
+
+    return () => { isMounted = false; };
   }, [propProduct, location.state, urlProductSlug, urlCategorySlug]);
 
   const pName = activeProduct?.name || (urlProductSlug 
@@ -154,17 +181,26 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
   }, [pImage, urlProductSlug]);
 
   const thumbnails = (activeProduct?.images && Array.isArray(activeProduct.images) && activeProduct.images.length > 0)
-    ? activeProduct.images
-    : [
-        pImage, 
-        '/prod_cable_1791451428788.png', 
-        '/prod_socket_1791451439423.png', 
-        '/prod_mcb_1791451449276.png'
-      ];
+    ? activeProduct.images.filter(Boolean)
+    : (pImage ? [pImage] : ['/prod_downlight_1791451418016.png']);
 
   const handleQtyChange = (type) => {
     if (type === 'inc') setQuantity(q => q + 1);
     if (type === 'dec' && quantity > 1) setQuantity(q => q - 1);
+  };
+
+  const handlePrevImage = () => {
+    if (!thumbnails || thumbnails.length <= 1) return;
+    const currentIndex = thumbnails.indexOf(activeImage);
+    const prevIndex = (currentIndex - 1 + thumbnails.length) % thumbnails.length;
+    setActiveImage(thumbnails[prevIndex]);
+  };
+
+  const handleNextImage = () => {
+    if (!thumbnails || thumbnails.length <= 1) return;
+    const currentIndex = thumbnails.indexOf(activeImage);
+    const nextIndex = (currentIndex + 1) % thumbnails.length;
+    setActiveImage(thumbnails[nextIndex]);
   };
 
   const handleRelatedClick = (p) => {
@@ -194,22 +230,34 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
       <div className="product-main">
         {/* Image Gallery */}
         <div className="product-gallery">
-          <div className="thumbnails">
-            {thumbnails.map((img, i) => (
-              <div 
-                key={i} 
-                className={`thumbnail ${activeImage === img ? 'active' : ''}`}
-                onClick={() => setActiveImage(img)}
-              >
-                <img src={img} alt={`Thumbnail ${i+1}`} />
-              </div>
-            ))}
-          </div>
+          {thumbnails.length > 1 && (
+            <div className="thumbnails">
+              {thumbnails.map((img, i) => (
+                <div 
+                  key={i} 
+                  className={`thumbnail ${activeImage === img ? 'active' : ''}`}
+                  onClick={() => setActiveImage(img)}
+                >
+                  <img src={img} alt={`Thumbnail ${i+1}`} />
+                </div>
+              ))}
+            </div>
+          )}
           <div className="main-image">
-            <div className="image-nav prev"><ChevronLeft size={20} /></div>
+            {thumbnails.length > 1 && (
+              <div className="image-nav prev" onClick={handlePrevImage} title="Previous image">
+                <ChevronLeft size={20} />
+              </div>
+            )}
             <img src={activeImage} alt={pName} />
-            <div className="image-nav next"><ChevronRight size={20} /></div>
-            <div className="image-expand"><Maximize size={20} /></div>
+            {thumbnails.length > 1 && (
+              <div className="image-nav next" onClick={handleNextImage} title="Next image">
+                <ChevronRight size={20} />
+              </div>
+            )}
+            <div className="image-expand" onClick={() => window.open(activeImage, '_blank')} title="View full image">
+              <Maximize size={18} />
+            </div>
           </div>
         </div>
 
@@ -220,20 +268,6 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
           </div>
 
           <h1 className="product-title">{pName}</h1>
-
-          <div className="reviews-row">
-            <div className="stars">
-              <Star size={16} fill="#e6005c" color="#e6005c" />
-              <Star size={16} fill="#e6005c" color="#e6005c" />
-              <Star size={16} fill="#e6005c" color="#e6005c" />
-              <Star size={16} fill="#e6005c" color="#e6005c" />
-              <Star size={16} fill="#e6005c" color="#e6005c" />
-            </div>
-            <span className="rating-text">4.8</span>
-            <span className="review-count">(24 reviews)</span>
-            <span>|</span>
-            <span className="write-review">Write a review</span>
-          </div>
 
           <div className="price-row">
             <span className="price">{pPrice}</span>
@@ -299,7 +333,7 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
                 fill={isFavorited ? '#e6005c' : 'none'} 
                 color={isFavorited ? '#e6005c' : '#1b253c'} 
               /> 
-              {isFavorited ? 'In Wishlist' : 'Add to Wishlist'}
+              <span className="wishlist-btn-text">{isFavorited ? 'In Wishlist' : 'Add to Wishlist'}</span>
             </button>
           </div>
 
@@ -315,9 +349,9 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
       </div>
 
       {/* Tabs */}
-      <div className="tabs-container">
+      <div className="tabs-container" data-active-tab={activeTab}>
         <div className="tabs-header">
-          {['Description', 'Specifications', 'Downloads', 'Reviews (24)'].map(tab => (
+          {['Description', 'Specifications'].map(tab => (
             <button 
               key={tab}
               className={`tab-btn ${activeTab === tab ? 'active' : ''}`}

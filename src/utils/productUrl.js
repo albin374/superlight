@@ -114,24 +114,35 @@ export function getProductCategorySlug(product) {
     }
   }
 
-  // 3. Brand heuristic
+  // 3. Match against built-in STATIC_CATALOG by id or name
+  if (product.id || product.name) {
+    const catalogMatch = STATIC_CATALOG.find(p => 
+      (product.id && (String(p.id) === String(product.id) || String(p.realId) === String(product.id))) ||
+      (product.name && p.name && p.name.toLowerCase() === product.name.toLowerCase())
+    );
+    if (catalogMatch && catalogMatch.category_slug) {
+      return catalogMatch.category_slug;
+    }
+  }
+
+  // 4. Name keyword heuristic (Higher priority: what the product actually IS takes precedence over who made it)
+  const name = String(product.name || '').toLowerCase();
+  if (name.includes('jacket') || name.includes('vest') || name.includes('helmet') || name.includes('glove') || name.includes('mask') || name.includes('boot') || name.includes('shoe') || name.includes('goggle') || name.includes('eyewear') || name.includes('ppe') || name.includes('first aid') || name.includes('safety') || name.includes('reflective') || name.includes('high-visibility') || name.includes('high visibility') || name.includes('warning tape')) return 'safety-products';
+  if (name.includes('cable') || name.includes('wire') || name.includes('conduit')) return 'wires-cables';
+  if (name.includes('light') || name.includes('lamp') || name.includes('led') || name.includes('flood') || name.includes('downlight') || name.includes('spot') || name.includes('panel light') || name.includes('bulb')) return 'led-lighting-special-lamp';
+  if (name.includes('socket') || name.includes('outlet') || name.includes('dimmer') || name.includes('gang') || name.includes('switch') || name.includes('doorbell') || name.includes('chime')) return 'switches-sockets-electrical-accessories';
+  if (name.includes('mcb') || name.includes('rccb') || name.includes('mccb') || name.includes('breaker') || name.includes('switchgear') || name.includes('contactor') || name.includes('relay') || name.includes('distribution board')) return 'switchgear-control-panel-products';
+  if (name.includes('compressor') || name.includes('refrigerant') || name.includes('hvac') || name.includes('capacitor') || name.includes('thermistor') || name.includes('blower motor') || name.includes('copper pipe')) return 'ac-spare-parts';
+  if (name.includes('pipe') || name.includes('valve') || name.includes('fitting') || name.includes('plumb') || name.includes('clamp') || name.includes('nail') || name.includes('paint')) return 'building-materials';
+  if (name.includes('drill') || name.includes('tester') || name.includes('thermometer') || name.includes('multimeter') || name.includes('hardware') || name.includes('tool') || name.includes('adhesive') || name.includes('sealant') || name.includes('silicone') || name.includes('screw') || name.includes('fastener')) return 'adhesives-tools-hardware';
+
+  // 5. Brand heuristic (Fallback only if product name contains no specific keywords)
   const brand = String(product.brand || '').toLowerCase();
   if (brand.includes('ducab') || brand.includes('belden')) return 'wires-cables';
   if (brand.includes('philips') || brand.includes('osram')) return 'led-lighting-special-lamp';
   if (brand.includes('legrand')) return 'switches-sockets-electrical-accessories';
   if (brand.includes('schneider') || brand.includes('abb') || brand.includes('himel') || brand.includes('eaton')) return 'switchgear-control-panel-products';
   if (brand.includes('dewalt') || brand.includes('makita') || brand.includes('fluke')) return 'adhesives-tools-hardware';
-
-  // 4. Name keyword heuristic
-  const name = String(product.name || '').toLowerCase();
-  if (name.includes('cable') || name.includes('wire')) return 'wires-cables';
-  if (name.includes('light') || name.includes('lamp') || name.includes('led') || name.includes('flood') || name.includes('downlight') || name.includes('spot')) return 'led-lighting-special-lamp';
-  if (name.includes('mcb') || name.includes('rccb') || name.includes('mccb') || name.includes('breaker') || name.includes('switchgear') || name.includes('contactor')) return 'switchgear-control-panel-products';
-  if (name.includes('socket') || name.includes('outlet') || name.includes('dimmer') || name.includes('gang') || name.includes('switch')) return 'switches-sockets-electrical-accessories';
-  if (name.includes('jacket') || name.includes('vest') || name.includes('helmet') || name.includes('glove') || name.includes('mask') || name.includes('boot') || name.includes('goggle') || name.includes('first aid')) return 'safety-products';
-  if (name.includes('compressor') || name.includes('refrigerant') || name.includes('hvac') || name.includes('capacitor') || name.includes('thermistor')) return 'ac-spare-parts';
-  if (name.includes('pipe') || name.includes('valve') || name.includes('fitting') || name.includes('plumb') || name.includes('clamp')) return 'building-materials';
-  if (name.includes('drill') || name.includes('tester') || name.includes('thermometer') || name.includes('multimeter') || name.includes('hardware') || name.includes('tool')) return 'adhesives-tools-hardware';
 
   return 'wires-cables';
 }
@@ -150,7 +161,18 @@ export function getProductSubcategorySlug(product) {
     return slugify(subRaw);
   }
 
-  // 3. Fallback based on category and name keywords
+  // 3. Match against built-in STATIC_CATALOG by id or name
+  if (product.id || product.name) {
+    const catalogMatch = STATIC_CATALOG.find(p => 
+      (product.id && (String(p.id) === String(product.id) || String(p.realId) === String(product.id))) ||
+      (product.name && p.name && p.name.toLowerCase() === product.name.toLowerCase())
+    );
+    if (catalogMatch && catalogMatch.subcategory_slug) {
+      return catalogMatch.subcategory_slug;
+    }
+  }
+
+  // 4. Fallback based on category and name keywords
   const catSlug = getProductCategorySlug(product);
   const name = String(product.name || '').toLowerCase();
 
@@ -388,6 +410,27 @@ export const STATIC_CATALOG = [
     subcategory_name: 'Street Lights',
     wattage: '150W',
     warranty: '3 Years Official Warranty'
+  },
+  {
+    id: 6,
+    realId: 6,
+    name: 'High-Visibility Reflective Safety Jacket (Neon Yellow)',
+    price: 'AED 100.00',
+    old_price: 'AED 120.00',
+    image: 'https://res.cloudinary.com/iiai36zv/image/upload/v1792131867/superlight/uploads/upload_1792131866150_243734552.png',
+    images: [
+      'https://res.cloudinary.com/iiai36zv/image/upload/v1792131867/superlight/uploads/upload_1792131866150_243734552.png',
+      'https://res.cloudinary.com/iiai36zv/image/upload/v1792131885/superlight/uploads/upload_1792131884152_110043095.png'
+    ],
+    brand: 'fluke',
+    category_slug: 'safety-products',
+    category_name: 'Safety Products & PPE',
+    subcategory_slug: 'safety-jackets',
+    subcategory_name: 'Safety Jackets',
+    model: 'FLU-SFT-JKT',
+    warranty: 'Official Standard',
+    wattage: 'EN 471 Standard',
+    description: 'The High-Visibility Reflective Safety Jacket is designed to improve visibility and safety in low-light and outdoor working environments.'
   }
 ];
 

@@ -128,24 +128,29 @@ export function getCategoryPath(cat) {
 
   if (cat.parent_slug || cat.parent_id) {
     // Subcategory
-    const parentSlug = cat.parent_slug || (slug.includes('cable') || slug.includes('wire') ? 'wires-cables' : 
-      slug.includes('light') || slug.includes('lamp') ? 'led-lighting-special-lamp' :
-      slug.includes('switch') || slug.includes('socket') ? 'switches-sockets-electrical-accessories' :
-      slug.includes('mcb') || slug.includes('panel') ? 'switchgear-control-panel-products' :
-      slug.includes('pipe') || slug.includes('clamp') ? 'building-materials' :
-      slug.includes('safety') || slug.includes('jacket') ? 'safety-products' :
-      slug.includes('ac') || slug.includes('compressor') ? 'ac-spare-parts' : 'adhesives-tools-hardware');
+    let parentSlug = cat.parent_slug;
+    if (!parentSlug) {
+      if (slug.includes('cable') || slug.includes('wire') || name.includes('cable') || name.includes('wire')) parentSlug = 'wires-cables';
+      else if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp') || name.includes('led')) parentSlug = 'led-lighting-special-lamp';
+      else if (slug.includes('switch') || slug.includes('socket') || slug.includes('accessories') || name.includes('switch') || name.includes('socket') || name.includes('accessories')) parentSlug = 'switches-sockets-electrical-accessories';
+      else if (slug.includes('mcb') || slug.includes('panel') || slug.includes('breaker') || slug.includes('switchgear')) parentSlug = 'switchgear-control-panel-products';
+      else if (slug.includes('pipe') || slug.includes('clamp') || slug.includes('valve') || slug.includes('bibcock')) parentSlug = 'building-materials';
+      else if (slug.includes('safety') || slug.includes('jacket') || slug.includes('helmet') || slug.includes('glove')) parentSlug = 'safety-products';
+      else if (slug.includes('compressor') || slug.includes('refrigerant') || slug.includes('capacitor') || slug.includes('hvac') || slug.startsWith('ac-') || slug.includes('spare')) parentSlug = 'ac-spare-parts';
+      else parentSlug = 'adhesives-tools-hardware';
+    }
     return `/${parentSlug}?sub=${slug}`;
   }
 
+  // Main Categories
   if (slug.includes('switchgear') || name.includes('switchgear')) return '/switchgear-control-panel-products';
+  if (slug.includes('switches') || slug.includes('switch') || slug.includes('socket') || slug.includes('electrical-accessories') || slug.includes('accessories') || name.includes('switch') || name.includes('socket') || name.includes('accessories')) return '/switches-sockets-electrical-accessories';
   if (slug.includes('wire') || slug.includes('cable') || name.includes('cable') || name.includes('wire')) return '/wires-cables';
-  if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp')) return '/led-lighting-special-lamp';
-  if (slug.includes('switch') || slug.includes('socket') || name.includes('switch')) return '/switches-sockets-electrical-accessories';
+  if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp') || name.includes('led')) return '/led-lighting-special-lamp';
   if (slug.includes('building') || slug.includes('plumb') || name.includes('building') || name.includes('plumb')) return '/building-materials';
-  if (slug.includes('safety') || name.includes('safety')) return '/safety-products';
-  if (slug.includes('ac') || slug.includes('spare') || slug.includes('spair') || name.includes('ac') || name.includes('spare')) return '/ac-spare-parts';
-  if (slug.includes('tool') || slug.includes('hardw') || slug.includes('adhes') || name.includes('tool')) return '/adhesives-tools-hardware';
+  if (slug.includes('safety') || name.includes('safety') || slug.includes('ppe')) return '/safety-products';
+  if (slug.includes('spare') || slug.includes('spair') || slug.includes('hvac') || slug === 'ac' || slug.startsWith('ac-') || name.includes('spare') || name.includes('spair') || name.includes('hvac') || /\bac\b/i.test(name)) return '/ac-spare-parts';
+  if (slug.includes('tool') || slug.includes('hardw') || slug.includes('adhes') || name.includes('tool') || name.includes('hardware')) return '/adhesives-tools-hardware';
 
   return `/${slug}`;
 }

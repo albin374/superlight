@@ -34,6 +34,8 @@ import CartPage from './components/cart/CartPage'
 import WishlistPage from './components/wishlist/WishlistPage'
 import MyOrdersPage from './components/orders/MyOrdersPage'
 import SearchResultsPage from './components/search/SearchResultsPage'
+import LoginPage from './components/auth/LoginPage'
+import RegisterPage from './components/auth/RegisterPage'
 import { getProductUrl } from './utils/productUrl'
 import './App.css'
 
@@ -321,6 +323,10 @@ function AppContent() {
         <Route path="/shopping-cart" element={<CartPage onProductClick={goToDetails} />} />
         <Route path="/wishlist" element={<WishlistPage onProductClick={goToDetails} />} />
         <Route path="/my-wishlist" element={<WishlistPage onProductClick={goToDetails} />} />
+
+        {/* Auth Pages */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* My Orders Pages */}
         <Route path="/my-orders" element={<MyOrdersPage onProductClick={goToDetails} />} />

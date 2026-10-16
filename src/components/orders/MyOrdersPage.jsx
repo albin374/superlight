@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { WhatsAppIcon } from '../common/WhatsAppOrderModal';
-import { getProductUrl } from '../../utils/productUrl';
+import { getProductUrl, findProductInCatalog, STATIC_CATALOG } from '../../utils/productUrl';
 import './MyOrdersPage.css';
 
 const TARGET_PHONE_NUMBER = '971545810080'; // Target: +971 54 581 0080
@@ -54,10 +54,20 @@ const MyOrdersPage = ({ onProductClick }) => {
   };
 
   const handleItemClick = (item) => {
+    const cleanId = String(item.realId || item.id || '').replace(/^db-/, '');
+    const catalogMatch = findProductInCatalog(STATIC_CATALOG, item.slug || item.name);
+    const enrichedItem = {
+      ...(catalogMatch || {}),
+      ...item,
+      realId: cleanId || catalogMatch?.id,
+      images: (catalogMatch?.images && catalogMatch.images.length > 1)
+        ? catalogMatch.images
+        : (Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []))
+    };
     if (onProductClick) {
-      onProductClick(item);
+      onProductClick(enrichedItem);
     } else {
-      navigate(getProductUrl(item), { state: { product: item } });
+      navigate(getProductUrl(enrichedItem), { state: { product: enrichedItem } });
     }
   };
 
@@ -210,7 +220,12 @@ const MyOrdersPage = ({ onProductClick }) => {
                       <h4>Ordered Items ({itemsList.reduce((acc, it) => acc + (it.qty || it.quantity || 1), 0)})</h4>
                       <div className="order-items-list">
                         {itemsList.map((item, idx) => {
-                          const unitPrice = item.price || (item.numericPrice ? `AED ${Number(item.numericPrice).toFixed(2)}` : 'AED 0.00');
+                          const qty = Number(item.qty || item.quantity || 1);
+                          const rawPrice = item.numericPrice || parseFloat(String(item.price || '').replace(/[^0-9.]/g, '')) || 0;
+                          const unitPriceFormatted = item.price && String(item.price).trim().startsWith('AED')
+                            ? item.price
+                            : `AED ${rawPrice.toFixed(2)}`;
+                          const lineTotalFormatted = `AED ${(rawPrice * qty).toFixed(2)}`;
                           const itemImg = item.image || '/prod_downlight_1791451418016.png';
 
                           return (
@@ -231,12 +246,13 @@ const MyOrdersPage = ({ onProductClick }) => {
                                   {item.name}
                                 </div>
                                 <div className="order-item-meta">
-                                  <span>Qty: <strong>{item.qty || item.quantity || 1}</strong></span>
-                                  <span>Unit: {unitPrice}</span>
+                                  <span className="order-meta-qty">Qty: <strong>{qty}</strong></span>
+                                  <span className="order-meta-unit">Unit: {unitPriceFormatted}</span>
+                                  <span className="order-meta-total">Total: <strong>{lineTotalFormatted}</strong></span>
                                 </div>
                               </div>
                               <div className="order-item-price">
-                                {unitPrice}
+                                {lineTotalFormatted}
                               </div>
                             </div>
                           );

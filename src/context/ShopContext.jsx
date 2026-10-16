@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getProductCategorySlug, getProductSubcategorySlug } from '../utils/productUrl';
 
 const ShopContext = createContext(null);
 
@@ -179,9 +180,14 @@ export const ShopProvider = ({ children }) => {
           price: product.price || `AED ${numPrice.toFixed(2)}`,
           numericPrice: numPrice,
           image: product.image || '/prod_downlight_1791451418016.png',
+          images: Array.isArray(product.images) && product.images.length > 0 ? product.images : (product.image ? [product.image] : []),
           brand: product.brand || 'Super Light',
           quantity: Math.max(1, qty),
-          category: product.category || product.subcategory || ''
+          category: product.category || product.category_name || '',
+          category_slug: product.category_slug || getProductCategorySlug(product),
+          subcategory: product.subcategory || product.subcategory_name || '',
+          subcategory_slug: product.subcategory_slug || getProductSubcategorySlug(product),
+          slug: product.slug || ''
         };
         return [...prevCart, newItem];
       }

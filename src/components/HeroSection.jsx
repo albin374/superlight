@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Phone, Mail, Search, User, Heart, ShoppingCart, Package, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
+import { Phone, Mail, Search, User, Heart, ShoppingCart, Package, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu, LogOut } from 'lucide-react';
 import './HeroSection.css';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 import { searchLocalCatalog, renderHighlightedText, getCategoryPath, getBrandPath } from '../utils/searchEngine';
 import { getProductUrl } from '../utils/productUrl';
 
@@ -32,6 +33,9 @@ const HeroSection = ({
   const location = useLocation();
   const isMenuLockedRef = useRef(false);
   const { cartCount, wishlistCount, ordersCount } = useShop();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -60,15 +64,19 @@ const HeroSection = ({
     setIsAllCatHovered(false);
     setIsMobileMenuOpen(false);
     setIsSearchOpen(false);
+    setIsAccountMenuOpen(false);
     setActiveSearchIndex(-1);
   }, [location.pathname]);
 
-  // Click outside listener for search dropdown
+  // Click outside listener for search & account dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setIsSearchOpen(false);
         setActiveSearchIndex(-1);
+      }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) {
+        setIsAccountMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -217,7 +225,12 @@ const HeroSection = ({
   const handleSelectCategory = (cat) => {
     setIsSearchOpen(false);
     setActiveSearchIndex(-1);
-    handleCategoryClick(null, cat);
+    if (cat?.path) {
+      navigate(cat.path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      handleCategoryClick(null, cat);
+    }
   };
 
   const handleSelectBrand = (brand) => {
@@ -260,44 +273,106 @@ const HeroSection = ({
 
   const handleCategoryClick = (e, cat, parentCat = null) => {
     if (e && e.preventDefault) e.preventDefault();
-    const target = parentCat || cat;
-    const slug = (target?.slug || target?.path || '').toLowerCase();
-    const name = (target?.name || '').toLowerCase();
-
     isMenuLockedRef.current = true;
     setIsAllCatHovered(false);
     setIsMobileMenuOpen(false);
 
-    if (slug.includes('switchgear') || slug.includes('control-panel') || name.includes('switchgear') || name.includes('control panel')) {
-      if (goToSwitchgear) goToSwitchgear();
-      else navigate('/switchgear-control-panel-products');
-    } else if (slug.includes('building') || name.includes('building') || slug.includes('plumb') || name.includes('plumb')) {
-      if (goToBuildingMaterials) goToBuildingMaterials();
-      else navigate('/building-materials');
-    } else if (slug.includes('safety') || name.includes('safety')) {
-      if (goToSafetyProducts) goToSafetyProducts();
-      else navigate('/safety-products');
-    } else if (slug.includes('spair') || slug.includes('spare') || slug.includes('ac') || name.includes('spare') || name.includes('spair') || name.includes('ac')) {
-      if (goToAcSpareParts) goToAcSpareParts();
-      else navigate('/ac-spare-parts');
-    } else if (slug.includes('cable') || slug.includes('wire') || name.includes('cable') || name.includes('wire')) {
-      if (goToWiresCables) goToWiresCables();
-      else navigate('/wires-cables');
-    } else if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp')) {
-      if (goToLedLighting) goToLedLighting();
-      else navigate('/led-lighting-special-lamp');
-    } else if (slug.includes('switch') || slug.includes('access') || slug.includes('socket') || name.includes('switch')) {
-      if (goToSwitchesSockets) goToSwitchesSockets();
-      else navigate('/switches-sockets-electrical-accessories');
-    } else if (slug.includes('tool') || slug.includes('hardw') || slug.includes('adhes') || name.includes('tool')) {
-      if (goToAdhesivesToolsHardware) goToAdhesivesToolsHardware();
-      else navigate('/adhesives-tools-hardware');
-    } else if (slug.includes('automat') || slug.includes('smart') || name.includes('automation')) {
-      if (goToHomeAutomation) goToHomeAutomation();
-      else navigate('/home-automation');
-    } else {
-      navigate(`/${target.slug || ''}`);
+    // If cat has an explicit predefined path and no parentCat was provided, use it directly
+    if (!parentCat && cat?.path && typeof cat.path === 'string') {
+      navigate(cat.path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+
+    // Determine main category and subcategory
+    const isSubcategory = !!parentCat;
+    const main = parentCat || cat;
+    const sub = isSubcategory ? cat : null;
+
+    const mainSlug = (main?.slug || main?.path || '').toLowerCase();
+    const mainName = (main?.name || '').toLowerCase();
+    const subSlug = sub ? (sub.slug || (sub.name ? sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : '')).toLowerCase().replace(/^-+|-+$/g, '') : '';
+
+    let basePath = '';
+
+    // 1. Switchgear & Control Panel Products
+    if (
+      mainSlug.includes('switchgear') || 
+      mainSlug.includes('control-panel') || 
+      mainName.includes('switchgear') || 
+      mainName.includes('control panel')
+    ) {
+      basePath = '/switchgear-control-panel-products';
+    }
+    // 2. Switches, Sockets & Electrical Accessories (Checked first to prevent 'accessories' -> 'ac' substring collision)
+    else if (
+      mainSlug.includes('switches') || 
+      mainSlug.includes('switch') || 
+      mainSlug.includes('socket') || 
+      mainSlug.includes('electrical-accessories') || 
+      mainSlug.includes('accessories') || 
+      mainName.includes('switch') || 
+      mainName.includes('socket') || 
+      mainName.includes('electrical accessories') ||
+      mainName.includes('accessories')
+    ) {
+      basePath = '/switches-sockets-electrical-accessories';
+    }
+    // 3. Wires & Cables
+    else if (mainSlug.includes('cable') || mainSlug.includes('wire') || mainName.includes('cable') || mainName.includes('wire')) {
+      basePath = '/wires-cables';
+    }
+    // 4. LED Lighting & Special Lamp
+    else if (mainSlug.includes('light') || mainSlug.includes('lamp') || mainName.includes('light') || mainName.includes('lamp') || mainName.includes('led')) {
+      basePath = '/led-lighting-special-lamp';
+    }
+    // 5. Building Materials & Supplies
+    else if (mainSlug.includes('building') || mainName.includes('building') || mainSlug.includes('plumb') || mainName.includes('plumb')) {
+      basePath = '/building-materials';
+    }
+    // 6. Safety Products
+    else if (mainSlug.includes('safety') || mainName.includes('safety') || mainSlug.includes('ppe') || mainName.includes('ppe')) {
+      basePath = '/safety-products';
+    }
+    // 7. AC Spare Parts & HVAC (Safe specific matching - never raw substring 'ac')
+    else if (
+      mainSlug.includes('spare') || 
+      mainSlug.includes('spair') || 
+      mainSlug.includes('hvac') || 
+      mainSlug.includes('compressor') || 
+      mainSlug === 'ac' || 
+      mainSlug.startsWith('ac-') || 
+      mainSlug.includes('-ac-') || 
+      mainSlug.endsWith('-ac') || 
+      mainName.includes('spare') || 
+      mainName.includes('spair') || 
+      mainName.includes('hvac') || 
+      mainName.includes('compressor') || 
+      /\bac\b/i.test(mainName)
+    ) {
+      basePath = '/ac-spare-parts';
+    }
+    // 8. Adhesives, Tools & Hardware
+    else if (
+      mainSlug.includes('tool') || 
+      mainSlug.includes('hardw') || 
+      mainSlug.includes('adhes') || 
+      mainName.includes('tool') || 
+      mainName.includes('hardware') || 
+      mainName.includes('adhesive')
+    ) {
+      basePath = '/adhesives-tools-hardware';
+    }
+    // 9. Home Automation
+    else if (mainSlug.includes('automat') || mainSlug.includes('smart') || mainName.includes('automation')) {
+      basePath = '/home-automation';
+    }
+    else {
+      basePath = `/${mainSlug || ''}`;
+    }
+
+    const finalUrl = subSlug ? `${basePath}?sub=${encodeURIComponent(subSlug)}` : basePath;
+    navigate(finalUrl);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -380,6 +455,53 @@ const HeroSection = ({
           </button>
         </div>
         <div className="mobile-menu-content">
+          {/* Mobile User Card */}
+          <div className="mobile-user-card">
+            {isAuthenticated ? (
+              <div className="mobile-user-logged">
+                <div className="mobile-user-avatar">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
+                  ) : (
+                    (user?.name || user?.username || 'U').charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="mobile-user-details">
+                  <span className="mobile-user-name">Hi, {user?.name || user?.username}</span>
+                  <span className="mobile-user-sub">{user?.email || `@${user?.username}`}</span>
+                </div>
+                <button 
+                  type="button" 
+                  className="mobile-logout-button"
+                  title="Sign Out"
+                  onClick={() => {
+                    logout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <div 
+                className="mobile-user-guest"
+                onClick={() => {
+                  navigate('/login');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <div className="mobile-guest-icon">
+                  <User size={18} />
+                </div>
+                <div className="mobile-guest-text">
+                  <span className="mobile-guest-title">Sign In / Register</span>
+                  <span className="mobile-guest-sub">Access your account & orders</span>
+                </div>
+                <ChevronRight size={16} />
+              </div>
+            )}
+          </div>
+
           <div className="mobile-nav-links">
             <div className="mobile-offering-wrapper">
               <a 
@@ -751,12 +873,123 @@ const HeroSection = ({
 
           {/* User Actions */}
           <div className="user-actions">
-            <div className="action-item">
-              <User size={24} className="action-icon" />
-              <div className="action-text">
-                <span className="action-title">My Account</span>
-                <span className="action-subtitle">Login / Register</span>
-              </div>
+            <div className="action-item account-action-container" ref={accountMenuRef}>
+              {isAuthenticated ? (
+                <div 
+                  className="account-trigger"
+                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
+                  role="button"
+                  tabIndex={0}
+                  title="My Account"
+                >
+                  <div className="account-avatar-pill">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
+                    ) : (
+                      (user?.name || user?.username || 'U').charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="action-text">
+                    <span className="action-title user-name-truncate">
+                      Hi, {(user?.name || user?.username || 'User').split(' ')[0]}
+                    </span>
+                    <span className="action-subtitle">
+                      My Account <ChevronDown size={12} className={`account-caret ${isAccountMenuOpen ? 'open' : ''}`} />
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="account-trigger"
+                  onClick={() => navigate('/login')}
+                  role="button"
+                  tabIndex={0}
+                  title="Login / Register"
+                >
+                  <User size={24} className="action-icon" />
+                  <div className="action-text">
+                    <span className="action-title">My Account</span>
+                    <span className="action-subtitle">Login / Register</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Dropdown for Logged-in Customer */}
+              {isAuthenticated && isAccountMenuOpen && (
+                <div className="account-dropdown-menu">
+                  <div className="account-dropdown-header">
+                    <div className="account-dropdown-avatar">
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
+                      ) : (
+                        (user?.name || user?.username || 'U').charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="account-dropdown-user-info">
+                      <div className="account-dropdown-name">{user?.name || user?.username}</div>
+                      <div className="account-dropdown-email">{user?.email || `@${user?.username}`}</div>
+                      <div className="account-dropdown-username">@{user?.username}</div>
+                    </div>
+                  </div>
+
+                  <div className="account-dropdown-divider" />
+
+                  <div className="account-dropdown-links">
+                    <button 
+                      type="button" 
+                      className="account-dropdown-btn"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false);
+                        navigate('/my-orders');
+                      }}
+                    >
+                      <Package size={17} />
+                      <span className="dropdown-btn-label">My Orders</span>
+                      {ordersCount > 0 && <span className="account-dropdown-badge">{ordersCount}</span>}
+                    </button>
+
+                    <button 
+                      type="button" 
+                      className="account-dropdown-btn"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false);
+                        navigate('/wishlist');
+                      }}
+                    >
+                      <Heart size={17} />
+                      <span className="dropdown-btn-label">Wishlist</span>
+                      {wishlistCount > 0 && <span className="account-dropdown-badge">{wishlistCount}</span>}
+                    </button>
+
+                    <button 
+                      type="button" 
+                      className="account-dropdown-btn"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false);
+                        navigate('/cart');
+                      }}
+                    >
+                      <ShoppingCart size={17} />
+                      <span className="dropdown-btn-label">Shopping Cart</span>
+                      {cartCount > 0 && <span className="account-dropdown-badge">{cartCount}</span>}
+                    </button>
+                  </div>
+
+                  <div className="account-dropdown-divider" />
+
+                  <button 
+                    type="button" 
+                    className="account-dropdown-btn logout-btn"
+                    onClick={() => {
+                      setIsAccountMenuOpen(false);
+                      logout();
+                    }}
+                  >
+                    <LogOut size={17} />
+                    <span className="dropdown-btn-label">Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
             
             <div 

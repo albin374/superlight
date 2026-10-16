@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { WhatsAppIcon } from '../common/WhatsAppOrderModal';
-import { getProductUrl } from '../../utils/productUrl';
+import { getProductUrl, getProductCategorySlug, getProductSubcategorySlug } from '../../utils/productUrl';
 import './CartPage.css';
 
 const FREE_SHIPPING_THRESHOLD = 200;
@@ -78,7 +78,13 @@ const CartPage = ({ onProductClick }) => {
         price: item.price,
         numericPrice: item.numericPrice,
         brand: item.brand || 'Super Light',
-        image: item.image
+        image: item.image,
+        images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
+        category_slug: item.category_slug || getProductCategorySlug(item),
+        category_name: item.category_name || item.category || '',
+        subcategory_slug: item.subcategory_slug || getProductSubcategorySlug(item),
+        subcategory_name: item.subcategory_name || item.subcategory || '',
+        slug: item.slug || ''
       })),
       order_source: 'WhatsApp'
     });

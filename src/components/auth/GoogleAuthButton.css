@@ -1,0 +1,127 @@
+/* Google Auth Button Styles */
+.google-auth-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0 16px;
+}
+
+.google-auth-wrapper.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.google-official-btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.google-official-btn-container.hidden {
+  display: none;
+}
+
+.google-official-btn-container.visible {
+  display: flex;
+}
+
+/* Fallback button when GSI iframe is still initializing */
+.google-custom-fallback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  color: #3c4043;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+.google-custom-fallback-btn:hover {
+  background-color: #f8fafd;
+  border-color: #c6c9ce;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+}
+
+.google-custom-fallback-btn:active {
+  background-color: #eeeeee;
+}
+
+.google-g-logo {
+  flex-shrink: 0;
+}
+
+.google-btn-text {
+  white-space: nowrap;
+}
+
+/* Loading Overlay */
+.google-auth-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 6px;
+  z-index: 10;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1b253c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.google-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #e6005c;
+  border-radius: 50%;
+  animation: googleSpin 0.7s linear infinite;
+}
+
+@keyframes googleSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Social Separator in Auth pages */
+.auth-social-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.auth-social-separator::before,
+.auth-social-separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.auth-social-separator span {
+  padding: 0 12px;
+}
+
