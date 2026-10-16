@@ -142,11 +142,17 @@ const CategoryProductPage = ({
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setSelectedSubcategory('all');
+    const params = new URLSearchParams(location.search);
+    const subParam = params.get('sub');
+    if (subParam) {
+      setSelectedSubcategory(subParam);
+    } else {
+      setSelectedSubcategory('all');
+    }
     setSelectedBrands([]);
     setBrandSearch('');
     setActiveMobileSheet(null);
-  }, [currentPath]);
+  }, [currentPath, location.search]);
 
   // Lock body scroll when mobile sheet is open
   useEffect(() => {

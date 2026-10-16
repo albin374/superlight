@@ -71,6 +71,18 @@ if (isMySQLConfigured) {
     try {
       const [res] = await pool.query('SELECT 1 as connected');
       console.log(' [Aiven MySQL] Cloud database connected and verified successfully!');
+      
+      // Ensure persistent uploaded_files table exists
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS uploaded_files (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          filename VARCHAR(255) UNIQUE NOT NULL,
+          mime_type VARCHAR(100) NOT NULL,
+          file_data LONGBLOB NOT NULL,
+          size INT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
     } catch (err) {
       console.error('❌ [Aiven MySQL] Connection error:', err.message);
     }
@@ -112,7 +124,17 @@ if (isMySQLConfigured) {
   };
 
   initDbFunc = () => {
-    console.log('[SQLite] Local database initialized.');
+    sqliteDb.exec(`
+      CREATE TABLE IF NOT EXISTS uploaded_files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT UNIQUE NOT NULL,
+        mime_type TEXT NOT NULL,
+        file_data BLOB NOT NULL,
+        size INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('[SQLite] Local database initialized with uploaded_files table.');
   };
 }
 

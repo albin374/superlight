@@ -437,7 +437,7 @@ async function loadProducts() {
       tbody.innerHTML = allProducts.map(p => `
         <tr>
           <td style="text-align:center; vertical-align:middle;">
-            <img src="${escapeHtml(p.image || '/prod_downlight_1791451418016.png')}" class="table-thumb" alt="${escapeHtml(p.name)}" onerror="this.onerror=null; this.src='/favicon.svg';" />
+            <img src="${escapeHtml(p.image || '/prod_downlight_1791451418016.png')}" class="table-thumb" alt="${escapeHtml(p.name)}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
           </td>
           <td style="vertical-align:middle;">
             <div class="product-title-wrap">
@@ -491,7 +491,7 @@ function renderProductImagesGrid() {
     if (imgUrl) {
       html += `
         <div class="prod-image-slot has-image">
-          <img src="${escapeHtml(imgUrl)}" class="prod-image-slot-thumb" alt="Product image ${i+1}" onerror="this.onerror=null; this.src='/favicon.svg';" />
+          <img src="${escapeHtml(imgUrl)}" class="prod-image-slot-thumb" alt="Product image ${i+1}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
           <span class="prod-slot-badge ${i === 0 ? 'primary' : ''}">${i === 0 ? 'Cover Image' : `Photo ${i+1}`}</span>
           <button type="button" class="prod-slot-delete-btn" onclick="removeProductImage(${i})" title="Remove image">&times;</button>
         </div>

@@ -45,12 +45,59 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Serve static assets:
-// 1. Root public folder (for existing product images if deployed together)
+// 1. Backend public folder (contains admin & shared assets)
+const backendPublic = path.join(__dirname, 'public');
+if (fs.existsSync(backendPublic)) {
+  app.use(express.static(backendPublic));
+}
+// 1b. Root public folder (for existing product images if deployed together)
 const rootPublic = path.join(__dirname, '..', 'public');
 if (fs.existsSync(rootPublic)) {
   app.use(express.static(rootPublic));
 }
-// 2. Uploaded images
+
+// 2. Uploaded images (Persistent Cloud Storage Layer for Render / Ephemeral hosts)
+app.get('/uploads/:filename', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(uploadsDir, filename);
+
+    // 1. If cached on local container disk, serve directly
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+
+    // 2. If missing on disk (Render container restarted/wiped), fetch from MySQL database
+    const fileRow = await db.prepare('SELECT mime_type, file_data FROM uploaded_files WHERE filename = ?').get(filename);
+    if (fileRow && fileRow.file_data) {
+      // Re-hydrate on local disk for subsequent fast access
+      try {
+        fs.writeFileSync(filePath, fileRow.file_data);
+      } catch (e) {}
+
+      res.setHeader('Content-Type', fileRow.mime_type || 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(fileRow.file_data);
+    }
+
+    // 3. Graceful fallback if image is not in DB: serve default product image with 200 OK
+    const backendFallback = path.join(backendPublic, 'prod_downlight_1791451418016.png');
+    if (fs.existsSync(backendFallback)) {
+      res.setHeader('Content-Type', 'image/png');
+      return res.sendFile(backendFallback);
+    }
+    const defaultFallback = path.join(rootPublic, 'prod_downlight_1791451418016.png');
+    if (fs.existsSync(defaultFallback)) {
+      res.setHeader('Content-Type', 'image/png');
+      return res.sendFile(defaultFallback);
+    }
+
+    res.status(404).send('Image not found');
+  } catch (err) {
+    console.error('[Serve Upload Error]:', err);
+    res.status(500).send('Error loading image');
+  }
+});
 app.use('/uploads', express.static(uploadsDir));
 // 3. Admin Dashboard UI
 const adminStaticDir = path.join(__dirname, 'public', 'admin');
@@ -257,8 +304,9 @@ app.get('/api/products', async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ? OR p.model LIKE ?)`;
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      query += ` AND (p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ? OR p.model LIKE ? OR p.sku LIKE ? OR c.name LIKE ? OR sc.name LIKE ?)`;
+      const s = `%${search}%`;
+      params.push(s, s, s, s, s, s, s);
     }
 
     query += ` ORDER BY p.id DESC`;
@@ -288,6 +336,111 @@ app.get('/api/products', async (req, res) => {
 
     res.json({ success: true, count: formattedProducts.length, products: formattedProducts });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/search
+app.get('/api/search', async (req, res) => {
+  try {
+    const q = (req.query.q || req.query.query || '').trim();
+    if (!q) {
+      return res.json({ success: true, query: '', products: [], categories: [], brands: [], total: 0 });
+    }
+
+    const likeTerm = `%${q}%`;
+    const startTerm = `${q}%`;
+
+    // 1. Search Categories (both main and subcategories)
+    const matchedCategories = await db.prepare(`
+      SELECT c.*, parent.name AS parent_name, parent.slug AS parent_slug
+      FROM categories c
+      LEFT JOIN categories parent ON c.parent_id = parent.id
+      WHERE c.name LIKE ? OR c.slug LIKE ?
+      ORDER BY 
+        CASE 
+          WHEN LOWER(c.name) LIKE ? THEN 1
+          WHEN LOWER(c.name) LIKE ? THEN 2
+          ELSE 3
+        END,
+        c.name ASC
+      LIMIT 8
+    `).all(likeTerm, likeTerm, startTerm.toLowerCase(), likeTerm.toLowerCase());
+
+    // 2. Search Brands
+    const matchedBrands = await db.prepare(`
+      SELECT *
+      FROM brands
+      WHERE name LIKE ? OR slug LIKE ?
+      ORDER BY 
+        CASE 
+          WHEN LOWER(name) LIKE ? THEN 1
+          WHEN LOWER(name) LIKE ? THEN 2
+          ELSE 3
+        END,
+        name ASC
+      LIMIT 8
+    `).all(likeTerm, likeTerm, startTerm.toLowerCase(), likeTerm.toLowerCase());
+
+    // 3. Search Products
+    const matchedProducts = await db.prepare(`
+      SELECT p.*, 
+             c.name AS category_name, c.slug AS category_slug,
+             sc.name AS subcategory_name, sc.slug AS subcategory_slug
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN categories sc ON p.subcategory_id = sc.id
+      WHERE p.name LIKE ? 
+         OR p.brand LIKE ? 
+         OR p.description LIKE ? 
+         OR p.model LIKE ? 
+         OR p.sku LIKE ? 
+         OR c.name LIKE ? 
+         OR sc.name LIKE ?
+      ORDER BY 
+        CASE 
+          WHEN LOWER(p.name) LIKE ? THEN 1
+          WHEN LOWER(p.brand) LIKE ? THEN 2
+          ELSE 3
+        END,
+        p.id DESC
+      LIMIT 12
+    `).all(
+      likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm,
+      startTerm.toLowerCase(), startTerm.toLowerCase()
+    );
+
+    // Format products images
+    const formattedProducts = matchedProducts.map(p => {
+      let imagesArr = [];
+      if (p.images) {
+        try {
+          imagesArr = JSON.parse(p.images);
+        } catch (e) {
+          imagesArr = [p.images];
+        }
+      } else if (p.image) {
+        imagesArr = [p.image];
+      }
+      return {
+        ...p,
+        price: Number(p.price || 0),
+        old_price: p.old_price !== null && p.old_price !== undefined ? Number(p.old_price) : null,
+        stock: Number(p.stock || 0),
+        images: imagesArr
+      };
+    });
+
+    res.json({
+      success: true,
+      query: q,
+      products: formattedProducts,
+      categories: matchedCategories,
+      brands: matchedBrands,
+      total: formattedProducts.length + matchedCategories.length + matchedBrands.length
+    });
+  } catch (err) {
+    console.error('[Search API Error]:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -1142,13 +1295,28 @@ app.post('/api/database/query', authenticateToken, async (req, res) => {
 });
 
 // POST /api/upload
-app.post('/api/upload', authenticateToken, upload.any(), (req, res) => {
+app.post('/api/upload', authenticateToken, upload.any(), async (req, res) => {
   try {
     const files = req.files || (req.file ? [req.file] : []);
     if (!files || files.length === 0) {
       return res.status(400).json({ success: false, message: 'No file provided.' });
     }
-    const urls = files.map(f => `/uploads/${f.filename}`);
+
+    const urls = [];
+    for (const f of files) {
+      urls.push(`/uploads/${f.filename}`);
+      try {
+        const fileBuffer = fs.readFileSync(f.path);
+        await db.prepare(`
+          INSERT INTO uploaded_files (filename, mime_type, file_data, size)
+          VALUES (?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE file_data = VALUES(file_data), size = VALUES(size)
+        `).run(f.filename, f.mimetype || 'image/png', fileBuffer, f.size);
+      } catch (dbErr) {
+        console.error(`[Upload DB Persistence Error for ${f.filename}]:`, dbErr.message);
+      }
+    }
+
     res.json({ 
       success: true, 
       imageUrl: urls[0],

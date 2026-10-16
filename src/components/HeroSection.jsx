@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, Mail, Search, User, Heart, ShoppingCart, Package, Menu, X, ArrowRight, ChevronLeft, ChevronRight, Server, ToggleRight, Zap, Box, Layers, Shield, Sliders, Database, ArrowDown, ChevronDown, Activity, Lightbulb, BellRing, Cpu } from 'lucide-react';
 import './HeroSection.css';
 import { useShop } from '../context/ShopContext';
+import { searchLocalCatalog, renderHighlightedText, getCategoryPath, getBrandPath } from '../utils/searchEngine';
+import { getProductUrl } from '../utils/productUrl';
 
 const HeroSection = ({ 
   isHome = true, 
@@ -23,7 +25,8 @@ const HeroSection = ({
   goToSwitchgear,
   goToBuildingMaterials,
   goToSafetyProducts,
-  goToAcSpareParts
+  goToAcSpareParts,
+  onProductClick
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,6 +37,7 @@ const HeroSection = ({
   const [isMobile, setIsMobile] = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [allDbProducts, setAllDbProducts] = useState([]);
   const [isOfferingMobileOpen, setIsOfferingMobileOpen] = useState(false);
   const [isBrandMobileOpen, setIsBrandMobileOpen] = useState(false);
   const [isAllCatMobileOpen, setIsAllCatMobileOpen] = useState(false);
@@ -42,11 +46,34 @@ const HeroSection = ({
   const navRef = useRef(null);
   const [navBottomOffset, setNavBottomOffset] = useState(190);
 
+  // Search Bar States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState({ categories: [], brands: [], products: [], totalCount: 0 });
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+
   useEffect(() => {
     isMenuLockedRef.current = false;
     setIsAllCatHovered(false);
     setIsMobileMenuOpen(false);
+    setIsSearchOpen(false);
+    setActiveSearchIndex(-1);
   }, [location.pathname]);
+
+  // Click outside listener for search dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSearchOpen(false);
+        setActiveSearchIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const updateNavOffset = () => {
@@ -71,9 +98,10 @@ const HeroSection = ({
     let isMounted = true;
     const fetchMenuData = async () => {
       try {
-        const [catRes, brandRes] = await Promise.all([
+        const [catRes, brandRes, prodRes] = await Promise.all([
           fetch('/api/categories').catch(() => null),
-          fetch('/api/brands').catch(() => null)
+          fetch('/api/brands').catch(() => null),
+          fetch('/api/products').catch(() => null)
         ]);
         if (catRes && catRes.ok) {
           const cData = await catRes.json();
@@ -87,6 +115,12 @@ const HeroSection = ({
             setBrands(bData.brands);
           }
         }
+        if (prodRes && prodRes.ok) {
+          const pData = await prodRes.json();
+          if (pData.success && Array.isArray(pData.products) && isMounted) {
+            setAllDbProducts(pData.products);
+          }
+        }
       } catch (err) {
         console.error('Failed to load menu data:', err);
       }
@@ -94,6 +128,135 @@ const HeroSection = ({
     fetchMenuData();
     return () => { isMounted = false; };
   }, []);
+
+  // Real-time search change handler (works instantly from 1st letter like A, d, etc.)
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    setActiveSearchIndex(-1);
+
+    if (val.trim()) {
+      setIsSearchOpen(true);
+      // 1. Instantaneous local client-side search (0ms delay)
+      const instant = searchLocalCatalog(val, {
+        liveProducts: allDbProducts,
+        liveCategories: categories,
+        liveBrands: brands
+      });
+      setSearchResults(instant);
+
+      // 2. Debounced query to backend search API for live synced records
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(val.trim())}`);
+          if (res.ok) {
+            const apiData = await res.json();
+            if (apiData.success) {
+              const merged = searchLocalCatalog(val, {
+                liveProducts: [...(apiData.products || []), ...allDbProducts],
+                liveCategories: [...(apiData.categories || []), ...categories],
+                liveBrands: [...(apiData.brands || []), ...brands]
+              });
+              setSearchResults(merged);
+            }
+          }
+        } catch (err) {
+          // Instant search results are already displayed!
+        }
+      }, 150);
+    } else {
+      setIsSearchOpen(false);
+      setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      setIsSearchOpen(false);
+      setActiveSearchIndex(-1);
+      if (searchInputRef.current) searchInputRef.current.blur();
+      navigate(`/search?q=${encodeURIComponent(q)}`);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setIsSearchOpen(false);
+    setActiveSearchIndex(-1);
+    setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    if (searchInputRef.current) searchInputRef.current.focus();
+  };
+
+  const triggerQuickSearch = (term) => {
+    setSearchQuery(term);
+    setIsSearchOpen(true);
+    setActiveSearchIndex(-1);
+    const instant = searchLocalCatalog(term, {
+      liveProducts: allDbProducts,
+      liveCategories: categories,
+      liveBrands: brands
+    });
+    setSearchResults(instant);
+    if (searchInputRef.current) searchInputRef.current.focus();
+  };
+
+  const handleProductClick = (product) => {
+    setIsSearchOpen(false);
+    setActiveSearchIndex(-1);
+    if (onProductClick) {
+      onProductClick(product);
+    } else {
+      const targetUrl = getProductUrl(product);
+      navigate(targetUrl, { state: { product } });
+    }
+  };
+
+  const handleSelectCategory = (cat) => {
+    setIsSearchOpen(false);
+    setActiveSearchIndex(-1);
+    handleCategoryClick(null, cat);
+  };
+
+  const handleSelectBrand = (brand) => {
+    setIsSearchOpen(false);
+    setActiveSearchIndex(-1);
+    handleBrandClick(null, brand);
+  };
+
+  // Keyboard navigation for dropdown
+  const handleSearchKeyDown = (e) => {
+    if (!isSearchOpen || !searchQuery.trim()) return;
+
+    const flatItems = [
+      ...searchResults.categories.map(c => ({ type: 'category', item: c })),
+      ...searchResults.brands.map(b => ({ type: 'brand', item: b })),
+      ...searchResults.products.map(p => ({ type: 'product', item: p }))
+    ];
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSearchIndex(prev => (prev < flatItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSearchIndex(prev => (prev > 0 ? prev - 1 : flatItems.length - 1));
+    } else if (e.key === 'Enter') {
+      if (activeSearchIndex >= 0 && activeSearchIndex < flatItems.length) {
+        e.preventDefault();
+        const selected = flatItems[activeSearchIndex];
+        if (selected.type === 'category') handleSelectCategory(selected.item);
+        else if (selected.type === 'brand') handleSelectBrand(selected.item);
+        else if (selected.type === 'product') handleProductClick(selected.item);
+      } else {
+        handleSearchSubmit(e);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchOpen(false);
+      setActiveSearchIndex(-1);
+    }
+  };
 
   const handleCategoryClick = (e, cat, parentCat = null) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -399,12 +562,191 @@ const HeroSection = ({
             <img src="/Superlight-Logo-01.svg" alt="Superlight Logo" className="logo-image" />
           </div>
 
-          {/* Search Bar */}
-          <div className="search-container">
-            <input type="text" placeholder="Search for products, brands or categories..." className="search-input" />
-            <button className="search-button">
-              <Search size={20} />
-            </button>
+          {/* Search Bar Container */}
+          <div 
+            className={`search-container ${isSearchOpen && searchQuery.trim() ? 'active' : ''}`}
+            ref={searchContainerRef}
+          >
+            <form className="search-box-bar" onSubmit={handleSearchSubmit}>
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                placeholder="Search for products, brands or categories..." 
+                className="search-input"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={() => {
+                  if (searchQuery.trim()) setIsSearchOpen(true);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                autoComplete="off"
+              />
+              {searchQuery && (
+                <button 
+                  type="button" 
+                  className="search-clear-btn" 
+                  onClick={handleClearSearch}
+                  title="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <button type="submit" className="search-button" title="Search">
+                <Search size={20} />
+              </button>
+            </form>
+
+            {/* Live Autocomplete Dropdown under search bar */}
+            {isSearchOpen && searchQuery.trim() && (
+              <div className="search-dropdown-menu" role="listbox">
+                {searchResults.totalCount > 0 ? (
+                  <div className="search-results-wrapper">
+                    
+                    {/* Categories Section */}
+                    {searchResults.categories.length > 0 && (
+                      <div className="search-dropdown-section">
+                        <div className="search-dropdown-section-title">
+                          <Layers size={13} />
+                          <span>Categories ({searchResults.categories.length})</span>
+                        </div>
+                        <div className="search-dropdown-items-list">
+                          {searchResults.categories.map((cat, idx) => (
+                            <div 
+                              key={cat.id || idx}
+                              className={`search-dropdown-item search-category-item ${activeSearchIndex === idx ? 'focused' : ''}`}
+                              onClick={() => handleSelectCategory(cat)}
+                            >
+                              <div className="search-item-icon-box">
+                                <Layers size={15} />
+                              </div>
+                              <div className="search-item-info">
+                                <span className="search-item-main-name">
+                                  {renderHighlightedText(cat.name, searchQuery)}
+                                </span>
+                                <span className="search-item-subtext">
+                                  {cat.isMain ? 'Main Category' : (cat.parentName ? `in ${cat.parentName}` : 'Subcategory')}
+                                </span>
+                              </div>
+                              <ChevronRight size={15} className="search-item-arrow" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Brands Section */}
+                    {searchResults.brands.length > 0 && (
+                      <div className="search-dropdown-section">
+                        <div className="search-dropdown-section-title">
+                          <span>Brands ({searchResults.brands.length})</span>
+                        </div>
+                        <div className="search-dropdown-items-list">
+                          {searchResults.brands.map((b, idx) => {
+                            const itemIdx = searchResults.categories.length + idx;
+                            return (
+                              <div 
+                                key={b.id || idx}
+                                className={`search-dropdown-item search-brand-item ${activeSearchIndex === itemIdx ? 'focused' : ''}`}
+                                onClick={() => handleSelectBrand(b)}
+                              >
+                                <div className="search-brand-logo-box">
+                                  {b.logo ? (
+                                    <img src={b.logo} alt={b.name} className="search-brand-logo-img" />
+                                  ) : (
+                                    <span className="search-brand-initials">{(b.name || 'B').substring(0, 2).toUpperCase()}</span>
+                                  )}
+                                </div>
+                                <div className="search-item-info">
+                                  <span className="search-item-main-name">
+                                    {renderHighlightedText(b.name, searchQuery)}
+                                  </span>
+                                  <span className="search-brand-store-tag">Official Brand</span>
+                                </div>
+                                <ChevronRight size={15} className="search-item-arrow" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Products Section */}
+                    {searchResults.products.length > 0 && (
+                      <div className="search-dropdown-section">
+                        <div className="search-dropdown-section-title">
+                          <span>Products ({searchResults.products.length})</span>
+                        </div>
+                        <div className="search-dropdown-items-list">
+                          {searchResults.products.map((prod, idx) => {
+                            const itemIdx = searchResults.categories.length + searchResults.brands.length + idx;
+                            return (
+                              <div 
+                                key={prod.id || idx}
+                                className={`search-dropdown-item search-product-item ${activeSearchIndex === itemIdx ? 'focused' : ''}`}
+                                onClick={() => handleProductClick(prod)}
+                              >
+                                <div className="search-prod-thumb-box">
+                                  <img 
+                                    src={prod.image} 
+                                    alt={prod.name} 
+                                    className="search-prod-thumb-img" 
+                                    onError={(e) => { e.target.src = '/prod_downlight_1791451418016.png'; }}
+                                  />
+                                </div>
+                                <div className="search-item-info">
+                                  <span className="search-prod-name">
+                                    {renderHighlightedText(prod.name, searchQuery)}
+                                  </span>
+                                  <div className="search-prod-meta-row">
+                                    {prod.brand && <span className="search-prod-brand-tag">{prod.brand}</span>}
+                                    {prod.category_name && <span className="search-prod-cat-tag">{prod.category_name}</span>}
+                                  </div>
+                                </div>
+                                <div className="search-prod-pricing">
+                                  <span className="search-prod-price">{prod.price}</span>
+                                  {prod.oldPrice && <span className="search-prod-old-price">{prod.oldPrice}</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* View all results footer */}
+                    <div 
+                      className="search-dropdown-footer"
+                      onClick={handleSearchSubmit}
+                    >
+                      <span>View all {searchResults.totalCount} results for <strong>"{searchQuery}"</strong></span>
+                      <ArrowRight size={16} />
+                    </div>
+
+                  </div>
+                ) : (
+                  /* NO PRODUCTS FOUND EMPTY STATE IN DROPDOWN */
+                  <div className="search-dropdown-empty">
+                    <div className="search-empty-icon-circle">
+                      <Search size={22} />
+                    </div>
+                    <h4 className="search-empty-title">No products found</h4>
+                    <p className="search-empty-text">
+                      No products, categories, or brands found matching <strong>"{searchQuery}"</strong>.
+                    </p>
+                    <div className="search-empty-quick-suggestions">
+                      <span className="search-quick-label">Try searching:</span>
+                      <div className="search-quick-chips">
+                        <button type="button" onClick={() => triggerQuickSearch('Wires')}>Wires</button>
+                        <button type="button" onClick={() => triggerQuickSearch('Lighting')}>Lighting</button>
+                        <button type="button" onClick={() => triggerQuickSearch('DeWalt')}>DeWalt</button>
+                        <button type="button" onClick={() => triggerQuickSearch('Schneider')}>Schneider</button>
+                        <button type="button" onClick={() => triggerQuickSearch('Switch')}>Switch</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User Actions */}

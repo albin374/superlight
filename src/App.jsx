@@ -33,6 +33,7 @@ import SchneiderBrand from './components/brands/SchneiderBrand'
 import CartPage from './components/cart/CartPage'
 import WishlistPage from './components/wishlist/WishlistPage'
 import MyOrdersPage from './components/orders/MyOrdersPage'
+import SearchResultsPage from './components/search/SearchResultsPage'
 import { getProductUrl } from './utils/productUrl'
 import './App.css'
 
@@ -147,6 +148,7 @@ function AppContent() {
         goToBuildingMaterials={goToBuildingMaterials}
         goToSafetyProducts={goToSafetyProducts}
         goToAcSpareParts={goToAcSpareParts}
+        onProductClick={goToDetails}
       />
       <Routes>
         <Route path="/" element={
@@ -323,6 +325,9 @@ function AppContent() {
         {/* My Orders Pages */}
         <Route path="/my-orders" element={<MyOrdersPage onProductClick={goToDetails} />} />
         <Route path="/orders" element={<MyOrdersPage onProductClick={goToDetails} />} />
+
+        {/* Catalog Search Route */}
+        <Route path="/search" element={<SearchResultsPage onProductClick={goToDetails} />} />
 
         {/* Semantic Hierarchical Product Details Routes */}
         <Route path="/:categorySlug/:subcategorySlug/:productSlug" element={<ProductDetails goHome={goHome} product={selectedProduct} />} />
