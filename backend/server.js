@@ -7,6 +7,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import db, { initDatabase } from './database.js';
 import { isCloudinaryConfigured, getCloudinaryStatus, uploadToCloudinary } from './cloudinary.js';
 import { runCloudinaryMigration } from './migrate-to-cloudinary.js';
@@ -18,6 +20,8 @@ const __dirname = path.dirname(__filename);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'superlight_ultra_secure_jwt_secret_key_2026';
 const PORT = process.env.PORT || 5000;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '993906976196-kt13920p8sb9adfdlpnglokg18is08of.apps.googleusercontent.com';
+const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const app = express();
 
@@ -135,6 +139,36 @@ const logActivity = async (adminId, action, details) => {
   }
 };
 
+// Helper: Ensure an image URL or local path is uploaded to Cloudinary if Cloudinary is active
+const ensureCloudinaryUrl = async (imgRef, folder = 'superlight/products') => {
+  if (!imgRef || typeof imgRef !== 'string') return imgRef;
+  if (imgRef.startsWith('http://') || imgRef.startsWith('https://')) return imgRef;
+  if (!isCloudinaryConfigured()) return imgRef;
+
+  try {
+    const filename = path.basename(imgRef);
+    let sourcePath = path.join(uploadsDir, filename);
+    if (!fs.existsSync(sourcePath)) sourcePath = path.join(backendPublic, filename);
+    if (!fs.existsSync(sourcePath)) sourcePath = path.join(rootPublic, filename);
+
+    if (fs.existsSync(sourcePath)) {
+      const cRes = await uploadToCloudinary(sourcePath, { folder, public_id: path.parse(filename).name });
+      return cRes.secure_url;
+    }
+
+    // Check MySQL uploaded_files table
+    const row = await db.prepare('SELECT file_data FROM uploaded_files WHERE filename = ?').get(filename);
+    if (row && row.file_data) {
+      const cRes = await uploadToCloudinary(Buffer.from(row.file_data), { folder, public_id: path.parse(filename).name });
+      return cRes.secure_url;
+    }
+  } catch (err) {
+    console.warn(`[Auto-Cloudinary Upload Warning for ${imgRef}]:`, err.message);
+  }
+  return imgRef;
+};
+
+
 /* ==========================================================================
    AUTH ROUTES
    ========================================================================== */
@@ -192,6 +226,300 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Admin not found.' });
     }
     res.json({ success: true, user: admin });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/* ==========================================================================
+   CUSTOMER AUTH ROUTES (Login & Register with username or email)
+   ========================================================================== */
+
+// Customer Registration Handler
+const handleCustomerRegister = async (req, res) => {
+  const { username, email, password, name, phone } = req.body;
+
+  const cleanUsername = String(username || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanPassword = String(password || '');
+  const cleanName = String(name || '').trim() || cleanUsername;
+  const cleanPhone = String(phone || '').trim();
+
+  // 1. Validation
+  if (!cleanUsername) {
+    return res.status(400).json({ success: false, message: 'Username is required.' });
+  }
+  if (cleanUsername.length < 3) {
+    return res.status(400).json({ success: false, message: 'Username must be at least 3 characters long.' });
+  }
+  if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUsername)) {
+    return res.status(400).json({ success: false, message: 'Username can only contain letters, numbers, underscores, and dashes.' });
+  }
+  if (!cleanEmail) {
+    return res.status(400).json({ success: false, message: 'Email address is required.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+  }
+  if (!cleanPassword || cleanPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+  }
+
+  try {
+    // 2. Check duplicate username
+    const existingUsername = await db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get(cleanUsername.toLowerCase());
+    if (existingUsername) {
+      return res.status(409).json({ success: false, message: 'This username is already taken. Please choose another.' });
+    }
+
+    // 3. Check duplicate email
+    const existingEmail = await db.prepare('SELECT id FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+    if (existingEmail) {
+      return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please log in.' });
+    }
+
+    // 4. Hash password
+    const hashedPassword = bcrypt.hashSync(cleanPassword, 10);
+
+    // 5. Insert new user
+    const result = await db.prepare(`
+      INSERT INTO users (username, email, password, name, phone, role)
+      VALUES (?, ?, ?, ?, ?, 'customer')
+    `).run(cleanUsername, cleanEmail, hashedPassword, cleanName, cleanPhone);
+
+    const newUserId = result.insertId || result.lastInsertRowid;
+
+    // 6. Generate JWT token
+    const token = jwt.sign(
+      { id: newUserId, username: cleanUsername, email: cleanEmail, name: cleanName, role: 'customer' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully!',
+      token,
+      user: {
+        id: newUserId,
+        username: cleanUsername,
+        email: cleanEmail,
+        name: cleanName,
+        phone: cleanPhone,
+        role: 'customer'
+      }
+    });
+  } catch (err) {
+    console.error('Customer registration error:', err);
+    res.status(500).json({ success: false, message: 'Failed to create account. Please try again.' });
+  }
+};
+
+app.post('/api/users/register', handleCustomerRegister);
+app.post('/api/auth/register', handleCustomerRegister);
+
+// Customer Login Handler (supports username OR email)
+const handleCustomerLogin = async (req, res) => {
+  const { usernameOrEmail, identifier, email, username, password } = req.body;
+  const loginIdentifier = String(usernameOrEmail || identifier || email || username || '').trim();
+  const cleanPassword = String(password || '');
+
+  if (!loginIdentifier) {
+    return res.status(400).json({ success: false, message: 'Please enter your username or email address.' });
+  }
+  if (!cleanPassword) {
+    return res.status(400).json({ success: false, message: 'Please enter your password.' });
+  }
+
+  try {
+    // Search by username OR email (case-insensitive)
+    const lowerIdentifier = loginIdentifier.toLowerCase();
+    const user = await db.prepare(`
+      SELECT * FROM users 
+      WHERE LOWER(username) = ? OR LOWER(email) = ?
+    `).get(lowerIdentifier, lowerIdentifier);
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username/email or password.' });
+    }
+
+    const isMatch = bcrypt.compareSync(cleanPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid username/email or password.' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role || 'customer' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: `Welcome back, ${user.name || user.username}!`,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        role: user.role || 'customer'
+      }
+    });
+  } catch (err) {
+    console.error('Customer login error:', err);
+    res.status(500).json({ success: false, message: 'Server error during login. Please try again.' });
+  }
+};
+
+app.post('/api/users/login', handleCustomerLogin);
+app.post('/api/auth/customer-login', handleCustomerLogin);
+
+// Google OAuth Login / Register Handler
+const handleGoogleLogin = async (req, res) => {
+  const { credential, id_token, token } = req.body;
+  const rawToken = String(credential || id_token || token || '').trim();
+
+  if (!rawToken) {
+    return res.status(400).json({ success: false, message: 'Google credential token is required.' });
+  }
+
+  try {
+    let payload = null;
+
+    // 1. Try local cryptographic verification via OAuth2Client
+    try {
+      const ticket = await googleOAuthClient.verifyIdToken({
+        idToken: rawToken,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.warn('[Google Auth] OAuth2Client.verifyIdToken error, attempting tokeninfo fallback:', verifyErr.message);
+      // 2. Fallback to Google's official tokeninfo HTTPS endpoint
+      const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(rawToken)}`);
+      const tokenInfo = await response.json();
+      if (tokenInfo.error || !tokenInfo.email) {
+        return res.status(401).json({ success: false, message: tokenInfo.error_description || 'Invalid Google credential token.' });
+      }
+      if (tokenInfo.aud !== GOOGLE_CLIENT_ID) {
+        return res.status(401).json({ success: false, message: 'Google client ID mismatch.' });
+      }
+      payload = tokenInfo;
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ success: false, message: 'Unable to retrieve user information from Google.' });
+    }
+
+    const cleanEmail = String(payload.email).trim().toLowerCase();
+    const googleSub = String(payload.sub || '');
+    const fullName = String(payload.name || payload.given_name || '').trim() || cleanEmail.split('@')[0];
+    const picture = payload.picture || null;
+
+    // 3. Check if user exists by google_id or email
+    let user = null;
+    if (googleSub) {
+      user = await db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleSub);
+    }
+    if (!user) {
+      user = await db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+    }
+
+    if (user) {
+      // User exists: update missing google_id or avatar
+      if (!user.google_id && googleSub) {
+        await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').run(googleSub, user.id);
+        user.google_id = googleSub;
+      }
+      if (!user.avatar && picture) {
+        await db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
+        user.avatar = picture;
+      }
+    } else {
+      // User does NOT exist: auto-register new customer account
+      let baseUsername = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g, '_');
+      if (baseUsername.length < 3) baseUsername = 'user_' + baseUsername;
+      
+      let candidateUsername = baseUsername;
+      let counter = 1;
+      while (await db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get(candidateUsername.toLowerCase())) {
+        candidateUsername = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
+        counter++;
+        if (counter > 10) {
+          candidateUsername = `${baseUsername}_${Date.now().toString().slice(-4)}`;
+          break;
+        }
+      }
+
+      // Random password hash for DB integrity
+      const randomPassword = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36);
+      const hashedPassword = bcrypt.hashSync(randomPassword, 10);
+
+      const insertResult = await db.prepare(`
+        INSERT INTO users (username, email, password, name, avatar, google_id, role)
+        VALUES (?, ?, ?, ?, ?, ?, 'customer')
+      `).run(candidateUsername, cleanEmail, hashedPassword, fullName, picture, googleSub);
+
+      const newId = insertResult.insertId || insertResult.lastInsertRowid;
+      user = {
+        id: newId,
+        username: candidateUsername,
+        email: cleanEmail,
+        name: fullName,
+        avatar: picture,
+        google_id: googleSub,
+        role: 'customer'
+      };
+    }
+
+    // 4. Issue customer JWT
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        name: user.name, 
+        avatar: user.avatar,
+        role: user.role || 'customer' 
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: `Welcome, ${user.name || user.username}!`,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        phone: user.phone || null,
+        role: user.role || 'customer'
+      }
+    });
+  } catch (err) {
+    console.error('Google login backend error:', err);
+    return res.status(500).json({ success: false, message: 'Google authentication failed. Please try again.' });
+  }
+};
+
+app.post('/api/users/google-login', handleGoogleLogin);
+app.post('/api/auth/google', handleGoogleLogin);
+
+// GET /api/users/me (Fetch current logged-in customer info)
+app.get('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await db.prepare('SELECT id, username, email, name, phone, avatar, google_id, role, created_at FROM users WHERE id = ?').get(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+    res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -493,6 +821,19 @@ app.post('/api/products', authenticateToken, async (req, res) => {
     if (!primaryImage) {
       primaryImage = '/prod_downlight_1791451418016.png';
       imagesJson = JSON.stringify([primaryImage]);
+    } else {
+      // Automatically ensure images are uploaded to Cloudinary
+      primaryImage = await ensureCloudinaryUrl(primaryImage, 'superlight/products');
+      if (Array.isArray(images) && images.length > 0) {
+        const converted = [];
+        for (const img of images) {
+          converted.push(await ensureCloudinaryUrl(img, 'superlight/products'));
+        }
+        imagesJson = JSON.stringify(converted);
+        primaryImage = converted[0];
+      } else {
+        imagesJson = JSON.stringify([primaryImage]);
+      }
     }
 
     let validCatId = null;
@@ -577,11 +918,19 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
     let imagesJson = existing.images || '';
 
     if (Array.isArray(images)) {
-      if (images.length > 0) primaryImage = images[0];
-      imagesJson = JSON.stringify(images);
+      const converted = [];
+      for (const img of images) {
+        converted.push(await ensureCloudinaryUrl(img, 'superlight/products'));
+      }
+      imagesJson = JSON.stringify(converted);
+      if (converted.length > 0) primaryImage = converted[0];
+    } else if (image !== undefined) {
+      primaryImage = await ensureCloudinaryUrl(image, 'superlight/products');
+      imagesJson = JSON.stringify([primaryImage]);
     } else if (images !== undefined) {
       imagesJson = images;
     }
+
 
     let targetCatId = existing.category_id;
     if (category_id !== undefined) {
@@ -896,13 +1245,15 @@ app.post('/api/brands', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: `Brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
 
+    const finalImage = image ? await ensureCloudinaryUrl(image, 'superlight/brands') : '';
+
     const result = await db.prepare(`
       INSERT INTO brands (name, slug, image, website, description, is_featured)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
       cleanName,
       cleanSlug,
-      image || '',
+      finalImage,
       website || '',
       description || '',
       is_featured ? 1 : 0
@@ -943,6 +1294,11 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: `Another brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
 
+    let finalImage = existing.image;
+    if (image !== undefined) {
+      finalImage = image ? await ensureCloudinaryUrl(image, 'superlight/brands') : '';
+    }
+
     await db.prepare(`
       UPDATE brands
       SET name = ?, slug = ?, image = ?, website = ?, description = ?, is_featured = ?
@@ -950,7 +1306,7 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
     `).run(
       cleanName,
       cleanSlug,
-      image !== undefined ? image : existing.image,
+      finalImage,
       website !== undefined ? website : existing.website,
       description !== undefined ? description : existing.description,
       is_featured !== undefined ? (is_featured ? 1 : 0) : existing.is_featured,

@@ -83,6 +83,44 @@ if (isMySQLConfigured) {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+
+      // Ensure customer users table exists
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(100) UNIQUE NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password VARCHAR(255) NULL,
+          name VARCHAR(255),
+          phone VARCHAR(50),
+          avatar TEXT,
+          google_id VARCHAR(255),
+          role VARCHAR(50) DEFAULT 'customer',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      // Add google_id, avatar and make password nullable if table already existed
+      try {
+        const [existingCols] = await pool.query('SHOW COLUMNS FROM users');
+        const colNames = existingCols.map(c => c.Field);
+        if (!colNames.includes('google_id')) {
+          await pool.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL');
+          console.log(' [Aiven MySQL] Added google_id column to users table');
+        }
+        if (!colNames.includes('avatar')) {
+          await pool.query('ALTER TABLE users ADD COLUMN avatar TEXT NULL');
+          console.log(' [Aiven MySQL] Added avatar column to users table');
+        }
+        const pwdCol = existingCols.find(c => c.Field === 'password');
+        if (pwdCol && pwdCol.Null === 'NO') {
+          await pool.query('ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL');
+          console.log(' [Aiven MySQL] Updated password column to allow NULL for OAuth users');
+        }
+      } catch (colErr) {
+        console.warn('⚠️ [Aiven MySQL] Column check notice:', colErr.message);
+      }
     } catch (err) {
       console.error('❌ [Aiven MySQL] Connection error:', err.message);
     }
@@ -133,8 +171,28 @@ if (isMySQLConfigured) {
         size INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT,
+        name TEXT,
+        phone TEXT,
+        avatar TEXT,
+        google_id TEXT,
+        role TEXT DEFAULT 'customer',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
-    console.log('[SQLite] Local database initialized with uploaded_files table.');
+    try {
+      const cols = sqliteDb.prepare("PRAGMA table_info('users')").all();
+      const colNames = cols.map(c => c.name);
+      if (!colNames.includes('google_id')) sqliteDb.exec('ALTER TABLE users ADD COLUMN google_id TEXT;');
+      if (!colNames.includes('avatar')) sqliteDb.exec('ALTER TABLE users ADD COLUMN avatar TEXT;');
+    } catch (e) {}
+    console.log('[SQLite] Local database initialized with uploaded_files and users tables.');
   };
 }
 
