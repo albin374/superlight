@@ -29,6 +29,8 @@ backend/uploads/*
 # Environment files
 .env
 .env.*
+!.env.example
+!backend/.env.example
 backend/.env
 
 # Local migration scripts & dumps

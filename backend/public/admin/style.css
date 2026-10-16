@@ -425,6 +425,52 @@ body {
   gap: 14px;
 }
 
+.storage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  transition: all .2s;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.storage-badge .storage-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.storage-badge.active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #059669;
+}
+
+.storage-badge.active .storage-badge-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+}
+
+.storage-badge.pending {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #b45309;
+}
+
+.storage-badge.pending .storage-badge-dot {
+  background: #f59e0b;
+}
+
 .admin-profile-pill {
   display: flex;
   align-items: center;

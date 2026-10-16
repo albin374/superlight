@@ -8,6 +8,8 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import db, { initDatabase } from './database.js';
+import { isCloudinaryConfigured, getCloudinaryStatus, uploadToCloudinary } from './cloudinary.js';
+import { runCloudinaryMigration } from './migrate-to-cloudinary.js';
 
 dotenv.config();
 
@@ -1303,8 +1305,42 @@ app.post('/api/upload', authenticateToken, upload.any(), async (req, res) => {
     }
 
     const urls = [];
+    const cloudinaryUploads = [];
+    const cloudinaryReady = isCloudinaryConfigured();
+
     for (const f of files) {
-      urls.push(`/uploads/${f.filename}`);
+      let finalUrl = null;
+
+      // 1. Upload to Cloudinary if credentials are configured
+      if (cloudinaryReady) {
+        try {
+          const cRes = await uploadToCloudinary(f.path, {
+            folder: 'superlight/uploads',
+            public_id: path.parse(f.filename).name
+          });
+          if (cRes && cRes.secure_url) {
+            finalUrl = cRes.secure_url;
+            cloudinaryUploads.push({
+              public_id: cRes.public_id,
+              url: cRes.secure_url,
+              format: cRes.format,
+              bytes: cRes.bytes
+            });
+            console.log(`[Cloudinary Upload Success]: ${finalUrl}`);
+          }
+        } catch (cErr) {
+          console.error(`[Cloudinary Upload Error for ${f.filename}]:`, cErr.message);
+        }
+      }
+
+      // 2. Fallback to /uploads/filename if Cloudinary is not configured or failed
+      if (!finalUrl) {
+        finalUrl = `/uploads/${f.filename}`;
+      }
+
+      urls.push(finalUrl);
+
+      // 3. Keep local DB backup copy in uploaded_files table as secondary resilience
       try {
         const fileBuffer = fs.readFileSync(f.path);
         await db.prepare(`
@@ -1321,8 +1357,36 @@ app.post('/api/upload', authenticateToken, upload.any(), async (req, res) => {
       success: true, 
       imageUrl: urls[0],
       url: urls[0],
-      urls
+      urls,
+      storage: cloudinaryReady && cloudinaryUploads.length > 0 ? 'cloudinary' : 'local_database',
+      cloudinaryUploads
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/cloudinary/status
+app.get('/api/cloudinary/status', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    ...getCloudinaryStatus()
+  });
+});
+
+// POST /api/cloudinary/migrate (Migrate all existing local/db images to Cloudinary)
+app.post('/api/cloudinary/migrate', authenticateToken, async (req, res) => {
+  try {
+    if (!isCloudinaryConfigured()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cloudinary is not configured in .env. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.'
+      });
+    }
+
+    const migrationResult = await runCloudinaryMigration();
+    await logActivity(req.user.id, 'Cloudinary Migration', `Migrated ${migrationResult.filesMigrated} images to Cloudinary`);
+    res.json(migrationResult);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1344,11 +1408,18 @@ app.get(/^\/admin(\/.*)?$/, (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
+  const cStatus = getCloudinaryStatus();
   console.log(`==================================================================`);
   console.log(`🚀 Superlight Admin Backend & SQL Database Server running!`);
   console.log(`📍 Admin Dashboard URL: http://localhost:${PORT}/admin`);
   console.log(`📍 API Base URL:       http://localhost:${PORT}/api`);
   console.log(`👤 Default Admin User: admin@superlight.ae`);
   console.log(`🔑 Default Admin Pass: Admin@123`);
+  if (cStatus.configured) {
+    console.log(`☁️ Cloudinary Storage: ACTIVE (Cloud: ${cStatus.cloud_name})`);
+  } else {
+    console.log(`☁️ Cloudinary Storage: WAITING FOR CREDENTIALS in .env`);
+  }
   console.log(`==================================================================`);
 });
+

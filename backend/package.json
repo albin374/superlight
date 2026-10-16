@@ -6,18 +6,20 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch --watch-path=server.js --watch-path=database.js server.js"
+    "dev": "node --watch --watch-path=server.js --watch-path=database.js --watch-path=cloudinary.js server.js",
+    "migrate:cloudinary": "node migrate-to-cloudinary.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.0.2",
+    "multer": "^2.4.0",
     "mysql2": "^3.24.6"
   }
 }

@@ -297,9 +297,74 @@ function showApp() {
   loadCategories();
   loadBrands();
   loadDashboardStats();
+  checkCloudinaryStatus();
 
   const savedTab = localStorage.getItem('superlight_admin_tab') || 'dashboard';
   switchTab(savedTab);
+}
+
+async function checkCloudinaryStatus() {
+  const badge = document.getElementById('cloudinaryStatusBadge');
+  const text = document.getElementById('cloudinaryBadgeText');
+  const syncBtn = document.getElementById('syncCloudinaryBtn');
+  if (!badge || !text) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/cloudinary/status`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success && data.configured) {
+      badge.className = 'storage-badge active';
+      text.innerText = `☁️ Cloudinary: Active (${data.cloud_name})`;
+      badge.title = `Cloudinary Storage is connected. Uploads are stored and served via Cloudinary CDN (${data.cloud_name}).`;
+      if (syncBtn) {
+        syncBtn.style.display = 'inline-flex';
+        syncBtn.onclick = handleSyncCloudinary;
+      }
+    } else {
+      badge.className = 'storage-badge pending';
+      text.innerText = `☁️ Cloudinary: Keys Needed`;
+      badge.title = 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend/.env to activate Cloudinary CDN storage.';
+      if (syncBtn) syncBtn.style.display = 'none';
+    }
+  } catch (e) {
+    badge.style.display = 'none';
+    if (syncBtn) syncBtn.style.display = 'none';
+  }
+}
+
+async function handleSyncCloudinary() {
+  const syncBtn = document.getElementById('syncCloudinaryBtn');
+  if (!syncBtn) return;
+
+  const confirmed = confirm('This will upload all local product & brand pictures to your Cloudinary storage and update database URLs to the Cloudinary CDN. Proceed?');
+  if (!confirmed) return;
+
+  const originalHtml = syncBtn.innerHTML;
+  syncBtn.disabled = true;
+  syncBtn.innerHTML = `<span>Syncing to Cloudinary...</span>`;
+  showToast('Starting Cloudinary image sync...', 'info');
+
+  try {
+    const res = await fetch(`${API_BASE}/cloudinary/migrate`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Sync complete! Uploaded ${data.filesMigrated || 0} images and updated ${data.productsMigrated || 0} products.`, 'success');
+      loadProducts();
+      loadBrands();
+    } else {
+      showToast(data.message || 'Sync failed.', 'error');
+    }
+  } catch (err) {
+    showToast('Error syncing images to Cloudinary.', 'error');
+  } finally {
+    syncBtn.disabled = false;
+    syncBtn.innerHTML = originalHtml;
+  }
 }
 
 // Switch navigation tabs
