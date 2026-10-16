@@ -38,18 +38,18 @@ export const CATEGORY_MAP = {
   'home-automation': { slug: 'switchgear-control-panel-products', name: 'Switchgear & Control Panel Products' },
   'smart-home': { slug: 'switchgear-control-panel-products', name: 'Switchgear & Control Panel Products' },
 
-  'building': { slug: 'building-materials', name: 'Building Materials & Supplies' },
-  'building-materials': { slug: 'building-materials', name: 'Building Materials & Supplies' },
-  'plumbing-materials': { slug: 'building-materials', name: 'Building Materials & Supplies' },
-  'plumbing': { slug: 'building-materials', name: 'Building Materials & Supplies' },
+  'building': { slug: 'building-materials', name: 'Building Materials' },
+  'building-materials': { slug: 'building-materials', name: 'Building Materials' },
+  'plumbing-materials': { slug: 'building-materials', name: 'Building Materials' },
+  'plumbing': { slug: 'building-materials', name: 'Building Materials' },
 
-  'safety': { slug: 'safety-products', name: 'Safety Products & PPE' },
-  'safety-products': { slug: 'safety-products', name: 'Safety Products & PPE' },
+  'safety': { slug: 'safety-products', name: 'Safety Products' },
+  'safety-products': { slug: 'safety-products', name: 'Safety Products' },
 
-  'ac': { slug: 'ac-spare-parts', name: 'AC Spare Parts & HVAC' },
-  'ac-spare-parts': { slug: 'ac-spare-parts', name: 'AC Spare Parts & HVAC' },
-  'ac-spair-parts': { slug: 'ac-spare-parts', name: 'AC Spare Parts & HVAC' },
-  'hvac': { slug: 'ac-spare-parts', name: 'AC Spare Parts & HVAC' },
+  'ac': { slug: 'ac-spare-parts', name: 'AC Spair Parts' },
+  'ac-spare-parts': { slug: 'ac-spare-parts', name: 'AC Spair Parts' },
+  'ac-spair-parts': { slug: 'ac-spare-parts', name: 'AC Spair Parts' },
+  'hvac': { slug: 'ac-spare-parts', name: 'AC Spair Parts' },
 
   'tools': { slug: 'adhesives-tools-hardware', name: 'Adhesives, Tools & Hardware' },
   'adhesives-tools-hardware': { slug: 'adhesives-tools-hardware', name: 'Adhesives, Tools & Hardware' },
@@ -62,9 +62,9 @@ export const CATEGORY_NAMES = {
   'led-lighting-special-lamp': 'LED Lighting & Special Lamp',
   'switches-sockets-electrical-accessories': 'Switches, Sockets & Electrical Accessories',
   'switchgear-control-panel-products': 'Switchgear & Control Panel Products',
-  'building-materials': 'Building Materials & Supplies',
-  'safety-products': 'Safety Products & PPE',
-  'ac-spare-parts': 'AC Spare Parts & HVAC',
+  'building-materials': 'Building Materials',
+  'safety-products': 'Safety Products',
+  'ac-spare-parts': 'AC Spair Parts',
   'adhesives-tools-hardware': 'Adhesives, Tools & Hardware'
 };
 
@@ -424,7 +424,7 @@ export const STATIC_CATALOG = [
     ],
     brand: 'fluke',
     category_slug: 'safety-products',
-    category_name: 'Safety Products & PPE',
+    category_name: 'Safety Products',
     subcategory_slug: 'safety-jackets',
     subcategory_name: 'Safety Jackets',
     model: 'FLU-SFT-JKT',

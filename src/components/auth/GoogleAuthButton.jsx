@@ -38,61 +38,104 @@ const GoogleAuthButton = ({
   useEffect(() => {
     let checkInterval = null;
     let attempts = 0;
+    let resizeObserver = null;
+    let lastRenderedWidth = 0;
 
-    const setupGoogleButton = () => {
-      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true
-          });
-
-          // Clear previous render to avoid duplicate buttons
-          if (googleBtnContainerRef.current) {
-            googleBtnContainerRef.current.innerHTML = '';
-            
-            // Calculate width based on container width or fallback to 360
-            const containerWidth = googleBtnContainerRef.current.offsetWidth || 360;
-            const buttonWidth = Math.min(Math.max(containerWidth, 240), 400);
-
-            window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
-              type: 'standard',
-              theme: 'outline',
-              size: 'large',
-              text,
-              shape: 'rectangular',
-              logo_alignment: 'left',
-              width: buttonWidth
-            });
-          }
-
-          setScriptLoaded(true);
-          if (checkInterval) clearInterval(checkInterval);
-        } catch (e) {
-          console.warn('Error initializing Google Identity Services button:', e);
+    const computeButtonWidth = () => {
+      if (!googleBtnContainerRef.current) return 300;
+      
+      const rect = googleBtnContainerRef.current.getBoundingClientRect();
+      const currentWidth = Math.floor(rect.width || googleBtnContainerRef.current.offsetWidth || 0);
+      
+      if (currentWidth > 0) {
+        return Math.min(Math.max(currentWidth, 200), 400);
+      }
+      
+      // Fallback: measure parent card width or window
+      const card = googleBtnContainerRef.current.closest('.auth-card');
+      if (card) {
+        const cardRect = card.getBoundingClientRect();
+        const padding = window.innerWidth <= 600 ? 36 : 80;
+        const available = Math.floor((cardRect.width || card.offsetWidth || 0) - padding);
+        if (available > 0) {
+          return Math.min(Math.max(available, 200), 400);
         }
+      }
+      
+      const screenAvailable = Math.floor(window.innerWidth - 48);
+      return Math.min(Math.max(screenAvailable, 200), 380);
+    };
+
+    const renderGoogleButton = () => {
+      if (!window.google?.accounts?.id || !googleBtnContainerRef.current) return;
+
+      const width = computeButtonWidth();
+      // Avoid re-rendering if width difference is negligible
+      if (Math.abs(width - lastRenderedWidth) <= 4 && googleBtnContainerRef.current.children.length > 0) {
+        return;
+      }
+      lastRenderedWidth = width;
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+
+        googleBtnContainerRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text,
+          shape: 'rectangular',
+          logo_alignment: 'left',
+          width: width
+        });
+
+        setScriptLoaded(true);
+      } catch (e) {
+        console.warn('Error rendering Google Identity Services button:', e);
+      }
+    };
+
+    const initSetup = () => {
+      renderGoogleButton();
+
+      if (typeof ResizeObserver !== 'undefined' && googleBtnContainerRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          renderGoogleButton();
+        });
+        resizeObserver.observe(googleBtnContainerRef.current);
       }
     };
 
     // If script is already loaded
     if (window.google?.accounts?.id) {
-      setupGoogleButton();
+      initSetup();
     } else {
-      // Check every 100ms up to 50 times (5 seconds)
       checkInterval = setInterval(() => {
         attempts++;
         if (window.google?.accounts?.id) {
-          setupGoogleButton();
+          clearInterval(checkInterval);
+          initSetup();
         } else if (attempts >= 50) {
           clearInterval(checkInterval);
         }
       }, 100);
     }
 
+    const handleWindowResize = () => {
+      renderGoogleButton();
+    };
+    window.addEventListener('resize', handleWindowResize);
+
     return () => {
       if (checkInterval) clearInterval(checkInterval);
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, [clientId, text]);
 

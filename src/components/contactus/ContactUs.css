@@ -512,11 +512,71 @@
   .contact-form .form-row {
     grid-template-columns: 1fr;
   }
-  .brands-list {
-    flex-direction: column;
+  /* Brands Carousel on Mobile */
+  .contact-brands {
+    margin-bottom: 45px;
+    overflow: hidden;
   }
+
+  .contact-brands h2 {
+    font-size: 1.75rem;
+    margin-bottom: 8px;
+  }
+
+  .brands-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    padding: 0 10px;
+  }
+
+  .brands-carousel-wrapper {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    padding: 6px 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  }
+
+  .brands-list.marquee-track {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: max-content !important;
+    gap: 14px;
+    animation: scrollMarqueeMobile 18s linear infinite !important;
+    will-change: transform;
+  }
+
+  .brand-logo-card {
+    flex: 0 0 110px;
+    width: 110px;
+    height: 56px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+  }
+
+  .brand-logo-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
   .ia-buttons {
     flex-direction: column;
     width: 100%;
+  }
+}
+
+@keyframes scrollMarqueeMobile {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(calc(-50% - 7px), 0, 0);
   }
 }

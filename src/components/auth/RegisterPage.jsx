@@ -207,7 +207,7 @@ const RegisterPage = () => {
                       type="text"
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="e.g. Albin Alosious"
+                      placeholder="Full Name"
                       autoComplete="name"
                     />
                   </div>
@@ -225,7 +225,7 @@ const RegisterPage = () => {
                       type="text"
                       value={formData.username}
                       onChange={handleChange}
-                      placeholder="e.g. albin_90"
+                      placeholder="Username"
                       autoComplete="username"
                       required
                     />
@@ -246,7 +246,7 @@ const RegisterPage = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="e.g. albin@example.com"
+                    placeholder="Email Address"
                     autoComplete="email"
                     required
                   />
@@ -266,7 +266,7 @@ const RegisterPage = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="e.g. +971 50 123 4567"
+                    placeholder="Phone Number"
                     autoComplete="tel"
                   />
                 </div>
@@ -286,7 +286,7 @@ const RegisterPage = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={handleChange}
-                      placeholder="Min. 6 characters"
+                      placeholder="Password"
                       autoComplete="new-password"
                       required
                     />
@@ -314,7 +314,7 @@ const RegisterPage = () => {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      placeholder="Re-enter password"
+                      placeholder="Confirm Password"
                       autoComplete="new-password"
                       required
                     />

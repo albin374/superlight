@@ -64,10 +64,10 @@ const SearchResultsPage = ({ onProductClick }) => {
         setDbProducts(pData.products);
       }
       if (cData && cData.success && Array.isArray(cData.categories)) {
-        setCategories(prev => [...cData.categories, ...prev]);
+        setCategories(cData.categories);
       }
       if (bData && bData.success && Array.isArray(bData.brands)) {
-        setBrands(prev => [...bData.brands, ...prev]);
+        setBrands(bData.brands);
       }
       setIsLoading(false);
     }).catch(() => {

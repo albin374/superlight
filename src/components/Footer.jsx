@@ -78,10 +78,21 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
           <div className="footer-col footer-contact">
             <h4 className="footer-title">Contact Information</h4>
             <ul className="contact-info">
-              <li><MapPin size={16} className="contact-icon" /> <span>Al Quoz, Dubai, UAE</span></li>
-              <li><Phone size={16} className="contact-icon" /> <span>+971 50 123 4567</span></li>
+              <li>
+                <MapPin size={16} className="contact-icon" /> 
+                <a 
+                  href="https://maps.app.goo.gl/obHWpxCkidafsqLu5" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'none' }}
+                  title="View on Google Maps"
+                >
+                  Superlight Electricals, Rafi Centre, Naif - Deira, Dubai
+                </a>
+              </li>
+              <li><Phone size={16} className="contact-icon" /> <span>+971 43298869</span></li>
               <li><Mail size={16} className="contact-icon" /> <span>sales@superlight.ae</span></li>
-              <li><Clock size={16} className="contact-icon" /> <span>Mon - Sat: 9:00 AM - 6:00 PM</span></li>
+              <li><Clock size={16} className="contact-icon" /> <span>Mon - Sat: 07:00AM - 10:00PM</span></li>
             </ul>
           </div>
 

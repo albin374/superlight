@@ -66,7 +66,10 @@ const HeroSection = ({
     setIsSearchOpen(false);
     setIsAccountMenuOpen(false);
     setActiveSearchIndex(-1);
-  }, [location.pathname]);
+    setSearchQuery('');
+    setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    if (searchInputRef.current) searchInputRef.current.blur();
+  }, [location.pathname, location.search]);
 
   // Click outside listener for search & account dropdowns
   useEffect(() => {
@@ -183,8 +186,10 @@ const HeroSection = ({
     if (e && e.preventDefault) e.preventDefault();
     const q = searchQuery.trim();
     if (q) {
+      setSearchQuery('');
       setIsSearchOpen(false);
       setActiveSearchIndex(-1);
+      setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
       if (searchInputRef.current) searchInputRef.current.blur();
       navigate(`/search?q=${encodeURIComponent(q)}`);
     }
@@ -212,8 +217,11 @@ const HeroSection = ({
   };
 
   const handleProductClick = (product) => {
+    setSearchQuery('');
     setIsSearchOpen(false);
     setActiveSearchIndex(-1);
+    setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    if (searchInputRef.current) searchInputRef.current.blur();
     if (onProductClick) {
       onProductClick(product);
     } else {
@@ -223,8 +231,11 @@ const HeroSection = ({
   };
 
   const handleSelectCategory = (cat) => {
+    setSearchQuery('');
     setIsSearchOpen(false);
     setActiveSearchIndex(-1);
+    setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    if (searchInputRef.current) searchInputRef.current.blur();
     if (cat?.path) {
       navigate(cat.path);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -234,8 +245,11 @@ const HeroSection = ({
   };
 
   const handleSelectBrand = (brand) => {
+    setSearchQuery('');
     setIsSearchOpen(false);
     setActiveSearchIndex(-1);
+    setSearchResults({ categories: [], brands: [], products: [], totalCount: 0 });
+    if (searchInputRef.current) searchInputRef.current.blur();
     handleBrandClick(null, brand);
   };
 
@@ -455,9 +469,9 @@ const HeroSection = ({
           </button>
         </div>
         <div className="mobile-menu-content">
-          {/* Mobile User Card */}
-          <div className="mobile-user-card">
-            {isAuthenticated ? (
+          {/* Mobile User Card - Only shown if authenticated; guest Sign In / Register card removed as requested */}
+          {isAuthenticated && (
+            <div className="mobile-user-card">
               <div className="mobile-user-logged">
                 <div className="mobile-user-avatar">
                   {user?.avatar ? (
@@ -482,25 +496,8 @@ const HeroSection = ({
                   <LogOut size={16} />
                 </button>
               </div>
-            ) : (
-              <div 
-                className="mobile-user-guest"
-                onClick={() => {
-                  navigate('/login');
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <div className="mobile-guest-icon">
-                  <User size={18} />
-                </div>
-                <div className="mobile-guest-text">
-                  <span className="mobile-guest-title">Sign In / Register</span>
-                  <span className="mobile-guest-sub">Access your account & orders</span>
-                </div>
-                <ChevronRight size={16} />
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="mobile-nav-links">
             <div className="mobile-offering-wrapper">

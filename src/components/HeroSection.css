@@ -1497,7 +1497,9 @@ mark.search-highlight {
 
   .main-header {
     padding: 10px 0 12px 0;
-    overflow-x: hidden;
+    position: relative;
+    z-index: 1000;
+    overflow: visible !important;
   }
 
   .main-header .container {
@@ -1505,6 +1507,7 @@ mark.search-highlight {
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
+    overflow: visible !important;
   }
 
   .main-header-content {
@@ -1518,6 +1521,7 @@ mark.search-highlight {
     column-gap: 6px;
     width: 100%;
     box-sizing: border-box;
+    overflow: visible !important;
   }
 
   .mobile-menu-btn {
@@ -1588,16 +1592,27 @@ mark.search-highlight {
 
   .search-container {
     grid-area: search;
-    width: 90%;
-    max-width: 380px;
-    margin: 0 auto;
-    justify-self: center;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    justify-self: stretch;
     border-radius: 6px;
+    position: relative;
+    z-index: 1005;
   }
 
   .search-dropdown-menu {
-    max-height: 360px;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    overflow-y: auto;
     border-radius: 10px;
+    z-index: 999999;
+    background: #ffffff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.08);
+    -webkit-overflow-scrolling: touch;
   }
 
   .search-input {
@@ -1693,8 +1708,8 @@ mark.search-highlight {
   }
 
   .search-container {
-    width: 88%;
-    max-width: 330px;
+    width: 100%;
+    max-width: 100%;
   }
 }
 
@@ -1732,8 +1747,8 @@ mark.search-highlight {
   }
 
   .search-container {
-    width: 86%;
-    max-width: 300px;
+    width: 100%;
+    max-width: 100%;
   }
 }
 

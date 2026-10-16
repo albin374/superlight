@@ -1,84 +1,73 @@
 import React from 'react';
 import { STATIC_CATALOG, getProductUrl } from './productUrl.js';
 
-// Standard comprehensive Categories & Subcategories
+// Real Website Categories & Subcategories matching live database
 export const ALL_CATEGORIES = [
   // 1. Wires & Cables
-  { id: 'cat-wires', name: 'Wires & Cables', slug: 'wires-cables', path: '/wires-cables', isMain: true },
-  { id: 'sub-bld-wires', name: 'Building Wires', slug: 'buliding-wires', path: '/wires-cables?sub=buliding-wires', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-flex-cables', name: 'Flexible Cables', slug: 'felxible-cables', path: '/wires-cables?sub=felxible-cables', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-rubber-cables', name: 'Rubber Cables', slug: 'rubber-cables', path: '/wires-cables?sub=rubber-cables', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-heat-cables', name: 'Heat Resistance Cable', slug: 'heat-resistance-cable', path: '/wires-cables?sub=heat-resistance-cable', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-ctrl-cables', name: 'Control Cables', slug: 'control-cables', path: '/wires-cables?sub=control-cables', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-knx-cables', name: 'KNX Cables & Fire Alarm Cables', slug: 'knx-cables-fire-alarm-cables', path: '/wires-cables?sub=knx-cables-fire-alarm-cables', parentName: 'Wires & Cables', isMain: false },
-  { id: 'sub-net-cables', name: 'Network Cables', slug: 'network-cables', path: '/wires-cables?sub=network-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'cat-5', name: 'Wires & Cables', slug: 'wires-cables', path: '/wires-cables', isMain: true },
+  { id: 'sub-6', name: 'Buliding wires', slug: 'buliding-wires', path: '/wires-cables?sub=buliding-wires', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-7', name: 'Felxible cables', slug: 'felxible-cables', path: '/wires-cables?sub=felxible-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-23', name: 'Rubber Cables', slug: 'rubber-cables', path: '/wires-cables?sub=rubber-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-24', name: 'Heat Resistance Cable', slug: 'heat-resistance-cable', path: '/wires-cables?sub=heat-resistance-cable', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-25', name: 'control Cables', slug: 'control-cables', path: '/wires-cables?sub=control-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-26', name: 'KNX Cables & Fire Alarm Cables', slug: 'knx-cables-fire-alarm-cables', path: '/wires-cables?sub=knx-cables-fire-alarm-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-27', name: 'Network Cables', slug: 'network-cables', path: '/wires-cables?sub=network-cables', parentName: 'Wires & Cables', isMain: false },
+  { id: 'sub-75', name: 'Armoured Cables', slug: 'armoured-cables', path: '/wires-cables?sub=armoured-cables', parentName: 'Wires & Cables', isMain: false },
 
   // 2. LED Lighting & Special Lamp
-  { id: 'cat-lighting', name: 'LED Lighting & Special Lamp', slug: 'led-lighting-special-lamp', path: '/led-lighting-special-lamp', isMain: true },
-  { id: 'sub-down-lights', name: 'Down Lights', slug: 'down-lights', path: '/led-lighting-special-lamp?sub=down-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-panel-lights', name: 'Panel Lights', slug: 'panel-lights', path: '/led-lighting-special-lamp?sub=panel-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-spot-lights', name: 'Spot Lights', slug: 'spot-lights', path: '/led-lighting-special-lamp?sub=spot-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-track-lights', name: 'Track Lights', slug: 'track-lights', path: '/led-lighting-special-lamp?sub=track-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-flood-lights', name: 'Flood Lights', slug: 'flood-lights', path: '/led-lighting-special-lamp?sub=flood-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-street-lights', name: 'Street Lights', slug: 'street-lights', path: '/led-lighting-special-lamp?sub=street-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-highbay-lights', name: 'High Bay Lights', slug: 'high-bay-lights', path: '/led-lighting-special-lamp?sub=high-bay-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-outdoor-lights', name: 'Outdoor Lights', slug: 'outdoor-lights', path: '/led-lighting-special-lamp?sub=outdoor-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
-  { id: 'sub-strip-lights', name: 'LED Strip Lights', slug: 'led-strip-lights', path: '/led-lighting-special-lamp?sub=led-strip-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'cat-8', name: 'LED Lighting & Special Lamp', slug: 'led-lighting-special-lamp', path: '/led-lighting-special-lamp', isMain: true },
+  { id: 'sub-9', name: 'Down Lights', slug: 'down-lights', path: '/led-lighting-special-lamp?sub=down-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-28', name: 'Panel Lights', slug: 'panel-lights', path: '/led-lighting-special-lamp?sub=panel-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-29', name: 'Spot Lights', slug: 'spot-lights', path: '/led-lighting-special-lamp?sub=spot-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-30', name: 'Track Lights', slug: 'track-lights', path: '/led-lighting-special-lamp?sub=track-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-31', name: 'Flood Lights', slug: 'flood-lights', path: '/led-lighting-special-lamp?sub=flood-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-32', name: 'Street Lights', slug: 'street-lights', path: '/led-lighting-special-lamp?sub=street-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-33', name: 'High bay lights', slug: 'high-bay-lights', path: '/led-lighting-special-lamp?sub=high-bay-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-34', name: 'Outdoor lights', slug: 'outdoor-lights', path: '/led-lighting-special-lamp?sub=outdoor-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
+  { id: 'sub-58', name: 'Led Strip Lights', slug: 'led-strip-lights', path: '/led-lighting-special-lamp?sub=led-strip-lights', parentName: 'LED Lighting & Special Lamp', isMain: false },
 
   // 3. Switches, Sockets & Electrical Accessories
-  { id: 'cat-switches', name: 'Switches, Sockets & Electrical Accessories', slug: 'switches-sockets-electrical-accessories', path: '/switches-sockets-electrical-accessories', isMain: true },
-  { id: 'sub-mk-switches', name: 'MK Switches', slug: 'mk-switches', path: '/switches-sockets-electrical-accessories?sub=mk-switches', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
-  { id: 'sub-wall-switches', name: 'Wall Switches & Dimmers', slug: 'wall-switches-dimmers', path: '/switches-sockets-electrical-accessories?sub=wall-switches-dimmers', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
-  { id: 'sub-power-sockets', name: 'Power Sockets & Outlets', slug: 'power-sockets-outlets', path: '/switches-sockets-electrical-accessories?sub=power-sockets-outlets', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
-  { id: 'sub-wp-sockets', name: 'Weatherproof Sockets & Boxes', slug: 'weatherproof-sockets-boxes', path: '/switches-sockets-electrical-accessories?sub=weatherproof-sockets-boxes', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
-  { id: 'sub-bells', name: 'Door Bells & Chimes', slug: 'door-bells-chimes', path: '/switches-sockets-electrical-accessories?sub=door-bells-chimes', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
-  { id: 'sub-ind-plugs', name: 'Industrial Plugs & Sockets', slug: 'industrial-plugs-sockets', path: '/switches-sockets-electrical-accessories?sub=industrial-plugs-sockets', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
+  { id: 'cat-10', name: 'Switches, Sockets & Electrical Accessories', slug: 'switches-sockets-electrical-accessories', path: '/switches-sockets-electrical-accessories', isMain: true },
+  { id: 'sub-11', name: 'Mk Switches', slug: 'mk-switches', path: '/switches-sockets-electrical-accessories?sub=mk-switches', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
+  { id: 'sub-76', name: 'Legrand Switch', slug: 'legrand-switch', path: '/switches-sockets-electrical-accessories?sub=legrand-switch', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
+  { id: 'sub-77', name: 'Schneider Switch', slug: 'schneider-switch', path: '/switches-sockets-electrical-accessories?sub=schneider-switch', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
+  { id: 'sub-78', name: 'Panasomic  Switch', slug: 'panasomic-switch', path: '/switches-sockets-electrical-accessories?sub=panasomic-switch', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
+  { id: 'sub-79', name: 'Industrial Sockets & Plugs', slug: 'industrial-sockets-plugs', path: '/switches-sockets-electrical-accessories?sub=industrial-sockets-plugs', parentName: 'Switches, Sockets & Electrical Accessories', isMain: false },
 
   // 4. Switchgear & Control Panel Products
-  { id: 'cat-switchgear', name: 'Switchgear & Control Panel Products', slug: 'switchgear-control-panel-products', path: '/switchgear-control-panel-products', isMain: true },
-  { id: 'sub-mcb', name: 'MCB Miniature Circuit Breakers', slug: 'mcb', path: '/switchgear-control-panel-products?sub=mcb', parentName: 'Switchgear & Control Panel Products', isMain: false },
-  { id: 'sub-mccb', name: 'MCCB Breakers', slug: 'mccb-breakers', path: '/switchgear-control-panel-products?sub=mccb-breakers', parentName: 'Switchgear & Control Panel Products', isMain: false },
-  { id: 'sub-dist-boards', name: 'Distribution Boards & Enclosures', slug: 'distribution-boards-enclosures', path: '/switchgear-control-panel-products?sub=distribution-boards-enclosures', parentName: 'Switchgear & Control Panel Products', isMain: false },
-  { id: 'sub-ats', name: 'Automatic Transfer Switch (ATS)', slug: 'automatic-transfer-switch', path: '/switchgear-control-panel-products?sub=automatic-transfer-switch', parentName: 'Switchgear & Control Panel Products', isMain: false },
-  { id: 'sub-hubs', name: 'Smart Automation Hubs & Relays', slug: 'smart-automation-hubs-relays', path: '/switchgear-control-panel-products?sub=smart-automation-hubs-relays', parentName: 'Switchgear & Control Panel Products', isMain: false },
-  { id: 'sub-contactors', name: 'Contactors & Overload Relays', slug: 'contactors-overload-relays', path: '/switchgear-control-panel-products?sub=contactors-overload-relays', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'cat-12', name: 'Switchgear & Control Panel Products', slug: 'switchgear-control-panel-products', path: '/switchgear-control-panel-products', isMain: true },
+  { id: 'sub-13', name: 'MCB', slug: 'mcb', path: '/switchgear-control-panel-products?sub=mcb', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'sub-59', name: 'ABB', slug: 'abb', path: '/switchgear-control-panel-products?sub=abb', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'sub-60', name: 'Eaton', slug: 'eaton', path: '/switchgear-control-panel-products?sub=eaton', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'sub-61', name: 'Himel', slug: 'himel', path: '/switchgear-control-panel-products?sub=himel', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'sub-62', name: 'Broys control', slug: 'broys-control', path: '/switchgear-control-panel-products?sub=broys-control', parentName: 'Switchgear & Control Panel Products', isMain: false },
+  { id: 'sub-63', name: 'Schneider', slug: 'schneider', path: '/switchgear-control-panel-products?sub=schneider', parentName: 'Switchgear & Control Panel Products', isMain: false },
 
-  // 5. Building Materials & Supplies
-  { id: 'cat-building', name: 'Building Materials & Supplies', slug: 'building-materials', path: '/building-materials', isMain: true },
-  { id: 'sub-clamps', name: 'Clamps & Fasteners', slug: 'clamps', path: '/building-materials?sub=clamps', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-paints', name: 'Paints & Adjustments', slug: 'paints-adjustments', path: '/building-materials?sub=paints-adjustments', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-nails', name: 'Steel Nails', slug: 'steel-nail', path: '/building-materials?sub=steel-nail', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-bolts', name: 'Bolts & Nuts', slug: 'bolts-nuts', path: '/building-materials?sub=bolts-nuts', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-upvc', name: 'UPVC Pipes & Fittings', slug: 'upvc-pipes-fittings', path: '/building-materials?sub=upvc-pipes-fittings', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-valves', name: 'Brass Valves & Bibcocks', slug: 'brass-valves-bibcocks', path: '/building-materials?sub=brass-valves-bibcocks', parentName: 'Building Materials & Supplies', isMain: false },
-  { id: 'sub-sanitary', name: 'Sanitary Ware & Sinks', slug: 'sanitary-ware-sinks', path: '/building-materials?sub=sanitary-ware-sinks', parentName: 'Building Materials & Supplies', isMain: false },
+  // 5. Building Materials
+  { id: 'cat-14', name: 'Building Materials', slug: 'building-materials', path: '/building-materials', isMain: true },
+  { id: 'sub-15', name: 'clamps', slug: 'clamps', path: '/building-materials?sub=clamps', parentName: 'Building Materials', isMain: false },
+  { id: 'sub-20', name: 'Paints & Adjustments', slug: 'paints-adjustments', path: '/building-materials?sub=paints-adjustments', parentName: 'Building Materials', isMain: false },
+  { id: 'sub-21', name: 'Steel Nail', slug: 'steel-nail', path: '/building-materials?sub=steel-nail', parentName: 'Building Materials', isMain: false },
+  { id: 'sub-22', name: 'Bolts &  Nuts', slug: 'bolts-nuts', path: '/building-materials?sub=bolts-nuts', parentName: 'Building Materials', isMain: false },
 
-  // 6. Safety Products & PPE
-  { id: 'cat-safety', name: 'Safety Products & PPE', slug: 'safety-products', path: '/safety-products', isMain: true },
-  { id: 'sub-helmets', name: 'Helmets & Hard Hats', slug: 'helmets', path: '/safety-products?sub=helmets', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-jackets', name: 'Safety Jackets & High-Vis Vests', slug: 'safety-jackets', path: '/safety-products?sub=safety-jackets', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-gloves', name: 'Gloves & Masks', slug: 'gloves-masks', path: '/safety-products?sub=gloves-masks', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-shoes', name: 'Safety Shoes & Industrial Boots', slug: 'safety-shoes', path: '/safety-products?sub=safety-shoes', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-firstaid', name: 'First Aid Kit', slug: 'first-aid-kit', path: '/safety-products?sub=first-aid-kit', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-tapes', name: 'Warning Tapes', slug: 'warning-tapes', path: '/safety-products?sub=warning-tapes', parentName: 'Safety Products & PPE', isMain: false },
-  { id: 'sub-goggles', name: 'Safety Goggles & Eye Protection', slug: 'safety-goggles', path: '/safety-products?sub=safety-goggles', parentName: 'Safety Products & PPE', isMain: false },
+  // 6. Safety Products (Real website categories - NO PPE)
+  { id: 'cat-16', name: 'Safety Products', slug: 'safety-products', path: '/safety-products', isMain: true },
+  { id: 'sub-64', name: 'safety jackets', slug: 'safety-jackets', path: '/safety-products?sub=safety-jackets', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-65', name: 'Gloves & Masks', slug: 'gloves-masks', path: '/safety-products?sub=gloves-masks', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-66', name: 'Helmets', slug: 'helmets', path: '/safety-products?sub=helmets', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-67', name: 'Safety shoes', slug: 'safety-shoes', path: '/safety-products?sub=safety-shoes', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-68', name: 'First Aid Kit', slug: 'first-aid-kit', path: '/safety-products?sub=first-aid-kit', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-69', name: 'Warning Tapes', slug: 'warning-tapes', path: '/safety-products?sub=warning-tapes', parentName: 'Safety Products', isMain: false },
+  { id: 'sub-70', name: 'Safety Goggles', slug: 'safety-goggles', path: '/safety-products?sub=safety-goggles', parentName: 'Safety Products', isMain: false },
 
-  // 7. AC Spare Parts & HVAC
-  { id: 'cat-ac', name: 'AC Spare Parts & HVAC', slug: 'ac-spare-parts', path: '/ac-spare-parts', isMain: true },
-  { id: 'sub-capacitor', name: 'Capacitors', slug: 'capacitor', path: '/ac-spare-parts?sub=capacitor', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-gas', name: 'Refrigerant Gas', slug: 'refrigerant-gas', path: '/ac-spare-parts?sub=refrigerant-gas', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-compressors', name: 'AC Compressors', slug: 'ac-compressors', path: '/ac-spare-parts?sub=ac-compressors', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-copper-pipe', name: 'Copper Pipe & Line Sets', slug: 'copper-pipe', path: '/ac-spare-parts?sub=copper-pipe', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-blower', name: 'Blower Motor', slug: 'blower-motor', path: '/ac-spare-parts?sub=blower-motor', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-pcb', name: 'PCB Control Board', slug: 'pcb-control-board', path: '/ac-spare-parts?sub=pcb-control-board', parentName: 'AC Spare Parts & HVAC', isMain: false },
-  { id: 'sub-sensor', name: 'Temperature Sensor & Thermistor', slug: 'temperature-sensor-thermistor', path: '/ac-spare-parts?sub=temperature-sensor-thermistor', parentName: 'AC Spare Parts & HVAC', isMain: false },
-
-  // 8. Adhesives, Tools & Hardware
-  { id: 'cat-tools', name: 'Adhesives, Tools & Hardware', slug: 'adhesives-tools-hardware', path: '/adhesives-tools-hardware', isMain: true },
-  { id: 'sub-cordless', name: 'Cordless Power Tools', slug: 'cordless-tools', path: '/adhesives-tools-hardware?sub=cordless-tools', parentName: 'Adhesives, Tools & Hardware', isMain: false },
-  { id: 'sub-handtools', name: 'Electrician Hand Tools', slug: 'hand-tools', path: '/adhesives-tools-hardware?sub=hand-tools', parentName: 'Adhesives, Tools & Hardware', isMain: false },
-  { id: 'sub-fasteners', name: 'Hardware Fasteners & Bits', slug: 'hardware-fasteners', path: '/adhesives-tools-hardware?sub=hardware-fasteners', parentName: 'Adhesives, Tools & Hardware', isMain: false },
-  { id: 'sub-adhesives', name: 'Adhesives & Sealants', slug: 'adhesives-sealants', path: '/adhesives-tools-hardware?sub=adhesives-sealants', parentName: 'Adhesives, Tools & Hardware', isMain: false }
+  // 7. AC Spair Parts
+  { id: 'cat-18', name: 'AC Spair Parts', slug: 'ac-spair-parts', path: '/ac-spare-parts', isMain: true },
+  { id: 'sub-19', name: 'Capacitor', slug: 'capacitor', path: '/ac-spare-parts?sub=capacitor', parentName: 'AC Spair Parts', isMain: false },
+  { id: 'sub-56', name: 'AC Compressors', slug: 'ac-compressors', path: '/ac-spare-parts?sub=ac-compressors', parentName: 'AC Spair Parts', isMain: false },
+  { id: 'sub-71', name: 'Blower motor', slug: 'blower-motor', path: '/ac-spare-parts?sub=blower-motor', parentName: 'AC Spair Parts', isMain: false },
+  { id: 'sub-72', name: 'PCB Control Board', slug: 'pcb-control-board', path: '/ac-spare-parts?sub=pcb-control-board', parentName: 'AC Spair Parts', isMain: false },
+  { id: 'sub-73', name: 'Copper pipe', slug: 'copper-pipe', path: '/ac-spare-parts?sub=copper-pipe', parentName: 'AC Spair Parts', isMain: false },
+  { id: 'sub-74', name: 'Temperature sensor & Thermistor', slug: 'temperature-sensor-thermistor', path: '/ac-spare-parts?sub=temperature-sensor-thermistor', parentName: 'AC Spair Parts', isMain: false }
 ];
 
 // Standard comprehensive Brands
@@ -135,8 +124,8 @@ export function getCategoryPath(cat) {
       else if (slug.includes('switch') || slug.includes('socket') || slug.includes('accessories') || name.includes('switch') || name.includes('socket') || name.includes('accessories')) parentSlug = 'switches-sockets-electrical-accessories';
       else if (slug.includes('mcb') || slug.includes('panel') || slug.includes('breaker') || slug.includes('switchgear')) parentSlug = 'switchgear-control-panel-products';
       else if (slug.includes('pipe') || slug.includes('clamp') || slug.includes('valve') || slug.includes('bibcock')) parentSlug = 'building-materials';
-      else if (slug.includes('safety') || slug.includes('jacket') || slug.includes('helmet') || slug.includes('glove')) parentSlug = 'safety-products';
-      else if (slug.includes('compressor') || slug.includes('refrigerant') || slug.includes('capacitor') || slug.includes('hvac') || slug.startsWith('ac-') || slug.includes('spare')) parentSlug = 'ac-spare-parts';
+      else if (slug.includes('safety') || slug.includes('jacket') || slug.includes('helmet') || slug.includes('glove') || slug.includes('goggle') || slug.includes('shoe') || slug.includes('tape') || slug.includes('first-aid')) parentSlug = 'safety-products';
+      else if (slug.includes('compressor') || slug.includes('refrigerant') || slug.includes('capacitor') || slug.includes('hvac') || slug.startsWith('ac-') || slug.includes('spare') || slug.includes('spair')) parentSlug = 'ac-spare-parts';
       else parentSlug = 'adhesives-tools-hardware';
     }
     return `/${parentSlug}?sub=${slug}`;
@@ -148,7 +137,7 @@ export function getCategoryPath(cat) {
   if (slug.includes('wire') || slug.includes('cable') || name.includes('cable') || name.includes('wire')) return '/wires-cables';
   if (slug.includes('light') || slug.includes('lamp') || name.includes('light') || name.includes('lamp') || name.includes('led')) return '/led-lighting-special-lamp';
   if (slug.includes('building') || slug.includes('plumb') || name.includes('building') || name.includes('plumb')) return '/building-materials';
-  if (slug.includes('safety') || name.includes('safety') || slug.includes('ppe')) return '/safety-products';
+  if (slug.includes('safety') || name.includes('safety')) return '/safety-products';
   if (slug.includes('spare') || slug.includes('spair') || slug.includes('hvac') || slug === 'ac' || slug.startsWith('ac-') || name.includes('spare') || name.includes('spair') || name.includes('hvac') || /\bac\b/i.test(name)) return '/ac-spare-parts';
   if (slug.includes('tool') || slug.includes('hardw') || slug.includes('adhes') || name.includes('tool') || name.includes('hardware')) return '/adhesives-tools-hardware';
 
@@ -205,67 +194,90 @@ export function searchLocalCatalog(rawQuery, { liveProducts = [], liveCategories
     };
   }
 
-  // 1. Process Categories (merge live + static)
-  const categoryPool = [...ALL_CATEGORIES];
+  // 1. Process Categories (strictly use liveCategories if provided, otherwise ALL_CATEGORIES)
+  const categoryPool = [];
+  const seenCatKeys = new Set();
+
+  const addCatToPool = (cat) => {
+    const slugKey = (cat.slug || '').toLowerCase().trim();
+    const nameKey = (cat.name || '').toLowerCase().trim();
+    const uniqueKey = slugKey || nameKey;
+    if (!uniqueKey || seenCatKeys.has(uniqueKey)) return;
+    seenCatKeys.add(uniqueKey);
+
+    categoryPool.push({
+      id: cat.id || `cat-${slugKey}`,
+      name: cat.name,
+      slug: cat.slug,
+      path: cat.path || getCategoryPath(cat),
+      parentName: cat.parentName || cat.parent_name || null,
+      isMain: cat.isMain !== undefined ? cat.isMain : !cat.parent_id
+    });
+  };
+
   if (Array.isArray(liveCategories) && liveCategories.length > 0) {
     liveCategories.forEach(c => {
-      if (!categoryPool.some(p => (p.slug && p.slug === c.slug) || (p.name && p.name.toLowerCase() === c.name.toLowerCase()))) {
-        categoryPool.push({
-          id: `db-cat-${c.id}`,
-          name: c.name,
-          slug: c.slug,
-          path: getCategoryPath(c),
-          parentName: c.parent_name || null,
-          isMain: !c.parent_id
-        });
-      }
+      addCatToPool({
+        id: `db-cat-${c.id}`,
+        name: c.name,
+        slug: c.slug,
+        path: getCategoryPath(c),
+        parentName: null,
+        isMain: true
+      });
       if (Array.isArray(c.subcategories)) {
         c.subcategories.forEach(s => {
-          if (!categoryPool.some(p => (p.slug && p.slug === s.slug) || (p.name && p.name.toLowerCase() === s.name.toLowerCase()))) {
-            categoryPool.push({
-              id: `db-sub-${s.id}`,
-              name: s.name,
-              slug: s.slug,
-              path: getCategoryPath({ ...s, parent_slug: c.slug }),
-              parentName: c.name,
-              isMain: false
-            });
-          }
+          addCatToPool({
+            id: `db-sub-${s.id}`,
+            name: s.name,
+            slug: s.slug,
+            path: getCategoryPath({ ...s, parent_slug: c.slug }),
+            parentName: c.name,
+            isMain: false
+          });
         });
       }
     });
+  } else {
+    ALL_CATEGORIES.forEach(addCatToPool);
   }
 
   const scoredCategories = categoryPool
     .map(c => {
-      const score = Math.max(
-        calculateMatchScore(c.name, query),
-        calculateMatchScore(c.slug, query),
-        c.parentName ? calculateMatchScore(c.parentName, query) * 0.7 : 0
-      );
+      // Score only on the category's OWN name and slug
+      const nameScore = calculateMatchScore(c.name, query);
+      const slugScore = calculateMatchScore(c.slug, query);
+      const score = Math.max(nameScore, slugScore);
       return { ...c, score };
     })
     .filter(c => c.score > 0)
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
     .slice(0, 6);
 
-  // 2. Process Brands (merge live + static)
-  const brandPool = [...ALL_BRANDS];
-  if (Array.isArray(liveBrands) && liveBrands.length > 0) {
-    liveBrands.forEach(b => {
-      const existing = brandPool.find(p => p.name.toLowerCase() === b.name.toLowerCase() || (p.slug && p.slug === b.slug));
-      if (!existing) {
-        brandPool.push({
-          id: `db-brand-${b.id}`,
-          name: b.name,
-          slug: b.slug,
-          path: getBrandPath(b),
-          logo: b.image || null
-        });
-      } else if (b.image && !existing.logo) {
-        existing.logo = b.image;
-      }
+  // 2. Process Brands (strictly use liveBrands if provided, otherwise ALL_BRANDS)
+  const brandPool = [];
+  const seenBrandKeys = new Set();
+
+  const addBrandToPool = (b) => {
+    const slugKey = (b.slug || '').toLowerCase().trim();
+    const nameKey = (b.name || '').toLowerCase().trim();
+    const uniqueKey = slugKey || nameKey;
+    if (!uniqueKey || seenBrandKeys.has(uniqueKey)) return;
+    seenBrandKeys.add(uniqueKey);
+
+    brandPool.push({
+      id: b.id || `brand-${slugKey}`,
+      name: b.name,
+      slug: b.slug,
+      path: b.path || getBrandPath(b),
+      logo: b.image || b.logo || null
     });
+  };
+
+  if (Array.isArray(liveBrands) && liveBrands.length > 0) {
+    liveBrands.forEach(addBrandToPool);
+  } else {
+    ALL_BRANDS.forEach(addBrandToPool);
   }
 
   const scoredBrands = brandPool

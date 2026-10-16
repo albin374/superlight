@@ -158,7 +158,7 @@ const LoginPage = () => {
                       setUsernameOrEmail(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="e.g. albin or user@example.com"
+                    placeholder="Username or Email Address"
                     autoComplete="username"
                     required
                   />
@@ -182,7 +182,7 @@ const LoginPage = () => {
                       setPassword(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     autoComplete="current-password"
                     required
                   />

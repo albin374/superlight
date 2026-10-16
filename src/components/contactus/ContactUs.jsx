@@ -150,7 +150,17 @@ const ContactUs = () => {
             <div className="icon-wrap"><MapPin size={24} strokeWidth={1.5} /></div>
             <div className="detail-text">
                <h4>Address</h4>
-               <p>Superlight Electricals, Rafi Centre,<br/>Naif - Deira, Dubai, UAE</p>
+               <p>
+                 <a 
+                   href="https://maps.app.goo.gl/obHWpxCkidafsqLu5" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   style={{ color: 'inherit', textDecoration: 'none' }}
+                   title="View on Google Maps"
+                 >
+                   Superlight Electricals, Rafi Centre,<br/>Naif - Deira, Dubai, UAE
+                 </a>
+               </p>
             </div>
           </div>
           
@@ -174,7 +184,7 @@ const ContactUs = () => {
             <div className="icon-wrap"><Clock size={24} strokeWidth={1.5} /></div>
             <div className="detail-text">
                <h4>Working Hours</h4>
-               <p>Monday - Saturday<br/>9:00 AM – 6:00 PM<br/><span style={{fontSize: '0.85rem', color: '#9ca3af'}}>(Except Public Holidays)</span></p>
+               <p>Monday - Saturday<br/>07:00AM - 10:00PM<br/><span style={{fontSize: '0.85rem', color: '#9ca3af'}}>(Except Public Holidays)</span></p>
             </div>
           </div>
         </div>
@@ -282,14 +292,14 @@ const ContactUs = () => {
       <div className="contact-map-container container">
         <div className="map-wrapper">
            <iframe 
-             src="https://maps.google.com/maps?q=Rafi%20Centre,%20Naif%20-%20Deira,%20Dubai&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+             src="https://www.google.com/maps/embed?origin=mfe&pb=!1m12!1m8!1m3!1d3607.9490367609778!2d55.3097326!3d25.2722962!3m2!1i1024!2i768!4f13.1!2m1!1sSuperlight+Electrical!6i17" 
              width="100%" 
-             height="400" 
+             height="450" 
              style={{ border: 0 }} 
              allowFullScreen="" 
              loading="lazy" 
              referrerPolicy="no-referrer-when-downgrade"
-             title="Superlight Electricals Location Map"
+             title="Superlight Electrical Location Map"
            ></iframe>
         </div>
       </div>
