@@ -111,7 +111,16 @@ const LoginPage = () => {
             {error && (
               <div className="auth-alert error">
                 <AlertCircle size={18} />
-                <span>{error}</span>
+                <div className="auth-alert-body">
+                  <span>{error}</span>
+                  {error.toLowerCase().includes('register') && (
+                    <div className="auth-alert-action">
+                      <Link to="/register" className="auth-alert-link">
+                        Click here to create an account
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -125,6 +134,7 @@ const LoginPage = () => {
             {/* Google Authentication */}
             <GoogleAuthButton
               text="continue_with"
+              mode="login"
               onSuccess={(result) => {
                 setSuccess(result.message || 'Signed in successfully with Google! Redirecting...');
                 setTimeout(() => {
@@ -238,16 +248,7 @@ const LoginPage = () => {
             </div>
 
             {/* Trust Badges */}
-            <div className="auth-trust-row">
-              <div className="trust-badge">
-                <ShieldCheck size={16} />
-                <span>Secure Authentication</span>
-              </div>
-              <div className="trust-badge">
-                <Zap size={16} />
-                <span>Instant Order Tracking</span>
-              </div>
-            </div>
+            
 
           </div>
         </div>

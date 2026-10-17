@@ -6,6 +6,7 @@ const DEFAULT_CLIENT_ID = '993906976196-kt13920p8sb9adfdlpnglokg18is08of.apps.go
 
 const GoogleAuthButton = ({
   text = 'continue_with', // 'signin_with' | 'signup_with' | 'continue_with'
+  mode, // 'login' | 'register'
   onSuccess,
   onError,
   disabled = false
@@ -16,6 +17,7 @@ const GoogleAuthButton = ({
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_CLIENT_ID;
+  const authMode = mode || (text === 'signup_with' ? 'register' : 'login');
 
   const handleCredentialResponse = async (response) => {
     if (!response || !response.credential) {
@@ -25,7 +27,7 @@ const GoogleAuthButton = ({
 
     setIsLoading(true);
     try {
-      const result = await loginWithGoogle(response.credential);
+      const result = await loginWithGoogle(response.credential, authMode);
       if (onSuccess) onSuccess(result);
     } catch (err) {
       console.error('Google Sign-In failed:', err);

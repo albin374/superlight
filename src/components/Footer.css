@@ -118,6 +118,18 @@
   margin: 0;
 }
 
+.footer-developer-link {
+  color: #e6005c;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.footer-developer-link:hover {
+  color: #ff3385;
+  text-decoration: underline;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .footer-grid {

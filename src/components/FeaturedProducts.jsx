@@ -134,7 +134,7 @@ const FeaturedProducts = ({ onProductClick }) => {
   }, [dbProducts, selectedCategory]);
 
   return (
-    <div className="featured-section">
+    <div className="featured-section" id="featured-products">
       <div className="container">
         
         <div className="featured-header-top">

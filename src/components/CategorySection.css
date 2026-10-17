@@ -3,6 +3,7 @@
   background-color: white;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
+  scroll-margin-top: 20px;
 }
 
 .category-section .container {

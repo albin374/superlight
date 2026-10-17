@@ -127,18 +127,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login / Register with Google OAuth credential
-  const loginWithGoogle = async (credential) => {
+  const loginWithGoogle = async (credential, mode = 'login') => {
     setLoading(true);
     try {
       const res = await fetch('/api/users/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential })
+        body: JSON.stringify({ credential, mode })
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Google authentication failed. Please try again.');
+        const error = new Error(data.message || 'Google authentication failed. Please try again.');
+        error.notRegistered = data.notRegistered;
+        error.email = data.email;
+        throw error;
       }
 
       setUser(data.user);

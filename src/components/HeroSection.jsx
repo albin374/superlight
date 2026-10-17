@@ -449,6 +449,30 @@ const HeroSection = ({
     setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
 
+  const handleShopProducts = (e) => {
+    if (e) e.preventDefault();
+    const prodSection = document.getElementById('featured-products') || document.querySelector('.featured-section');
+    if (prodSection) {
+      prodSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      navigate('/wires-cables');
+    }
+  };
+
+  const handleExploreCategories = (e) => {
+    if (e) e.preventDefault();
+    const catSection = document.getElementById('explore-categories') || document.querySelector('.category-section');
+    if (catSection) {
+      catSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        const target = document.getElementById('explore-categories') || document.querySelector('.category-section');
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       nextSlide();
@@ -578,6 +602,22 @@ const HeroSection = ({
                 </div>
               )}
             </div>
+            <a 
+              href="/" 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                if (goHome) {
+                  goHome();
+                } else {
+                  navigate('/');
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setIsMobileMenuOpen(false); 
+              }}
+              style={{ fontWeight: '600' }}
+            >
+              BELCABLE
+            </a>
             <div className="mobile-offering-wrapper">
               <a 
                 href="#" 
@@ -1123,7 +1163,22 @@ const HeroSection = ({
           </div>
           
           <ul className="nav-links">
-            <li><a href="#">BELCABLE</a></li>
+            <li>
+              <a 
+                href="/" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (goHome) {
+                    goHome();
+                  } else {
+                    navigate('/');
+                  }
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                BELCABLE
+              </a>
+            </li>
             <li className="dropdown">
               <a href="#" onClick={(e) => e.preventDefault()}>SHOP BY BRAND</a>
               <div className="dropdown-menu mega-menu">
@@ -1188,8 +1243,12 @@ const HeroSection = ({
                 Wide range of electrical, lighting and building materials for homes, businesses and every project in the UAE.
               </p>
               <div className="hero-buttons">
-                <button className="btn-primary">Shop Products <ArrowRight size={16} /></button>
-                <button className="btn-secondary">Explore Categories</button>
+                <button type="button" className="btn-primary" onClick={handleShopProducts}>
+                  Shop Products <ArrowRight size={16} />
+                </button>
+                <button type="button" className="btn-secondary" onClick={handleExploreCategories}>
+                  Explore Categories
+                </button>
               </div>
             </div>
             

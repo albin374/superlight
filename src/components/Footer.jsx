@@ -99,7 +99,17 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
         </div>
 
         <div className="footer-bottom">
-          <p>© All Rights Reserved | Developed by Mostech Business Solutions</p>
+          <p>
+            © All Rights Reserved | Developed by{' '}
+            <a 
+              href="https://mostech.ae/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="footer-developer-link"
+            >
+              Mostech
+            </a>
+          </p>
         </div>
       </div>
     </footer>

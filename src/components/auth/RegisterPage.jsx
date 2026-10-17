@@ -359,16 +359,7 @@ const RegisterPage = () => {
             </div>
 
             {/* Trust Badges */}
-            <div className="auth-trust-row">
-              <div className="trust-badge">
-                <ShieldCheck size={16} />
-                <span>Encrypted & Protected</span>
-              </div>
-              <div className="trust-badge">
-                <Zap size={16} />
-                <span>Fast 1-Click Ordering</span>
-              </div>
-            </div>
+            
 
           </div>
         </div>

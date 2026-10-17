@@ -145,7 +145,7 @@ const CategorySection = () => {
   };
 
   return (
-    <div className="category-section">
+    <div className="category-section" id="explore-categories">
       <div className="container">
         <div className="category-header">
           <div className="header-text">

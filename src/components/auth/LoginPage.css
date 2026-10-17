@@ -158,6 +158,46 @@
   margin-top: 1px;
 }
 
+.auth-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.auth-alert-action {
+  margin-top: 3px;
+}
+
+.auth-alert-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.auth-alert.error .auth-alert-link {
+  color: #b91c1c;
+}
+
+.auth-alert.error .auth-alert-link:hover {
+  color: #7f1d1d;
+  opacity: 0.9;
+}
+
+.auth-alert.success .auth-alert-link {
+  color: #15803d;
+}
+
+.auth-alert.success .auth-alert-link:hover {
+  color: #14532d;
+  opacity: 0.9;
+}
+
 /* Form Layout */
 .auth-form {
   display: flex;

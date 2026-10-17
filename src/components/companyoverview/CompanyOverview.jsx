@@ -29,39 +29,45 @@ const CompanyOverview = () => {
   const productCategories = [
     {
       id: '01',
-      title: 'Lighting Solutions',
-      image: '/Modern LED Lighting Fixture Collection.png',
-      alt: 'Lighting Solutions'
+      title: 'Wires & Cables',
+      image: '/Assorted Cable Reels and Cross-Sections.png',
+      alt: 'Wires & Cables',
+      path: '/wires-cables'
     },
     {
       id: '02',
-      title: 'Wires and Cables',
-      image: '/Colorful Electrical Cables with Exposed Copper Cores.png',
-      alt: 'Wires and Cables'
+      title: 'LED Lighting & Special Lamp',
+      image: '/Modern LED Lighting Fixture Collection.png',
+      alt: 'LED Lighting & Special Lamp',
+      path: '/led-lighting-special-lamp'
     },
     {
       id: '03',
-      title: 'Electrical Materials and Accessories',
+      title: 'Switches, Sockets & Electrical Accessories',
       image: '/UK Sockets and Circuit Breakers Display.png',
-      alt: 'Electrical Materials and Accessories'
+      alt: 'Switches, Sockets & Electrical Accessories',
+      path: '/switches-sockets-electrical-accessories'
     },
     {
       id: '04',
-      title: 'Tools and Testing Equipment',
-      image: '/Professional Cordless Tool Kit Display.png',
-      alt: 'Tools and Testing Equipment'
+      title: 'Switchgear & Control Panel Products',
+      image: '/Industrial Switchgear and Control Panel Components.png',
+      alt: 'Switchgear & Control Panel Products',
+      path: '/switchgear-control-panel-products'
     },
     {
       id: '05',
-      title: 'Installation and Protection Products',
-      image: '/Industrial Conduit and Trunking Components.png',
-      alt: 'Installation and Protection Products'
+      title: 'Building Materials',
+      image: '/DIY Hardware and Paint Supplies.png',
+      alt: 'Building Materials',
+      path: '/building-materials'
     },
     {
       id: '06',
-      title: 'Sanitary and Building Supplies',
-      image: '/Polished Chrome Bathroom Fixture Collection.png',
-      alt: 'Sanitary and Building Supplies'
+      title: 'Safety Products',
+      image: '/Complete Construction Safety Gear Collection.png',
+      alt: 'Safety Products',
+      path: '/safety-products'
     }
   ];
 
@@ -177,7 +183,7 @@ const CompanyOverview = () => {
               <div 
                 key={cat.id} 
                 className="co-portfolio-card"
-                onClick={() => navigate('/')}
+                onClick={() => navigate(cat.path || '/')}
               >
                 <div className="co-portfolio-img-box">
                   <img 

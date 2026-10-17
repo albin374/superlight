@@ -205,7 +205,7 @@ _Order recorded & submitted via Super Light Online Store_`;
               id="wa-customer-name"
               type="text" 
               className="wa-form-input" 
-              placeholder="e.g. Mohammed Al-Maktoum"
+              placeholder="Enter your name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               required
@@ -221,7 +221,7 @@ _Order recorded & submitted via Super Light Online Store_`;
               id="wa-customer-phone"
               type="tel" 
               className="wa-form-input" 
-              placeholder="e.g. +971 50 123 4567"
+              placeholder="Enter your phone number"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               required
@@ -237,7 +237,7 @@ _Order recorded & submitted via Super Light Online Store_`;
               id="wa-delivery-location"
               type="text" 
               className="wa-form-input" 
-              placeholder="e.g. Dubai, Abu Dhabi, Sharjah..."
+              placeholder="Enter your delivery city / area"
               value={deliveryLocation}
               onChange={(e) => setDeliveryLocation(e.target.value)}
             />
@@ -251,7 +251,7 @@ _Order recorded & submitted via Super Light Online Store_`;
             <textarea 
               id="wa-order-notes"
               className="wa-form-textarea" 
-              placeholder="Specify requirements, voltage, preferred delivery time..."
+              placeholder="Enter any special instructions or notes (optional)..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
