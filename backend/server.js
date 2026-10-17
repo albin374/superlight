@@ -379,8 +379,9 @@ app.post('/api/auth/customer-login', handleCustomerLogin);
 
 // Google OAuth Login / Register Handler
 const handleGoogleLogin = async (req, res) => {
-  const { credential, id_token, token } = req.body;
+  const { credential, id_token, token, mode } = req.body;
   const rawToken = String(credential || id_token || token || '').trim();
+  const authMode = String(mode || req.query.mode || 'login').toLowerCase();
 
   if (!rawToken) {
     return res.status(400).json({ success: false, message: 'Google credential token is required.' });
@@ -439,7 +440,18 @@ const handleGoogleLogin = async (req, res) => {
         user.avatar = picture;
       }
     } else {
-      // User does NOT exist: auto-register new customer account
+      // User does NOT exist:
+      // If trying to login from login page, do NOT auto-create account. Show informative error.
+      if (authMode === 'login') {
+        return res.status(404).json({
+          success: false,
+          notRegistered: true,
+          email: cleanEmail,
+          message: 'This Gmail has no account on this website. Please register.'
+        });
+      }
+
+      // User does NOT exist and authMode !== 'login' (e.g. register mode): auto-register new customer account
       let baseUsername = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g, '_');
       if (baseUsername.length < 3) baseUsername = 'user_' + baseUsername;
       

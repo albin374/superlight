@@ -681,32 +681,48 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 14px;
+  gap: 14px;
+  min-height: 48px;
+  padding: 10px 14px;
   background: var(--bg-base);
   border-radius: var(--r-md);
   border: 1px solid var(--border);
+  box-sizing: border-box;
   transition: background .2s, border-color .2s;
 }
 
 .category-breakdown-item:hover {
-  background: #fce7f3;
-  border-color: rgba(230,0,92,.2);
+  background: #fdf2f8;
+  border-color: rgba(230,0,92,.25);
 }
 
 .cat-name-wrap {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   color: var(--text-primary);
   font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .cat-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #fce7f3;
-  border: 1px solid rgba(230,0,92,.2);
-  padding: 3px 10px;
-  border-radius: 12px;
+  border: 1px solid rgba(230,0,92,.25);
+  padding: 4px 12px;
+  border-radius: 999px;
   font-weight: 700;
   font-size: 12px;
   color: var(--brand);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 90px;
+  height: 28px;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 /* ============================================================
