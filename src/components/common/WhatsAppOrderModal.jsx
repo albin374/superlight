@@ -42,7 +42,7 @@ const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
         return;
       }
 
-      setQuantity(1);
+      setQuantity(Number(product?.quantity) > 0 ? Number(product.quantity) : 1);
       setNotes('');
       setIsSubmitting(false);
       if (user) {

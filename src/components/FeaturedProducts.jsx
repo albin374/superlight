@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, ShoppingCart, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingCart, ArrowRight, Plus, Minus } from 'lucide-react';
 import './FeaturedProducts.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
@@ -69,8 +69,20 @@ const FeaturedProducts = ({ onProductClick }) => {
   const [dbProducts, setDbProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [waProduct, setWaProduct] = useState(null);
+  const [quantities, setQuantities] = useState({});
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const { requireAuth } = useAuth();
+
+  const getQty = (productId) => quantities[productId] || 1;
+
+  const updateQty = (e, productId, delta) => {
+    e.stopPropagation();
+    setQuantities(prev => {
+      const current = prev[productId] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [productId]: next };
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -202,34 +214,58 @@ const FeaturedProducts = ({ onProductClick }) => {
                 
                 <div className="product-details">
                   <h3 className="product-name">{product.name}</h3>
-                  <p className="product-price">{product.price}</p>
+                  <div className="product-price-row">
+                    <p className="product-price">{product.price}</p>
+                    <div className="product-qty-selector" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        type="button" 
+                        className="qty-btn minus" 
+                        onClick={(e) => updateQty(e, product.id, -1)}
+                        disabled={getQty(product.id) <= 1}
+                        title="Decrease quantity"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus size={13} />
+                      </button>
+                      <span className="qty-value">{getQty(product.id)}</span>
+                      <button 
+                        type="button" 
+                        className="qty-btn plus" 
+                        onClick={(e) => updateQty(e, product.id, 1)}
+                        title="Increase quantity"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                  </div>
                   <button 
                     className="add-to-cart-btn" 
                     onClick={(e) => {
                       e.stopPropagation();
-                      addToCart(product, 1);
+                      addToCart(product, getQty(product.id));
                     }}
                   >
                     <ShoppingCart size={16} />
                     Add to Cart
                   </button>
-                <button 
-                  type="button" 
-                  className="fp-whatsapp-btn" 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    requireAuth(() => setWaProduct(product), {
-                      message: 'Please login first and then continue',
-                      subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
-                    });
-                  }}
-                  title="Order via WhatsApp"
-                  aria-label="Order via WhatsApp"
-                >
-                  <WhatsAppIcon size={16} />
-                  <span>Order via</span>
-                </button>
-              </div>
+                  <button 
+                    type="button" 
+                    className="fp-whatsapp-btn" 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      requireAuth(() => setWaProduct({ ...product, quantity: getQty(product.id) }), {
+                        message: 'Please login first and then continue',
+                        subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                      });
+                    }}
+                    title="Order via WhatsApp"
+                    aria-label="Order via WhatsApp"
+                  >
+                    <WhatsAppIcon size={16} />
+                    <span>Order via</span>
+                  </button>
+                </div>
             </div>
             );
           })}

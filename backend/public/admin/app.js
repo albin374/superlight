@@ -56,13 +56,40 @@ function setupEventListeners() {
     });
   });
 
-  // Mobile menu toggle
+  // Mobile menu toggle & drawer controls
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const sidebar = document.querySelector('.sidebar');
-  if (mobileMenuBtn && sidebar) {
+  const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+  const openMobileSidebar = () => {
+    if (sidebar) sidebar.classList.add('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeMobileSidebar = () => {
+    if (sidebar) sidebar.classList.remove('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
+      if (sidebar && sidebar.classList.contains('open')) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
     });
+  }
+
+  if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', closeMobileSidebar);
+  }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', closeMobileSidebar);
   }
 
   // Product Search & Filter
@@ -315,80 +342,9 @@ function showApp() {
   loadCategories();
   loadBrands();
   loadDashboardStats();
-  checkCloudinaryStatus();
 
   const savedTab = localStorage.getItem('superlight_admin_tab') || 'dashboard';
   switchTab(savedTab);
-}
-
-async function checkCloudinaryStatus() {
-  const badge = document.getElementById('cloudinaryStatusBadge');
-  const text = document.getElementById('cloudinaryBadgeText');
-  const syncBtn = document.getElementById('syncCloudinaryBtn');
-  if (!badge || !text) return;
-
-  try {
-    const res = await fetch(`${API_BASE}/cloudinary/status`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    });
-    const data = await res.json();
-    if (data.success && data.configured) {
-      badge.className = 'storage-badge active';
-      text.innerText = `☁️ Cloudinary: Active (${data.cloud_name})`;
-      badge.title = `Cloudinary Storage is connected. Uploads are stored and served via Cloudinary CDN (${data.cloud_name}).`;
-      if (syncBtn) {
-        syncBtn.style.display = 'inline-flex';
-        syncBtn.title = 'New products and pictures are uploaded to Cloudinary automatically! This button is only needed once to migrate older images.';
-        syncBtn.onclick = handleSyncCloudinary;
-      }
-    } else {
-      badge.className = 'storage-badge pending';
-      text.innerText = `☁️ Cloudinary: Keys Needed`;
-      badge.title = 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend/.env to activate Cloudinary CDN storage.';
-      if (syncBtn) syncBtn.style.display = 'none';
-    }
-  } catch (e) {
-    badge.style.display = 'none';
-    if (syncBtn) syncBtn.style.display = 'none';
-  }
-}
-
-async function handleSyncCloudinary() {
-  const syncBtn = document.getElementById('syncCloudinaryBtn');
-  if (!syncBtn) return;
-
-  const confirmed = confirm('New products and images are uploaded to Cloudinary automatically.\n\nDo you want to scan and migrate older existing products and brand pictures to your Cloudinary storage now?');
-  if (!confirmed) return;
-
-  const originalHtml = syncBtn.innerHTML;
-  syncBtn.disabled = true;
-  syncBtn.innerHTML = `<span>Migrating Old Images...</span>`;
-  showToast('Starting Cloudinary migration for older images...', 'info');
-
-  try {
-    const res = await fetch(`${API_BASE}/cloudinary/migrate`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`Migration complete! Uploaded ${data.filesMigrated || 0} images and updated ${data.productsMigrated || 0} products.`, 'success');
-      loadProducts();
-      loadBrands();
-      syncBtn.innerHTML = `<span>All Synced ✓</span>`;
-      setTimeout(() => {
-        if (syncBtn) syncBtn.style.display = 'none';
-      }, 4000);
-    } else {
-      showToast(data.message || 'Migration failed.', 'error');
-      syncBtn.disabled = false;
-      syncBtn.innerHTML = originalHtml;
-    }
-  } catch (err) {
-    showToast('Error syncing images to Cloudinary.', 'error');
-    syncBtn.disabled = false;
-    syncBtn.innerHTML = originalHtml;
-  }
 }
 
 
@@ -415,6 +371,17 @@ function switchTab(tabId) {
 
   const activePane = document.getElementById(`tab-${tabId}`);
   if (activePane) activePane.classList.add('active');
+
+  // Auto-close mobile sidebar if open and scroll to top
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar && sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  const contentScroll = document.querySelector('.content-scroll');
+  if (contentScroll) contentScroll.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Update Page Title
   const titles = {

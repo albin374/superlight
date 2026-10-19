@@ -14,7 +14,9 @@ import {
   Layers,
   Filter,
   ArrowUpDown,
-  X
+  X,
+  Plus,
+  Minus
 } from 'lucide-react';
 import './BrandProductPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from '../common/WhatsAppOrderModal';
@@ -153,6 +155,18 @@ const BrandProductPage = ({
   // Interaction States
   const [addedCart, setAddedCart] = useState({});
   const [waProduct, setWaProduct] = useState(null);
+  const [quantities, setQuantities] = useState({});
+
+  const getQty = (productId) => quantities[productId] || 1;
+
+  const updateQty = (e, productId, delta) => {
+    e.stopPropagation();
+    setQuantities(prev => {
+      const current = prev[productId] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [productId]: next };
+    });
+  };
 
   const brandInfo = useMemo(() => getBrandInfo(brandName), [brandName]);
 
@@ -339,7 +353,7 @@ const BrandProductPage = ({
 
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    shopAddToCart(product, 1);
+    shopAddToCart(product, getQty(product.id));
     setAddedCart(prev => ({
       ...prev,
       [product.id]: true
@@ -685,10 +699,34 @@ const BrandProductPage = ({
 
                       {/* Price Row */}
                       <div className="cpp-price-row">
-                        <span className="cpp-current-price">{product.price}</span>
-                        {product.oldPrice && (
-                          <span className="cpp-old-price">{product.oldPrice}</span>
-                        )}
+                        <div className="cpp-price-values">
+                          <span className="cpp-current-price">{product.price}</span>
+                          {product.oldPrice && (
+                            <span className="cpp-old-price">{product.oldPrice}</span>
+                          )}
+                        </div>
+                        <div className="cpp-product-qty-selector" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            type="button" 
+                            className="cpp-qty-btn minus" 
+                            onClick={(e) => updateQty(e, product.id, -1)}
+                            disabled={getQty(product.id) <= 1}
+                            title="Decrease quantity"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="cpp-qty-value">{getQty(product.id)}</span>
+                          <button 
+                            type="button" 
+                            className="cpp-qty-btn plus" 
+                            onClick={(e) => updateQty(e, product.id, 1)}
+                            title="Increase quantity"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Action Buttons: Side-by-Side Add to Cart & WhatsApp Order */}
@@ -716,7 +754,7 @@ const BrandProductPage = ({
                           className="cpp-whatsapp-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            requireAuth(() => setWaProduct(product), {
+                            requireAuth(() => setWaProduct({ ...product, quantity: getQty(product.id) }), {
                               message: 'Please login first and then continue',
                               subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
                             });

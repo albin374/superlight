@@ -13,7 +13,9 @@ import {
   Layers, 
   SlidersHorizontal,
   X,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Minus
 } from 'lucide-react';
 import './SearchResultsPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from '../common/WhatsAppOrderModal';
@@ -49,6 +51,18 @@ const SearchResultsPage = ({ onProductClick }) => {
   // Interaction states
   const [waProduct, setWaProduct] = useState(null);
   const [addedCartAlert, setAddedCartAlert] = useState({});
+  const [quantities, setQuantities] = useState({});
+
+  const getQty = (productId) => quantities[productId] || 1;
+
+  const updateQty = (e, productId, delta) => {
+    e.stopPropagation();
+    setQuantities(prev => {
+      const current = prev[productId] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [productId]: next };
+    });
+  };
 
   // Fetch live products, categories, brands from backend
   useEffect(() => {
@@ -220,7 +234,7 @@ const SearchResultsPage = ({ onProductClick }) => {
 
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    addToCart(product);
+    addToCart(product, getQty(product.id));
     setAddedCartAlert(prev => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
       setAddedCartAlert(prev => ({ ...prev, [product.id]: false }));
@@ -564,10 +578,34 @@ const SearchResultsPage = ({ onProductClick }) => {
                       </div>
 
                       <div className="srp-card-pricing">
-                        <span className="srp-card-price">{product.price}</span>
-                        {product.oldPrice && (
-                          <span className="srp-card-old-price">{product.oldPrice}</span>
-                        )}
+                        <div className="srp-price-values">
+                          <span className="srp-card-price">{product.price}</span>
+                          {product.oldPrice && (
+                            <span className="srp-card-old-price">{product.oldPrice}</span>
+                          )}
+                        </div>
+                        <div className="srp-product-qty-selector" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            type="button" 
+                            className="srp-qty-btn minus" 
+                            onClick={(e) => updateQty(e, product.id, -1)}
+                            disabled={getQty(product.id) <= 1}
+                            title="Decrease quantity"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="srp-qty-value">{getQty(product.id)}</span>
+                          <button 
+                            type="button" 
+                            className="srp-qty-btn plus" 
+                            onClick={(e) => updateQty(e, product.id, 1)}
+                            title="Increase quantity"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="srp-card-actions">
@@ -585,7 +623,7 @@ const SearchResultsPage = ({ onProductClick }) => {
                           className="srp-whatsapp-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            requireAuth(() => setWaProduct(product), {
+                            requireAuth(() => setWaProduct({ ...product, quantity: getQty(product.id) }), {
                               message: 'Please login first and then continue',
                               subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
                             });
