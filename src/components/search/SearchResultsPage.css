@@ -584,6 +584,7 @@
   font-weight: 700;
   color: #e6005c;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .srp-card-old-price {

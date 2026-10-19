@@ -657,6 +657,7 @@
   font-weight: 800;
   color: #e6005c;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .cpp-old-price {
