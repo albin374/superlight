@@ -85,8 +85,8 @@ const BestSellers = ({ onProductClick }) => {
               rating: p.rating || 5,
               reviews: p.reviews_count || 24,
               description: p.description || '',
-              is_featured: !!p.is_featured,
-              is_bestseller: !!p.is_bestseller,
+              is_featured: Number(p.is_featured) === 1 || p.is_featured === true,
+              is_bestseller: Number(p.is_bestseller) === 1 || p.is_bestseller === true,
               isDbProduct: true
             };
           });
@@ -98,12 +98,24 @@ const BestSellers = ({ onProductClick }) => {
   }, []);
 
   const displayedProducts = useMemo(() => {
+    let pool = dbProducts.length > 0 ? dbProducts : DEFAULT_PRODUCTS;
+
     if (dbProducts.length > 0) {
       const bestsellers = dbProducts.filter(p => p.is_bestseller);
-      if (bestsellers.length > 0) return bestsellers;
-      return dbProducts.slice(0, 6);
+      if (bestsellers.length > 0) {
+        pool = bestsellers;
+      }
     }
-    return DEFAULT_PRODUCTS;
+
+    // Sort latest bestseller products first (newest/highest ID first)
+    pool = [...pool].sort((a, b) => {
+      const idA = typeof a.realId === 'number' ? a.realId : (typeof a.id === 'number' ? a.id : 0);
+      const idB = typeof b.realId === 'number' ? b.realId : (typeof b.id === 'number' ? b.id : 0);
+      return idB - idA;
+    });
+
+    // Show only in 1 row (max 5 items)
+    return pool.slice(0, 5);
   }, [dbProducts]);
 
   return (
