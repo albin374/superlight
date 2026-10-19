@@ -9,6 +9,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import WhatsAppOrderModal, { WhatsAppIcon } from '../common/WhatsAppOrderModal';
 import { getProductUrl } from '../../utils/productUrl';
 import './WishlistPage.css';
@@ -23,6 +24,7 @@ const WishlistPage = ({ onProductClick }) => {
     addToCart, 
     moveAllWishlistToCart 
   } = useShop();
+  const { requireAuth } = useAuth();
 
   // Order via WhatsApp modal state
   const [waProduct, setWaProduct] = useState(null);
@@ -179,7 +181,10 @@ const WishlistPage = ({ onProductClick }) => {
                       className="wishlist-whatsapp-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setWaProduct(item);
+                        requireAuth(() => setWaProduct(item), {
+                          message: 'Please login first and then continue',
+                          subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                        });
                       }}
                     >
                       <WhatsAppIcon size={16} />

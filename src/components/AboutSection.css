@@ -21,7 +21,7 @@
 }
 
 .about-subtitle {
-  color: #e6005c;
+  color: #E5007D;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -46,7 +46,7 @@
 }
 
 .about-btn {
-  background-color: #e6005c;
+  background-color: #E5007D;
   color: white;
   border: none;
   border-radius: 6px;
@@ -63,7 +63,7 @@
 }
 
 .about-btn:hover {
-  background-color: #c90050;
+  background-color: #c5006b;
 }
 
 .about-features {
@@ -78,7 +78,7 @@
 }
 
 .feature-icon-wrapper {
-  color: #e6005c;
+  color: #E5007D;
 }
 
 .feature-icon {

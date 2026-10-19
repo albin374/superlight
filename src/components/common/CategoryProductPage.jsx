@@ -19,6 +19,7 @@ import {
 import './CategoryProductPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './WhatsAppOrderModal';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import { getProductUrl } from '../../utils/productUrl';
 
 const CATEGORY_DEFAULT_SUBCATEGORIES = {
@@ -135,6 +136,7 @@ const CategoryProductPage = ({
 
   // Global Shop State
   const { addToCart: shopAddToCart, toggleWishlist: shopToggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   // Interaction States
   const [addedCart, setAddedCart] = useState({});
@@ -778,7 +780,10 @@ const CategoryProductPage = ({
                           className="cpp-whatsapp-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setWaProduct(product);
+                            requireAuth(() => setWaProduct(product), {
+                              message: 'Please login first and then continue',
+                              subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                            });
                           }}
                           title="Order via WhatsApp"
                           aria-label="Order via WhatsApp"

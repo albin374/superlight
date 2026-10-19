@@ -118,6 +118,34 @@ if (isMySQLConfigured) {
           await pool.query('ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL');
           console.log(' [Aiven MySQL] Updated password column to allow NULL for OAuth users');
         }
+
+        // Ensure is_deleted and deleted_at columns exist for soft deletes
+        const softDeleteTables = ['users', 'products', 'categories', 'brands', 'inquiries'];
+        for (const tbl of softDeleteTables) {
+          try {
+            const [cols] = await pool.query(`SHOW COLUMNS FROM \`${tbl}\``);
+            const names = cols.map(c => c.Field);
+            if (!names.includes('is_deleted')) {
+              await pool.query(`ALTER TABLE \`${tbl}\` ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0`);
+              console.log(` [Aiven MySQL] Added is_deleted column to ${tbl}`);
+            }
+            if (!names.includes('deleted_at')) {
+              await pool.query(`ALTER TABLE \`${tbl}\` ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL`);
+              console.log(` [Aiven MySQL] Added deleted_at column to ${tbl}`);
+            }
+          } catch (tErr) {
+            console.warn(`⚠️ [Aiven MySQL] Soft delete column check for ${tbl}:`, tErr.message);
+          }
+        }
+
+        // Ensure products.brand is nullable
+        try {
+          const [pCols] = await pool.query('SHOW COLUMNS FROM products');
+          const brandCol = pCols.find(c => c.Field === 'brand');
+          if (brandCol && brandCol.Null === 'NO') {
+            await pool.query("ALTER TABLE products MODIFY COLUMN brand VARCHAR(100) NULL DEFAULT ''");
+          }
+        } catch (bErr) {}
       } catch (colErr) {
         console.warn('⚠️ [Aiven MySQL] Column check notice:', colErr.message);
       }
@@ -191,6 +219,18 @@ if (isMySQLConfigured) {
       const colNames = cols.map(c => c.name);
       if (!colNames.includes('google_id')) sqliteDb.exec('ALTER TABLE users ADD COLUMN google_id TEXT;');
       if (!colNames.includes('avatar')) sqliteDb.exec('ALTER TABLE users ADD COLUMN avatar TEXT;');
+
+      const softDeleteTables = ['users', 'products', 'categories', 'brands', 'inquiries'];
+      for (const tbl of softDeleteTables) {
+        try {
+          const tCols = sqliteDb.prepare(`PRAGMA table_info('${tbl}')`).all();
+          const tNames = tCols.map(c => c.name);
+          if (tNames.length > 0) {
+            if (!tNames.includes('is_deleted')) sqliteDb.exec(`ALTER TABLE \`${tbl}\` ADD COLUMN is_deleted INTEGER DEFAULT 0;`);
+            if (!tNames.includes('deleted_at')) sqliteDb.exec(`ALTER TABLE \`${tbl}\` ADD COLUMN deleted_at DATETIME;`);
+          }
+        } catch (te) {}
+      }
     } catch (e) {}
     console.log('[SQLite] Local database initialized with uploaded_files and users tables.');
   };

@@ -19,6 +19,7 @@ import {
 import './BrandProductPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from '../common/WhatsAppOrderModal';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import { getProductUrl } from '../../utils/productUrl';
 
 const BRAND_INFO = {
@@ -147,6 +148,7 @@ const BrandProductPage = ({
 
   // Global Shop State
   const { addToCart: shopAddToCart, toggleWishlist: shopToggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   // Interaction States
   const [addedCart, setAddedCart] = useState({});
@@ -714,7 +716,10 @@ const BrandProductPage = ({
                           className="cpp-whatsapp-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setWaProduct(product);
+                            requireAuth(() => setWaProduct(product), {
+                              message: 'Please login first and then continue',
+                              subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                            });
                           }}
                         >
                           <WhatsAppIcon size={15} />

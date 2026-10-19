@@ -19,6 +19,7 @@ import {
 
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   getProductSku, 
   getProductCategorySlug, 
@@ -171,6 +172,7 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [isAddedFeedback, setIsAddedFeedback] = useState(false);
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   const currentProductId = activeProduct?.id || String(pName).toLowerCase().replace(/\s+/g, '-');
   const isFavorited = isInWishlist(currentProductId);
@@ -340,7 +342,12 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
           <button 
             type="button" 
             className="details-whatsapp-btn"
-            onClick={() => setIsWaModalOpen(true)}
+            onClick={() => {
+              requireAuth(() => setIsWaModalOpen(true), {
+                message: 'Please login first and then continue',
+                subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+              });
+            }}
           >
             <WhatsAppIcon size={19} />
             Order via WhatsApp

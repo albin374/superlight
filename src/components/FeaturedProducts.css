@@ -26,7 +26,7 @@
 }
 
 .featured-subtitle {
-  color: #e6005c;
+  color: #E5007D;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -44,7 +44,7 @@
 }
 
 .view-all {
-  color: #e6005c;
+  color: #E5007D;
   font-weight: 700;
   font-size: 14px;
   text-decoration: none;
@@ -76,7 +76,7 @@
 }
 
 .filter-btn.active {
-  background-color: #e6005c;
+  background-color: #E5007D;
   color: white;
 }
 
@@ -155,7 +155,7 @@
 }
 
 .product-price {
-  color: #e6005c;
+  color: #E5007D;
   font-size: 18px;
   font-weight: 800;
   margin: 0 0 20px 0;
@@ -165,8 +165,8 @@
   width: 100%;
   padding: 10px 0;
   background-color: white;
-  border: 1px solid #e6005c;
-  color: #e6005c;
+  border: 1px solid #E5007D;
+  color: #E5007D;
   border-radius: 4px;
   font-size: 14px;
   font-weight: 700;

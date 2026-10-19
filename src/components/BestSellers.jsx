@@ -3,6 +3,7 @@ import { Heart, ShoppingCart, ArrowRight } from 'lucide-react';
 import './BestSellers.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 const DEFAULT_PRODUCTS = [
   {
@@ -56,6 +57,7 @@ const BestSellers = ({ onProductClick }) => {
   const [dbProducts, setDbProducts] = useState([]);
   const [waProduct, setWaProduct] = useState(null);
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -140,8 +142,8 @@ const BestSellers = ({ onProductClick }) => {
                   <Heart 
                     size={20} 
                     className="heart-icon" 
-                    fill={isFavorited ? '#e6005c' : 'none'} 
-                    color={isFavorited ? '#e6005c' : '#1b253c'} 
+                    fill={isFavorited ? '#E5007D' : 'none'} 
+                    color={isFavorited ? '#E5007D' : '#1b253c'} 
                   />
                 </button>
 
@@ -167,11 +169,16 @@ const BestSellers = ({ onProductClick }) => {
                   className="bs-whatsapp-btn" 
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    setWaProduct(product); 
+                    requireAuth(() => setWaProduct(product), {
+                      message: 'Please login first and then continue',
+                      subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                    });
                   }}
+                  title="Order via WhatsApp"
+                  aria-label="Order via WhatsApp"
                 >
                   <WhatsAppIcon size={16} />
-                  Order via WhatsApp
+                  <span>Order via</span>
                 </button>
               </div>
             </div>

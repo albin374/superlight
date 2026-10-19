@@ -15,18 +15,17 @@ import {
   X
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import { WhatsAppIcon } from '../common/WhatsAppOrderModal';
 import { getProductUrl, getProductCategorySlug, getProductSubcategorySlug } from '../../utils/productUrl';
 import './CartPage.css';
 
-const FREE_SHIPPING_THRESHOLD = 200;
-const SHIPPING_FEE = 20;
-const VAT_RATE = 0.05;
 const TARGET_PHONE_NUMBER = '971545810080'; // Target: +971 54 581 0080
 
 const CartPage = ({ onProductClick }) => {
   const navigate = useNavigate();
   const { cart, cartCount, cartSubtotal, updateCartQty, removeFromCart, clearCart, createOrder } = useShop();
+  const { user, requireAuth } = useAuth();
 
   // WhatsApp Checkout Modal state
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
@@ -35,13 +34,16 @@ const CartPage = ({ onProductClick }) => {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Shipping & VAT Calculation
-  const isFreeShipping = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
-  const shippingCost = cart.length === 0 ? 0 : (isFreeShipping ? 0 : SHIPPING_FEE);
-  const vatAmount = cartSubtotal * VAT_RATE;
-  const orderTotal = cartSubtotal + vatAmount + shippingCost;
-  const amountToFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
-  const progressPercent = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  // Auto-fill user credentials when modal is opened
+  useEffect(() => {
+    if (isWaModalOpen && user) {
+      setCustomerName(user.name || user.username || '');
+      setCustomerPhone(user.phone || '');
+    }
+  }, [isWaModalOpen, user]);
+
+  // Final Price Calculation (no extra charges)
+  const orderTotal = cartSubtotal;
 
   const handleProductClick = (item) => {
     if (onProductClick) {
@@ -94,10 +96,7 @@ const CartPage = ({ onProductClick }) => {
 *Order Number:* #${orderNumber}
 --------------------------------
 ${itemsList}--------------------------------
-*Subtotal:* AED ${cartSubtotal.toFixed(2)}
-*VAT (5%):* AED ${vatAmount.toFixed(2)}
-*Shipping:* ${shippingCost === 0 ? 'FREE (UAE Express)' : `AED ${shippingCost.toFixed(2)}`}
-*Estimated Total:* AED ${orderTotal.toFixed(2)}
+*Final Price:* AED ${orderTotal.toFixed(2)}
 --------------------------------
 *Customer Name:* ${customerName.trim() || 'Not specified'}
 *Phone Number:* ${customerPhone.trim() || 'Not specified'}
@@ -274,46 +273,16 @@ _Order recorded & submitted via Super Light Online Store_`;
             <div className="cart-summary-card">
               <h3 className="cart-summary-title">Order Summary</h3>
 
-              {/* Free Shipping Tracker */}
-              <div className="cart-shipping-banner">
-                <div className="cart-shipping-text">
-                  <Truck size={16} />
-                  {isFreeShipping ? (
-                    <span><strong>Free Delivery Unlocked!</strong> (Orders &gt; AED {FREE_SHIPPING_THRESHOLD})</span>
-                  ) : (
-                    <span>Add <strong>AED {amountToFreeShipping.toFixed(2)}</strong> more for <strong>FREE Delivery!</strong></span>
-                  )}
-                </div>
-                <div className="cart-progress-bar">
-                  <div 
-                    className="cart-progress-fill" 
-                    style={{ width: `${progressPercent}%` }} 
-                  />
-                </div>
-              </div>
-
               {/* Summary Breakdown */}
               <div className="cart-summary-row">
-                <span>Subtotal ({cartCount} items)</span>
-                <span className="cart-summary-val">AED {cartSubtotal.toFixed(2)}</span>
-              </div>
-
-              <div className="cart-summary-row">
-                <span>Standard UAE VAT (5%)</span>
-                <span className="cart-summary-val">AED {vatAmount.toFixed(2)}</span>
-              </div>
-
-              <div className="cart-summary-row">
-                <span>Estimated Shipping</span>
-                <span className={`cart-summary-val ${shippingCost === 0 ? 'free' : ''}`}>
-                  {shippingCost === 0 ? 'FREE' : `AED ${shippingCost.toFixed(2)}`}
-                </span>
+                <span>Total Items</span>
+                <span className="cart-summary-val">{cartCount} {cartCount === 1 ? 'item' : 'items'}</span>
               </div>
 
               <div className="cart-summary-divider" />
 
               <div className="cart-summary-total-row">
-                <span className="cart-total-label">Estimated Total</span>
+                <span className="cart-total-label">Final Price</span>
                 <span className="cart-total-value">AED {orderTotal.toFixed(2)}</span>
               </div>
 
@@ -321,18 +290,15 @@ _Order recorded & submitted via Super Light Online Store_`;
               <button 
                 type="button" 
                 className="cart-whatsapp-order-btn"
-                onClick={() => setIsWaModalOpen(true)}
+                onClick={() => {
+                  requireAuth(() => setIsWaModalOpen(true), {
+                    message: 'Please login first and then continue',
+                    subtitle: 'Please login to your account to checkout your cart via WhatsApp. If you do not have an account, please register to proceed.'
+                  });
+                }}
               >
                 <WhatsAppIcon size={20} color="#ffffff" />
                 Order All via WhatsApp
-              </button>
-
-              <button 
-                type="button" 
-                className="cart-checkout-btn"
-                onClick={() => setIsWaModalOpen(true)}
-              >
-                Proceed to Checkout
               </button>
 
               {/* Guarantees */}
@@ -446,7 +412,7 @@ _Order recorded & submitted via Super Light Online Store_`;
               </div>
 
               <div className="wa-total-box">
-                <span className="wa-total-label">Cart Total ({cartCount} items):</span>
+                <span className="wa-total-label">Final Price ({cartCount} {cartCount === 1 ? 'item' : 'items'}):</span>
                 <span className="wa-total-amount">AED {orderTotal.toFixed(2)}</span>
               </div>
 

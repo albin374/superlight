@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Send, CheckCircle2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import { getProductCategorySlug, getProductSubcategorySlug } from '../../utils/productUrl';
 import './WhatsAppOrderModal.css';
 
@@ -22,6 +23,7 @@ const TARGET_PHONE_NUMBER = '971545810080'; // Target: +971 54 581 0080
 
 const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
   const { createOrder } = useShop();
+  const { user, isAuthenticated, promptLogin } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -31,9 +33,22 @@ const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
+      if (!isAuthenticated) {
+        onClose();
+        promptLogin({
+          message: 'Please login first and then continue',
+          subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+        });
+        return;
+      }
+
       setQuantity(1);
       setNotes('');
       setIsSubmitting(false);
+      if (user) {
+        setCustomerName(user.name || user.username || '');
+        setCustomerPhone(user.phone || '');
+      }
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -41,7 +56,7 @@ const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, isAuthenticated, user]);
 
   if (!isOpen || !product) return null;
 

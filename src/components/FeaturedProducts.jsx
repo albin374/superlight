@@ -3,6 +3,7 @@ import { Heart, ShoppingCart, ArrowRight } from 'lucide-react';
 import './FeaturedProducts.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 const DEFAULT_PRODUCTS = [
   {
@@ -69,6 +70,7 @@ const FeaturedProducts = ({ onProductClick }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [waProduct, setWaProduct] = useState(null);
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -96,8 +98,8 @@ const FeaturedProducts = ({ onProductClick }) => {
               rating: p.rating || 5,
               reviews: p.reviews_count || 24,
               description: p.description || '',
-              is_featured: !!p.is_featured,
-              is_bestseller: !!p.is_bestseller,
+              is_featured: Number(p.is_featured) === 1 || p.is_featured === true,
+              is_bestseller: Number(p.is_bestseller) === 1 || p.is_bestseller === true,
               isDbProduct: true
             };
           });
@@ -118,10 +120,20 @@ const FeaturedProducts = ({ onProductClick }) => {
       }
     }
 
-    if (selectedCategory === 'All') return pool;
+    // Sort latest featured product first by first (highest/newest ID first)
+    pool = [...pool].sort((a, b) => {
+      const idA = typeof a.realId === 'number' ? a.realId : (typeof a.id === 'number' ? a.id : 0);
+      const idB = typeof b.realId === 'number' ? b.realId : (typeof b.id === 'number' ? b.id : 0);
+      return idB - idA;
+    });
+
+    if (selectedCategory === 'All') {
+      // Show only in 1 row (max 5 items)
+      return pool.slice(0, 5);
+    }
 
     const catLower = selectedCategory.toLowerCase();
-    return pool.filter(p => {
+    const filtered = pool.filter(p => {
       const cat = (p.category_name || p.category || '').toLowerCase();
       const name = (p.name || '').toLowerCase();
       if (catLower === 'lighting') return cat.includes('light') || name.includes('light') || name.includes('lamp');
@@ -131,6 +143,9 @@ const FeaturedProducts = ({ onProductClick }) => {
       if (catLower === 'tools') return cat.includes('tool') || name.includes('tester') || name.includes('drill');
       return true;
     });
+
+    // Show only in 1 row (max 5 items)
+    return filtered.slice(0, 5);
   }, [dbProducts, selectedCategory]);
 
   return (
@@ -176,8 +191,8 @@ const FeaturedProducts = ({ onProductClick }) => {
                   <Heart 
                     size={20} 
                     className="heart-icon" 
-                    fill={isFavorited ? '#e6005c' : 'none'} 
-                    color={isFavorited ? '#e6005c' : '#1b253c'} 
+                    fill={isFavorited ? '#E5007D' : 'none'} 
+                    color={isFavorited ? '#E5007D' : '#1b253c'} 
                   />
                 </button>
                 
@@ -203,11 +218,16 @@ const FeaturedProducts = ({ onProductClick }) => {
                   className="fp-whatsapp-btn" 
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    setWaProduct(product); 
+                    requireAuth(() => setWaProduct(product), {
+                      message: 'Please login first and then continue',
+                      subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                    });
                   }}
+                  title="Order via WhatsApp"
+                  aria-label="Order via WhatsApp"
                 >
                   <WhatsAppIcon size={16} />
-                  Order via WhatsApp
+                  <span>Order via</span>
                 </button>
               </div>
             </div>

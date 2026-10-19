@@ -267,13 +267,13 @@ const handleCustomerRegister = async (req, res) => {
 
   try {
     // 2. Check duplicate username
-    const existingUsername = await db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get(cleanUsername.toLowerCase());
+    const existingUsername = await db.prepare('SELECT id FROM users WHERE LOWER(username) = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(cleanUsername.toLowerCase());
     if (existingUsername) {
       return res.status(409).json({ success: false, message: 'This username is already taken. Please choose another.' });
     }
 
     // 3. Check duplicate email
-    const existingEmail = await db.prepare('SELECT id FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+    const existingEmail = await db.prepare('SELECT id FROM users WHERE LOWER(email) = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(cleanEmail);
     if (existingEmail) {
       return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please log in.' });
     }
@@ -332,11 +332,12 @@ const handleCustomerLogin = async (req, res) => {
   }
 
   try {
-    // Search by username OR email (case-insensitive)
+    // Search by username OR email (case-insensitive) - active accounts only
     const lowerIdentifier = loginIdentifier.toLowerCase();
     const user = await db.prepare(`
       SELECT * FROM users 
-      WHERE LOWER(username) = ? OR LOWER(email) = ?
+      WHERE (LOWER(username) = ? OR LOWER(email) = ?)
+        AND (is_deleted = 0 OR is_deleted IS NULL)
     `).get(lowerIdentifier, lowerIdentifier);
 
     if (!user) {
@@ -423,10 +424,10 @@ const handleGoogleLogin = async (req, res) => {
     // 3. Check if user exists by google_id or email
     let user = null;
     if (googleSub) {
-      user = await db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleSub);
+      user = await db.prepare('SELECT * FROM users WHERE google_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(googleSub);
     }
     if (!user) {
-      user = await db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+      user = await db.prepare('SELECT * FROM users WHERE LOWER(email) = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(cleanEmail);
     }
 
     if (user) {
@@ -457,7 +458,7 @@ const handleGoogleLogin = async (req, res) => {
       
       let candidateUsername = baseUsername;
       let counter = 1;
-      while (await db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get(candidateUsername.toLowerCase())) {
+      while (await db.prepare('SELECT id FROM users WHERE LOWER(username) = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(candidateUsername.toLowerCase())) {
         candidateUsername = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
         counter++;
         if (counter > 10) {
@@ -527,11 +528,152 @@ app.post('/api/auth/google', handleGoogleLogin);
 // GET /api/users/me (Fetch current logged-in customer info)
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
-    const user = await db.prepare('SELECT id, username, email, name, phone, avatar, google_id, role, created_at FROM users WHERE id = ?').get(req.user.id);
+    const user = await db.prepare('SELECT id, username, email, name, phone, avatar, google_id, role, created_at FROM users WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User account not found.' });
     }
     res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/* ==========================================================================
+   ADMIN REGISTERED USERS MANAGEMENT
+   ========================================================================== */
+
+// GET /api/admin/users (Fetch all registered users - excluding passwords and soft-deleted)
+app.get('/api/admin/users', authenticateToken, async (req, res) => {
+  try {
+    const users = await db.prepare(`
+      SELECT id, username, email, name, phone, avatar, google_id, role, created_at, updated_at 
+      FROM users 
+      WHERE (is_deleted = 0 OR is_deleted IS NULL)
+      ORDER BY id DESC
+    `).all();
+
+    // Safely collect order count and spend per user by customer_email without cross-collation joins
+    let orderMap = {};
+    try {
+      const orderStats = await db.prepare(`
+        SELECT customer_email, count(*) as count, sum(total_amount) as total 
+        FROM orders 
+        WHERE customer_email IS NOT NULL AND customer_email != ''
+        GROUP BY customer_email
+      `).all();
+
+      (orderStats || []).forEach(o => {
+        if (o.customer_email) {
+          orderMap[o.customer_email.trim().toLowerCase()] = {
+            count: Number(o.count || 0),
+            total: Number(o.total || 0)
+          };
+        }
+      });
+    } catch (orderErr) {
+      console.warn('Could not aggregate user order stats:', orderErr.message);
+    }
+
+    const formattedUsers = (users || []).map(u => {
+      const emailKey = (u.email || '').trim().toLowerCase();
+      const stats = orderMap[emailKey] || { count: 0, total: 0 };
+      return {
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        name: u.name || '',
+        phone: u.phone || '',
+        avatar: u.avatar || null,
+        role: u.role || 'customer',
+        google_id: u.google_id || null,
+        auth_provider: u.google_id ? 'google' : 'email',
+        order_count: stats.count,
+        total_spent: Number(stats.total.toFixed(2)),
+        created_at: u.created_at,
+        updated_at: u.updated_at
+      };
+    });
+
+    res.json({ success: true, count: formattedUsers.length, users: formattedUsers });
+  } catch (err) {
+    console.error('Error fetching registered users:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/users/:id (Fetch detailed profile of single registered user)
+app.get('/api/admin/users/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await db.prepare(`
+      SELECT id, username, email, name, phone, avatar, google_id, role, created_at, updated_at 
+      FROM users 
+      WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)
+    `).get(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    let orders = [];
+    if (user.email) {
+      try {
+        const rawOrders = await db.prepare(`
+          SELECT id, order_number, customer_name, customer_email, customer_phone, total_amount, status, items_json, delivery_location, notes, order_source, created_at 
+          FROM orders 
+          WHERE LOWER(customer_email) = ? 
+          ORDER BY id DESC
+        `).all(user.email.trim().toLowerCase());
+
+        orders = (rawOrders || []).map(ord => ({
+          ...ord,
+          total_amount: Number(ord.total_amount || 0),
+          items: ord.items_json ? (typeof ord.items_json === 'string' ? JSON.parse(ord.items_json) : ord.items_json) : []
+        }));
+      } catch (ordErr) {
+        console.warn('Error fetching orders for user:', ordErr.message);
+      }
+    }
+
+    const totalSpent = orders.reduce((sum, ord) => sum + (ord.status !== 'Cancelled' ? ord.total_amount : 0), 0);
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name || '',
+        phone: user.phone || '',
+        avatar: user.avatar || null,
+        role: user.role || 'customer',
+        google_id: user.google_id || null,
+        auth_provider: user.google_id ? 'google' : 'email',
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        orders,
+        order_count: orders.length,
+        total_spent: Number(totalSpent.toFixed(2))
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/users/:id (Soft-delete user account)
+app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await db.prepare('SELECT id, username, email FROM users WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found or already deleted.' });
+    }
+
+    await db.prepare('UPDATE users SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+    await logActivity(req.user.id, 'Soft Delete User', `Admin soft deleted user @${user.username} (${user.email}, ID: ${id})`);
+
+    res.json({ success: true, message: `User account @${user.username} deleted successfully.` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -544,20 +686,21 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
 // GET /api/stats
 app.get('/api/stats', authenticateToken, async (req, res) => {
   try {
-    const totalProducts = (await db.prepare('SELECT count(*) AS count FROM products').get()).count;
-    const totalCategories = (await db.prepare('SELECT count(*) AS count FROM categories').get()).count;
-    const totalBrands = (await db.prepare('SELECT count(*) AS count FROM brands').get()).count;
+    const totalProducts = (await db.prepare('SELECT count(*) AS count FROM products WHERE (is_deleted = 0 OR is_deleted IS NULL)').get()).count;
+    const totalCategories = (await db.prepare('SELECT count(*) AS count FROM categories WHERE parent_id IS NULL AND (is_deleted = 0 OR is_deleted IS NULL)').get()).count;
+    const totalBrands = (await db.prepare('SELECT count(*) AS count FROM brands WHERE (is_deleted = 0 OR is_deleted IS NULL)').get()).count;
     const totalOrders = (await db.prepare('SELECT count(*) AS count FROM orders').get()).count;
+    const totalUsers = (await db.prepare('SELECT count(*) AS count FROM users WHERE (is_deleted = 0 OR is_deleted IS NULL)').get()).count;
     const revenueRow = await db.prepare("SELECT sum(total_amount) AS revenue FROM orders WHERE status != 'Cancelled'").get();
     const totalRevenue = revenueRow && revenueRow.revenue ? Number(revenueRow.revenue) : 0.0;
-    const unreadInquiries = (await db.prepare("SELECT count(*) AS count FROM inquiries WHERE status = 'Unread'").get()).count;
+    const unreadInquiries = (await db.prepare("SELECT count(*) AS count FROM inquiries WHERE status = 'Unread' AND (is_deleted = 0 OR is_deleted IS NULL)").get()).count;
 
-    // Category distribution (Main categories only)
+    // Category distribution (Main categories only) - excluding soft deleted
     const categoryBreakdown = await db.prepare(`
       SELECT c.id, c.name, count(DISTINCT p.id) as product_count
       FROM categories c
-      LEFT JOIN products p ON (p.category_id = c.id OR p.subcategory_id IN (SELECT id FROM categories WHERE parent_id = c.id))
-      WHERE c.parent_id IS NULL
+      LEFT JOIN products p ON (p.category_id = c.id OR p.subcategory_id IN (SELECT id FROM categories WHERE parent_id = c.id AND (is_deleted = 0 OR is_deleted IS NULL))) AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
+      WHERE c.parent_id IS NULL AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
       GROUP BY c.id
       ORDER BY product_count DESC, c.name ASC
     `).all();
@@ -575,11 +718,11 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
       total_amount: Number(ord.total_amount || 0)
     }));
 
-    // Low stock products alert
+    // Low stock products alert (active products only)
     const lowStock = await db.prepare(`
       SELECT id, name, brand, stock, price
       FROM products
-      WHERE stock <= 30
+      WHERE stock <= 30 AND (is_deleted = 0 OR is_deleted IS NULL)
       ORDER BY stock ASC
       LIMIT 5
     `).all();
@@ -602,6 +745,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         totalCategories: Number(totalCategories),
         totalBrands: Number(totalBrands),
         totalOrders: Number(totalOrders),
+        totalUsers: Number(totalUsers || 0),
         totalRevenue: Number(totalRevenue.toFixed(2)),
         unreadInquiries: Number(unreadInquiries),
         categoryBreakdown: formattedCategoryBreakdown,
@@ -625,12 +769,15 @@ app.get('/api/products', async (req, res) => {
     const { category_id, category, search } = req.query;
     let query = `
       SELECT p.*, 
-             c.name AS category_name, c.slug AS category_slug,
-             sc.name AS subcategory_name, sc.slug AS subcategory_slug
+             COALESCE(c.name, sc_parent.name) AS category_name, 
+             COALESCE(c.slug, sc_parent.slug) AS category_slug,
+             sc.name AS subcategory_name, 
+             sc.slug AS subcategory_slug
       FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN categories sc ON p.subcategory_id = sc.id
-      WHERE 1=1
+      LEFT JOIN categories c ON (p.category_id = c.id AND (c.is_deleted = 0 OR c.is_deleted IS NULL))
+      LEFT JOIN categories sc ON (p.subcategory_id = sc.id AND (sc.is_deleted = 0 OR sc.is_deleted IS NULL))
+      LEFT JOIN categories sc_parent ON (sc.parent_id = sc_parent.id AND (sc_parent.is_deleted = 0 OR sc_parent.is_deleted IS NULL))
+      WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL)
     `;
     const params = [];
 
@@ -645,10 +792,49 @@ app.get('/api/products', async (req, res) => {
       params.push(catLower, catLower, catLower, catLower);
     }
 
-    if (search) {
-      query += ` AND (p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ? OR p.model LIKE ? OR p.sku LIKE ? OR c.name LIKE ? OR sc.name LIKE ?)`;
-      const s = `%${search}%`;
-      params.push(s, s, s, s, s, s, s);
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      // Normalize currency words like AED, dhs, dirham, $
+      const normalized = cleanSearch.replace(/\b(aed|dhs?|dirhams?|usd|\$)\b/gi, ' ').trim();
+      const effectiveSearch = normalized.length > 0 ? normalized : cleanSearch;
+      const rawTerms = effectiveSearch
+        .split(/\s+/)
+        .map(t => t.replace(/^[,;]+|[,;]+$/g, ''))
+        .filter(t => t.length > 0 && t !== '&' && t.toLowerCase() !== 'and');
+
+      rawTerms.forEach(term => {
+        const numOnly = term.replace(/[^0-9.]/g, '');
+        const s = `%${term}%`;
+        if (numOnly && !isNaN(Number(numOnly))) {
+          const numPattern = `%${numOnly}%`;
+          query += ` AND (
+            p.name LIKE ? OR 
+            p.brand LIKE ? OR 
+            p.description LIKE ? OR 
+            p.model LIKE ? OR 
+            p.wattage LIKE ? OR 
+            c.name LIKE ? OR 
+            sc.name LIKE ? OR 
+            sc_parent.name LIKE ? OR 
+            CAST(p.price AS CHAR) LIKE ? OR 
+            CAST(p.old_price AS CHAR) LIKE ?
+          )`;
+          params.push(s, s, s, s, s, s, s, s, numPattern, numPattern);
+        } else {
+          query += ` AND (
+            p.name LIKE ? OR 
+            p.brand LIKE ? OR 
+            p.description LIKE ? OR 
+            p.model LIKE ? OR 
+            p.wattage LIKE ? OR 
+            c.name LIKE ? OR 
+            sc.name LIKE ? OR 
+            sc_parent.name LIKE ? OR 
+            CAST(p.price AS CHAR) LIKE ?
+          )`;
+          params.push(s, s, s, s, s, s, s, s, s);
+        }
+      });
     }
 
     query += ` ORDER BY p.id DESC`;
@@ -693,12 +879,13 @@ app.get('/api/search', async (req, res) => {
     const likeTerm = `%${q}%`;
     const startTerm = `${q}%`;
 
-    // 1. Search Categories (both main and subcategories)
+    // 1. Search Categories (both main and subcategories) - active only
     const matchedCategories = await db.prepare(`
       SELECT c.*, parent.name AS parent_name, parent.slug AS parent_slug
       FROM categories c
-      LEFT JOIN categories parent ON c.parent_id = parent.id
-      WHERE c.name LIKE ? OR c.slug LIKE ?
+      LEFT JOIN categories parent ON (c.parent_id = parent.id AND (parent.is_deleted = 0 OR parent.is_deleted IS NULL))
+      WHERE (c.name LIKE ? OR c.slug LIKE ?)
+        AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
       ORDER BY 
         CASE 
           WHEN LOWER(c.name) LIKE ? THEN 1
@@ -709,11 +896,12 @@ app.get('/api/search', async (req, res) => {
       LIMIT 8
     `).all(likeTerm, likeTerm, startTerm.toLowerCase(), likeTerm.toLowerCase());
 
-    // 2. Search Brands
+    // 2. Search Brands - active only
     const matchedBrands = await db.prepare(`
       SELECT *
       FROM brands
-      WHERE name LIKE ? OR slug LIKE ?
+      WHERE (name LIKE ? OR slug LIKE ?)
+        AND (is_deleted = 0 OR is_deleted IS NULL)
       ORDER BY 
         CASE 
           WHEN LOWER(name) LIKE ? THEN 1
@@ -724,21 +912,28 @@ app.get('/api/search', async (req, res) => {
       LIMIT 8
     `).all(likeTerm, likeTerm, startTerm.toLowerCase(), likeTerm.toLowerCase());
 
-    // 3. Search Products
+    // 3. Search Products - active only
     const matchedProducts = await db.prepare(`
       SELECT p.*, 
-             c.name AS category_name, c.slug AS category_slug,
-             sc.name AS subcategory_name, sc.slug AS subcategory_slug
+             COALESCE(c.name, sc_parent.name) AS category_name, 
+             COALESCE(c.slug, sc_parent.slug) AS category_slug,
+             sc.name AS subcategory_name, 
+             sc.slug AS subcategory_slug
       FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN categories sc ON p.subcategory_id = sc.id
-      WHERE p.name LIKE ? 
+      LEFT JOIN categories c ON (p.category_id = c.id AND (c.is_deleted = 0 OR c.is_deleted IS NULL))
+      LEFT JOIN categories sc ON (p.subcategory_id = sc.id AND (sc.is_deleted = 0 OR sc.is_deleted IS NULL))
+      LEFT JOIN categories sc_parent ON (sc.parent_id = sc_parent.id AND (sc_parent.is_deleted = 0 OR sc_parent.is_deleted IS NULL))
+      WHERE (
+            p.name LIKE ? 
          OR p.brand LIKE ? 
          OR p.description LIKE ? 
          OR p.model LIKE ? 
-         OR p.sku LIKE ? 
+         OR p.wattage LIKE ? 
          OR c.name LIKE ? 
          OR sc.name LIKE ?
+         OR sc_parent.name LIKE ?
+         OR CAST(p.price AS CHAR) LIKE ?
+      ) AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
       ORDER BY 
         CASE 
           WHEN LOWER(p.name) LIKE ? THEN 1
@@ -748,7 +943,7 @@ app.get('/api/search', async (req, res) => {
         p.id DESC
       LIMIT 12
     `).all(
-      likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm,
+      likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm, likeTerm,
       startTerm.toLowerCase(), startTerm.toLowerCase()
     );
 
@@ -807,8 +1002,8 @@ app.post('/api/products', authenticateToken, async (req, res) => {
       is_bestseller 
     } = req.body;
 
-    if (!name || price === undefined || price === null || !brand) {
-      return res.status(400).json({ success: false, message: 'Name, brand, and price are required.' });
+    if (!name || price === undefined || price === null) {
+      return res.status(400).json({ success: false, message: 'Name and price are required.' });
     }
 
     // Determine primary image and images json
@@ -834,17 +1029,23 @@ app.post('/api/products', authenticateToken, async (req, res) => {
       primaryImage = '/prod_downlight_1791451418016.png';
       imagesJson = JSON.stringify([primaryImage]);
     } else {
-      // Automatically ensure images are uploaded to Cloudinary
-      primaryImage = await ensureCloudinaryUrl(primaryImage, 'superlight/products');
-      if (Array.isArray(images) && images.length > 0) {
-        const converted = [];
-        for (const img of images) {
-          converted.push(await ensureCloudinaryUrl(img, 'superlight/products'));
+      // Automatically ensure images are uploaded to Cloudinary if configured
+      if (isCloudinaryConfigured()) {
+        primaryImage = await ensureCloudinaryUrl(primaryImage, 'superlight/products');
+        if (Array.isArray(images) && images.length > 0) {
+          const converted = await Promise.all(images.map(img => ensureCloudinaryUrl(img, 'superlight/products')));
+          imagesJson = JSON.stringify(converted);
+          primaryImage = converted[0] || primaryImage;
+        } else {
+          imagesJson = JSON.stringify([primaryImage]);
         }
-        imagesJson = JSON.stringify(converted);
-        primaryImage = converted[0];
       } else {
-        imagesJson = JSON.stringify([primaryImage]);
+        if (Array.isArray(images) && images.length > 0) {
+          imagesJson = JSON.stringify(images);
+          primaryImage = images[0] || primaryImage;
+        } else {
+          imagesJson = JSON.stringify([primaryImage]);
+        }
       }
     }
 
@@ -873,7 +1074,7 @@ app.post('/api/products', authenticateToken, async (req, res) => {
       name.trim(),
       validCatId,
       validSubCatId,
-      brand.trim(),
+      brand ? brand.trim() : '',
       parseFloat(price),
       old_price ? parseFloat(old_price) : null,
       primaryImage,
@@ -921,7 +1122,7 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
       is_bestseller 
     } = req.body;
 
-    const existing = await db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM products WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
@@ -930,14 +1131,20 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
     let imagesJson = existing.images || '';
 
     if (Array.isArray(images)) {
-      const converted = [];
-      for (const img of images) {
-        converted.push(await ensureCloudinaryUrl(img, 'superlight/products'));
+      if (isCloudinaryConfigured()) {
+        const converted = await Promise.all(images.map(img => ensureCloudinaryUrl(img, 'superlight/products')));
+        imagesJson = JSON.stringify(converted);
+        if (converted.length > 0) primaryImage = converted[0];
+      } else {
+        imagesJson = JSON.stringify(images);
+        if (images.length > 0) primaryImage = images[0];
       }
-      imagesJson = JSON.stringify(converted);
-      if (converted.length > 0) primaryImage = converted[0];
     } else if (image !== undefined) {
-      primaryImage = await ensureCloudinaryUrl(image, 'superlight/products');
+      if (isCloudinaryConfigured()) {
+        primaryImage = await ensureCloudinaryUrl(image, 'superlight/products');
+      } else {
+        primaryImage = image;
+      }
       imagesJson = JSON.stringify([primaryImage]);
     } else if (images !== undefined) {
       imagesJson = images;
@@ -974,7 +1181,7 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
       name ? name.trim() : existing.name,
       targetCatId,
       targetSubCatId,
-      brand ? brand.trim() : existing.brand,
+      brand !== undefined ? (brand ? brand.trim() : '') : existing.brand,
       price !== undefined ? parseFloat(price) : existing.price,
       old_price !== undefined ? (old_price ? parseFloat(old_price) : null) : existing.old_price,
       primaryImage,
@@ -996,17 +1203,17 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id
+// DELETE /api/products/:id (Soft-delete product)
 app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await db.prepare('SELECT name FROM products WHERE id = ?').get(id);
+    const product = await db.prepare('SELECT name FROM products WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found.' });
+      return res.status(404).json({ success: false, message: 'Product not found or already deleted.' });
     }
 
-    await db.prepare('DELETE FROM products WHERE id = ?').run(id);
-    await logActivity(req.user.id, 'Deleted Product', `Deleted product: ${product.name} (ID: ${id})`);
+    await db.prepare('UPDATE products SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+    await logActivity(req.user.id, 'Soft Deleted Product', `Soft deleted product: ${product.name} (ID: ${id})`);
 
     res.json({ success: true, message: 'Product deleted successfully.' });
   } catch (err) {
@@ -1024,7 +1231,8 @@ app.get('/api/categories', async (req, res) => {
     const rawCategories = await db.prepare(`
       SELECT c.*, count(p.id) as product_count
       FROM categories c
-      LEFT JOIN products p ON c.id = p.category_id
+      LEFT JOIN products p ON (c.id = p.category_id AND (p.is_deleted = 0 OR p.is_deleted IS NULL))
+      WHERE (c.is_deleted = 0 OR c.is_deleted IS NULL)
       GROUP BY c.id
       ORDER BY c.id ASC
     `).all();
@@ -1054,21 +1262,29 @@ app.get('/api/categories', async (req, res) => {
 // POST /api/categories
 app.post('/api/categories', authenticateToken, async (req, res) => {
   try {
-    const { name, slug, icon, description, parent_id, subcategories } = req.body;
-    if (!name || !slug) {
-      return res.status(400).json({ success: false, message: 'Category name and slug are required.' });
+    const { name, icon, description, parent_id, subcategories } = req.body;
+    let { slug } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Category name is required.' });
     }
 
-    const cleanSlug = slug.toLowerCase().trim().replace(/\s+/g, '-');
-    const existingSlug = await db.prepare('SELECT id FROM categories WHERE slug = ?').get(cleanSlug);
-    if (existingSlug) {
-      return res.status(400).json({ success: false, message: `Category with slug '${cleanSlug}' already exists.` });
+    if (!slug || !slug.trim()) {
+      slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (!slug) slug = `cat-${Date.now()}`;
+    }
+
+    let cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let finalSlug = cleanSlug;
+    let counter = 1;
+    while (await db.prepare('SELECT id FROM categories WHERE slug = ?').get(finalSlug)) {
+      finalSlug = `${cleanSlug}-${counter++}`;
     }
 
     const result = await db.prepare(`
       INSERT INTO categories (name, slug, icon, description, parent_id)
       VALUES (?, ?, ?, ?, ?)
-    `).run(name.trim(), cleanSlug, icon || 'Box', description || '', parent_id ? parseInt(parent_id) : null);
+    `).run(name.trim(), finalSlug, icon || 'Box', description || '', parent_id ? parseInt(parent_id) : null);
 
     const categoryId = Number(result.lastInsertRowid);
 
@@ -1085,7 +1301,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         let subSlug = (typeof sub === 'object' && sub.slug)
           ? sub.slug.toLowerCase().trim().replace(/\s+/g, '-')
           : subName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        if (!subSlug) subSlug = `${cleanSlug}-sub-${Date.now()}`;
+        if (!subSlug) subSlug = `${finalSlug}-sub-${Date.now()}`;
 
         let finalSubSlug = subSlug;
         let counter = 1;
@@ -1108,7 +1324,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
 app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, slug, icon, description, parent_id, subcategories } = req.body;
+    const { name, icon, description, parent_id, subcategories } = req.body;
+    let { slug } = req.body;
 
     const existing = await db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!existing) {
@@ -1116,13 +1333,18 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     }
 
     const newName = name ? name.trim() : existing.name;
-    const cleanSlug = slug ? slug.toLowerCase().trim().replace(/\s+/g, '-') : existing.slug;
+    let cleanSlug = slug ? slug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : existing.slug;
+    if (!cleanSlug && newName) {
+      cleanSlug = newName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    }
 
     if (cleanSlug !== existing.slug) {
-      const checkSlug = await db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(cleanSlug, id);
-      if (checkSlug) {
-        return res.status(400).json({ success: false, message: `Slug '${cleanSlug}' is already taken.` });
+      let finalSlug = cleanSlug;
+      let counter = 1;
+      while (await db.prepare('SELECT id FROM categories WHERE slug = ? AND id != ?').get(finalSlug, id)) {
+        finalSlug = `${cleanSlug}-${counter++}`;
       }
+      cleanSlug = finalSlug;
     }
 
     await db.prepare(`
@@ -1143,10 +1365,10 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       const currentSubs = await db.prepare('SELECT * FROM categories WHERE parent_id = ?').all(id);
       const incomingIds = subcategories.filter(s => s.id).map(s => parseInt(s.id));
 
-      // 1. Delete removed subcategories
+      // 1. Soft delete removed subcategories
       for (const curSub of currentSubs) {
         if (!incomingIds.includes(curSub.id)) {
-          await db.prepare('DELETE FROM categories WHERE id = ?').run(curSub.id);
+          await db.prepare('UPDATE categories SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(curSub.id);
         }
       }
 
@@ -1187,22 +1409,22 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/categories/:id
+// DELETE /api/categories/:id (Soft-delete category and its subcategories)
 app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const cat = await db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+    const cat = await db.prepare('SELECT * FROM categories WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
     if (!cat) {
-      return res.status(404).json({ success: false, message: 'Category not found.' });
+      return res.status(404).json({ success: false, message: 'Category not found or already deleted.' });
     }
 
-    // Delete subcategories if this is a parent category
-    await db.prepare('DELETE FROM categories WHERE parent_id = ?').run(id);
+    // Soft delete subcategories if this is a parent category
+    await db.prepare('UPDATE categories SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE parent_id = ?').run(id);
 
-    // Delete the category itself
-    await db.prepare('DELETE FROM categories WHERE id = ?').run(id);
+    // Soft delete the category itself
+    await db.prepare('UPDATE categories SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
 
-    await logActivity(req.user.id, 'Deleted Category', `Deleted category: ${cat.name} (ID: ${id})`);
+    await logActivity(req.user.id, 'Soft Deleted Category', `Soft deleted category: ${cat.name} (ID: ${id})`);
     res.json({ success: true, message: 'Category deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1219,7 +1441,8 @@ app.get('/api/brands', async (req, res) => {
     const brands = await db.prepare(`
       SELECT b.*, count(p.id) as product_count
       FROM brands b
-      LEFT JOIN products p ON LOWER(p.brand) = LOWER(b.name)
+      LEFT JOIN products p ON (LOWER(p.brand) = LOWER(b.name) AND (p.is_deleted = 0 OR p.is_deleted IS NULL))
+      WHERE (b.is_deleted = 0 OR b.is_deleted IS NULL)
       GROUP BY b.id
       ORDER BY b.is_featured DESC, b.name ASC
     `).all();
@@ -1252,7 +1475,7 @@ app.post('/api/brands', authenticateToken, async (req, res) => {
 
     if (!cleanSlug) cleanSlug = `brand-${Date.now()}`;
 
-    const existing = await db.prepare('SELECT id FROM brands WHERE LOWER(name) = ? OR slug = ?').get(cleanName.toLowerCase(), cleanSlug);
+    const existing = await db.prepare('SELECT id FROM brands WHERE (LOWER(name) = ? OR slug = ?) AND (is_deleted = 0 OR is_deleted IS NULL)').get(cleanName.toLowerCase(), cleanSlug);
     if (existing) {
       return res.status(400).json({ success: false, message: `Brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
@@ -1290,7 +1513,7 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { name, slug, image, website, description, is_featured } = req.body;
 
-    const existing = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM brands WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Brand not found.' });
     }
@@ -1301,7 +1524,7 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
       : existing.slug;
 
     // Check duplicate name or slug on other brands
-    const duplicate = await db.prepare('SELECT id FROM brands WHERE (LOWER(name) = ? OR slug = ?) AND id != ?').get(cleanName.toLowerCase(), cleanSlug, id);
+    const duplicate = await db.prepare('SELECT id FROM brands WHERE (LOWER(name) = ? OR slug = ?) AND id != ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(cleanName.toLowerCase(), cleanSlug, id);
     if (duplicate) {
       return res.status(400).json({ success: false, message: `Another brand with name '${cleanName}' or slug '${cleanSlug}' already exists.` });
     }
@@ -1336,18 +1559,18 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/brands/:id
+// DELETE /api/brands/:id (Soft-delete brand)
 app.delete('/api/brands/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const brand = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const brand = await db.prepare('SELECT * FROM brands WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
     if (!brand) {
-      return res.status(404).json({ success: false, message: 'Brand not found.' });
+      return res.status(404).json({ success: false, message: 'Brand not found or already deleted.' });
     }
 
-    await db.prepare('DELETE FROM brands WHERE id = ?').run(id);
+    await db.prepare('UPDATE brands SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
 
-    await logActivity(req.user.id, 'Deleted Brand', `Deleted brand: ${brand.name} (ID: ${id})`);
+    await logActivity(req.user.id, 'Soft Deleted Brand', `Soft deleted brand: ${brand.name} (ID: ${id})`);
 
     res.json({
       success: true,
@@ -1565,7 +1788,7 @@ app.post('/api/inquiries', async (req, res) => {
 // GET /api/inquiries
 app.get('/api/inquiries', authenticateToken, async (req, res) => {
   try {
-    const inquiries = await db.prepare('SELECT * FROM inquiries ORDER BY id DESC').all();
+    const inquiries = await db.prepare('SELECT * FROM inquiries WHERE (is_deleted = 0 OR is_deleted IS NULL) ORDER BY id DESC').all();
     res.json({ success: true, count: inquiries.length, inquiries });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1578,19 +1801,25 @@ app.put('/api/inquiries/:id/status', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    await db.prepare('UPDATE inquiries SET status = ? WHERE id = ?').run(status, id);
+    await db.prepare('UPDATE inquiries SET status = ? WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').run(status, id);
     res.json({ success: true, message: 'Inquiry status updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// DELETE /api/inquiries/:id
+// DELETE /api/inquiries/:id (Soft-delete inquiry)
 app.delete('/api/inquiries/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.prepare('DELETE FROM inquiries WHERE id = ?').run(id);
-    res.json({ success: true, message: 'Inquiry deleted.' });
+    const inq = await db.prepare('SELECT id, name FROM inquiries WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(id);
+    if (!inq) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found or already deleted.' });
+    }
+
+    await db.prepare('UPDATE inquiries SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+    await logActivity(req.user.id, 'Soft Deleted Inquiry', `Soft deleted inquiry ID: ${id} from ${inq.name}`);
+    res.json({ success: true, message: 'Inquiry deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1672,14 +1901,14 @@ app.post('/api/upload', authenticateToken, upload.any(), async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file provided.' });
     }
 
-    const urls = [];
-    const cloudinaryUploads = [];
     const cloudinaryReady = isCloudinaryConfigured();
 
-    for (const f of files) {
+    // Process all files concurrently in parallel
+    const uploadTasks = files.map(async (f) => {
       let finalUrl = null;
+      let cUpload = null;
 
-      // 1. Upload to Cloudinary if credentials are configured
+      // 1. Upload to Cloudinary if configured
       if (cloudinaryReady) {
         try {
           const cRes = await uploadToCloudinary(f.path, {
@@ -1688,45 +1917,52 @@ app.post('/api/upload', authenticateToken, upload.any(), async (req, res) => {
           });
           if (cRes && cRes.secure_url) {
             finalUrl = cRes.secure_url;
-            cloudinaryUploads.push({
+            cUpload = {
               public_id: cRes.public_id,
               url: cRes.secure_url,
               format: cRes.format,
               bytes: cRes.bytes
-            });
-            console.log(`[Cloudinary Upload Success]: ${finalUrl}`);
+            };
           }
         } catch (cErr) {
           console.error(`[Cloudinary Upload Error for ${f.filename}]:`, cErr.message);
         }
       }
 
-      // 2. Fallback to /uploads/filename if Cloudinary is not configured or failed
+      // 2. Fallback to local /uploads/ URL
       if (!finalUrl) {
         finalUrl = `/uploads/${f.filename}`;
       }
 
-      urls.push(finalUrl);
+      // 3. Backup to DB table asynchronously in background without blocking response
+      setImmediate(async () => {
+        try {
+          if (fs.existsSync(f.path)) {
+            const fileBuffer = fs.readFileSync(f.path);
+            await db.prepare(`
+              INSERT INTO uploaded_files (filename, mime_type, file_data, size)
+              VALUES (?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE file_data = VALUES(file_data), size = VALUES(size)
+            `).run(f.filename, f.mimetype || 'image/png', fileBuffer, f.size);
+          }
+        } catch (dbErr) {
+          console.warn(`[Upload DB Background Backup for ${f.filename}]:`, dbErr.message);
+        }
+      });
 
-      // 3. Keep local DB backup copy in uploaded_files table as secondary resilience
-      try {
-        const fileBuffer = fs.readFileSync(f.path);
-        await db.prepare(`
-          INSERT INTO uploaded_files (filename, mime_type, file_data, size)
-          VALUES (?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE file_data = VALUES(file_data), size = VALUES(size)
-        `).run(f.filename, f.mimetype || 'image/png', fileBuffer, f.size);
-      } catch (dbErr) {
-        console.error(`[Upload DB Persistence Error for ${f.filename}]:`, dbErr.message);
-      }
-    }
+      return { finalUrl, cUpload };
+    });
+
+    const results = await Promise.all(uploadTasks);
+    const urls = results.map(r => r.finalUrl);
+    const cloudinaryUploads = results.filter(r => r.cUpload).map(r => r.cUpload);
 
     res.json({ 
       success: true, 
       imageUrl: urls[0],
       url: urls[0],
       urls,
-      storage: cloudinaryReady && cloudinaryUploads.length > 0 ? 'cloudinary' : 'local_database',
+      storage: cloudinaryReady && cloudinaryUploads.length > 0 ? 'cloudinary' : 'local_storage',
       cloudinaryUploads
     });
   } catch (err) {

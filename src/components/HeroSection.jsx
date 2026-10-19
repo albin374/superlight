@@ -532,7 +532,7 @@ const HeroSection = ({
                   setIsAllCatMobileOpen(!isAllCatMobileOpen); 
                   if (isAllCatMobileOpen) setExpandedMobileCatId(null);
                 }}
-                style={{ color: '#e6005c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '700' }}
+                style={{ color: '#E5007D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '700' }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Menu size={18} /> All Categories</span>
                 <ChevronDown size={16} style={{ transform: isAllCatMobileOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
@@ -561,7 +561,7 @@ const HeroSection = ({
                             padding: '9px 0',
                             cursor: 'pointer',
                             fontSize: '13px',
-                            color: isExpanded ? '#e6005c' : '#1b253c',
+                            color: isExpanded ? '#E5007D' : '#1b253c',
                             fontWeight: '700',
                             textTransform: 'uppercase',
                             letterSpacing: '0.4px',
@@ -576,7 +576,7 @@ const HeroSection = ({
                               style={{
                                 transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                 transition: 'transform 0.2s',
-                                color: isExpanded ? '#e6005c' : '#64748b'
+                                color: isExpanded ? '#E5007D' : '#64748b'
                               }}
                             />
                           )}

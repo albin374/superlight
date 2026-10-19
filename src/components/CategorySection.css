@@ -20,7 +20,7 @@
 }
 
 .category-header .subtitle {
-  color: #e6005c;
+  color: #E5007D;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -65,15 +65,15 @@
 }
 
 .carousel-arrow-btn:hover {
-  background-color: #e6005c;
-  border-color: #e6005c;
+  background-color: #E5007D;
+  border-color: #E5007D;
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(230, 0, 92, 0.25);
+  box-shadow: 0 4px 10px rgba(229, 0, 125, 0.25);
 }
 
 .view-all {
-  color: #e6005c;
+  color: #E5007D;
   font-weight: 700;
   font-size: 14px;
   text-decoration: none;
@@ -178,7 +178,7 @@
 }
 
 .category-card:hover .category-name {
-  color: #e6005c;
+  color: #E5007D;
 }
 
 /* Responsive Design */

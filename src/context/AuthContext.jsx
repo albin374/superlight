@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import LoginPromptModal from '../components/common/LoginPromptModal';
 
 const AuthContext = createContext(null);
 
@@ -30,6 +31,15 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Global Login Prompt Modal State
+  const [loginModalState, setLoginModalState] = useState({
+    isOpen: false,
+    title: 'Login Required',
+    message: 'Please login first and then continue',
+    subtitle: 'You need an account to place an order via WhatsApp. Please sign in or register to proceed.',
+    redirectTo: null
+  });
 
   // Sync token & user to localStorage
   useEffect(() => {
@@ -160,6 +170,41 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('superlight_token');
   };
 
+  // Open the login prompt modal
+  const promptLogin = (options = {}) => {
+    const message = typeof options === 'string' 
+      ? options 
+      : (options.message || 'Please login first and then continue');
+    const title = options.title || 'Login Required';
+    const subtitle = options.subtitle || 'You need an account to place an order via WhatsApp. Please sign in or register to proceed.';
+    const redirectTo = options.redirectTo || (typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : null);
+
+    setLoginModalState({
+      isOpen: true,
+      title,
+      message,
+      subtitle,
+      redirectTo
+    });
+  };
+
+  // Close the login prompt modal
+  const closeLoginPrompt = () => {
+    setLoginModalState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // Guard action requiring authentication
+  const requireAuth = (callback, promptOptions = {}) => {
+    if (user && token) {
+      if (typeof callback === 'function') {
+        callback();
+      }
+      return true;
+    }
+    promptLogin(promptOptions);
+    return false;
+  };
+
   const value = {
     user,
     token,
@@ -168,13 +213,25 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     loginWithGoogle,
-    logout
+    logout,
+    promptLogin,
+    closeLoginPrompt,
+    requireAuth
   };
 
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <LoginPromptModal
+        isOpen={loginModalState.isOpen}
+        title={loginModalState.title}
+        message={loginModalState.message}
+        subtitle={loginModalState.subtitle}
+        redirectTo={loginModalState.redirectTo}
+        onClose={closeLoginPrompt}
+      />
     </AuthContext.Provider>
   );
 };
+
 

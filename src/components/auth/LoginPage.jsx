@@ -107,6 +107,14 @@ const LoginPage = () => {
               <p>Sign in with your username or email address to access your orders, inquiries, and saved wishlist.</p>
             </div>
 
+            {/* Info Message from redirected action (e.g. Order via WhatsApp) */}
+            {location.state?.message && !error && !success && (
+              <div className="auth-alert info">
+                <AlertCircle size={18} />
+                <span>{location.state.message}</span>
+              </div>
+            )}
+
             {/* Error / Success Feedback */}
             {error && (
               <div className="auth-alert error">

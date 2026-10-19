@@ -18,6 +18,7 @@ import {
 import './SearchResultsPage.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from '../common/WhatsAppOrderModal';
 import { useShop } from '../../context/ShopContext';
+import { useAuth } from '../../context/AuthContext';
 import { getProductUrl, STATIC_CATALOG } from '../../utils/productUrl';
 import { ALL_CATEGORIES, ALL_BRANDS, searchLocalCatalog, renderHighlightedText, getCategoryPath, getBrandPath } from '../../utils/searchEngine';
 
@@ -25,6 +26,7 @@ const SearchResultsPage = ({ onProductClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+  const { requireAuth } = useAuth();
 
   // Query parameter extraction
   const searchParams = new URLSearchParams(location.search);
@@ -583,7 +585,10 @@ const SearchResultsPage = ({ onProductClick }) => {
                           className="srp-whatsapp-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setWaProduct(product);
+                            requireAuth(() => setWaProduct(product), {
+                              message: 'Please login first and then continue',
+                              subtitle: 'Please login to your account to order via WhatsApp. If you do not have an account, please register to proceed.'
+                            });
                           }}
                           title="Order via WhatsApp"
                         >

@@ -103,6 +103,12 @@
           <span>Orders</span>
         </button>
 
+        <button class="nav-item" data-tab="users">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Users</span>
+          <span id="usersCountBadge" class="sidebar-pill" style="display: none;">0</span>
+        </button>
+
         <button class="nav-item" data-tab="inquiries">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span>Inquiries</span>
@@ -188,6 +194,17 @@
               </div>
             </div>
 
+            <div class="metric-card clickable" onclick="switchTab('users')" title="Click to view Registered Users">
+              <div class="metric-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Registered Users</span>
+                <h3 id="statTotalUsers" class="metric-value">--</h3>
+                <span class="metric-subtext">Customer accounts &rarr;</span>
+              </div>
+            </div>
+
             <div class="metric-card clickable" onclick="switchTab('inquiries')" title="Click to view Inquiries & Leads">
               <div class="metric-icon orange">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -243,16 +260,20 @@
             <div class="filter-controls">
               <div class="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="productSearchInput" placeholder="Search products by title or brand..." />
+                <input type="text" id="productSearchInput" placeholder="Search by product name, price, brand, category, subcategory..." autocomplete="off" />
+                <button type="button" id="clearProductSearchBtn" class="search-clear-btn" style="display: none;" onclick="clearProductSearch()" title="Clear search">&times;</button>
               </div>
               <select id="productCategoryFilter" class="filter-select">
                 <option value="">All Categories</option>
               </select>
             </div>
-            <button class="btn btn-primary" id="openAddProductModalBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              <span>Add New Product</span>
-            </button>
+            <div class="table-actions-right" style="display: flex; gap: 8px; align-items: center;">
+              <span id="productCountSummary" class="badge-count" style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;"></span>
+              <button class="btn btn-primary" id="openAddProductModalBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Add New Product</span>
+              </button>
+            </div>
           </div>
 
           <div class="card">
@@ -273,17 +294,26 @@
                 </tbody>
               </table>
             </div>
+            <div id="pagination-products"></div>
           </div>
         </section>
 
         <!-- TAB 3: CATEGORIES -->
         <section id="tab-categories" class="tab-pane">
           <div class="section-actions-bar">
-            <p class="section-desc">Manage store taxonomy and departments</p>
-            <button class="btn btn-primary" id="openAddCategoryModalBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              <span>Add Category</span>
-            </button>
+            <div>
+              <p class="section-desc">Manage store taxonomy and departments</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div class="search-box" style="margin: 0; min-width: 220px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="categorySearchInput" placeholder="Search categories..." autocomplete="off" oninput="filterCategories()" />
+              </div>
+              <button class="btn btn-primary" id="openAddCategoryModalBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Add Category</span>
+              </button>
+            </div>
           </div>
 
           <div class="card">
@@ -303,6 +333,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="pagination-categories"></div>
           </div>
         </section>
 
@@ -343,13 +374,29 @@
                 </tbody>
               </table>
             </div>
+            <div id="pagination-brands"></div>
           </div>
         </section>
 
         <!-- TAB 4: ORDERS -->
         <section id="tab-orders" class="tab-pane">
           <div class="section-actions-bar">
-            <p class="section-desc">Track and manage customer procurement orders</p>
+            <div>
+              <p class="section-desc">Track and manage customer procurement orders</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div class="search-box" style="margin: 0; min-width: 220px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="orderSearchInput" placeholder="Search orders..." autocomplete="off" oninput="filterOrders()" />
+              </div>
+              <select id="orderStatusFilter" class="filter-select" onchange="filterOrders()">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
 
           <div class="card">
@@ -372,13 +419,89 @@
                 </tbody>
               </table>
             </div>
+            <div id="pagination-orders"></div>
           </div>
         </section>
 
-        <!-- TAB 5: INQUIRIES -->
+        <!-- TAB 5: REGISTERED USERS -->
+        <section id="tab-users" class="tab-pane">
+          <div class="section-actions-bar">
+            <div>
+              <p class="section-desc">Manage and view registered customer profiles, credentials, contact information & order history</p>
+            </div>
+            <div class="table-actions-right" style="display: flex; gap: 8px; align-items: center;">
+              <span id="userCountSummary" class="badge-count" style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;"></span>
+              <button class="btn btn-outline btn-sm" onclick="exportUsersCSV()" title="Export registered users to CSV">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Export CSV</span>
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="loadUsers()" title="Refresh users list">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-controls" style="margin-bottom: 16px;">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="userSearchInput" placeholder="Search by name, username, email, or phone..." oninput="filterUsers()" />
+            </div>
+            <select id="userAuthFilter" class="filter-select" onchange="filterUsers()">
+              <option value="">All Sign-in Methods</option>
+              <option value="google">Google OAuth</option>
+              <option value="email">Email & Password</option>
+            </select>
+            <select id="userSortFilter" class="filter-select" onchange="filterUsers()">
+              <option value="newest">Newest Registered</option>
+              <option value="oldest">Oldest Registered</option>
+              <option value="name">Name (A - Z)</option>
+              <option value="orders">Most Orders</option>
+              <option value="spend">Highest Spend</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Username</th>
+                    <th>Email Address</th>
+                    <th>Phone</th>
+                    <th>Sign-in Method</th>
+                    <th>Orders & Spend</th>
+                    <th>Registered Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="8" class="text-center">Loading registered users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="pagination-users"></div>
+          </div>
+        </section>
+
+        <!-- TAB 6: INQUIRIES -->
         <section id="tab-inquiries" class="tab-pane">
           <div class="section-actions-bar">
-            <p class="section-desc">Customer messages & commercial bulk quote inquiries</p>
+            <div>
+              <p class="section-desc">Customer messages & commercial bulk quote inquiries</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div class="search-box" style="margin: 0; min-width: 220px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="inquirySearchInput" placeholder="Search inquiries..." autocomplete="off" oninput="filterInquiries()" />
+              </div>
+              <select id="inquiryStatusFilter" class="filter-select" onchange="filterInquiries()">
+                <option value="">All Inquiries</option>
+                <option value="Unread">Unread</option>
+                <option value="Replied">Replied</option>
+              </select>
+            </div>
           </div>
 
           <div class="card">
@@ -400,6 +523,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="pagination-inquiries"></div>
           </div>
         </section>
 
@@ -428,9 +552,9 @@
               <input type="text" id="prodFormName" required placeholder="e.g. Ducab Electrical Cable 3 Core 2.5mm (100m)" />
             </div>
             <div class="form-group flex-1">
-              <label>Brand *</label>
-              <select id="prodFormBrand" required>
-                <option value="">Select Brand</option>
+              <label>Brand</label>
+              <select id="prodFormBrand">
+                <option value="">Select Brand (Optional)</option>
               </select>
             </div>
           </div>
@@ -511,13 +635,13 @@
             <div class="form-group checkbox-group flex-1">
               <label>
                 <input type="checkbox" id="prodFormFeatured" />
-                <span>Mark as Featured Product</span>
+                <span>Featured Product</span>
               </label>
             </div>
             <div class="form-group checkbox-group flex-1">
               <label>
                 <input type="checkbox" id="prodFormBestseller" />
-                <span>Mark as Best Seller</span>
+                <span>Best Seller</span>
               </label>
             </div>
           </div>
@@ -541,15 +665,10 @@
       <form id="categoryForm">
         <input type="hidden" id="catFormId" />
         <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label>Category Name *</label>
-              <input type="text" id="catFormName" required placeholder="Category name" autocomplete="off" />
-            </div>
-            <div class="form-group flex-1">
-              <label>Slug *</label>
-              <input type="text" id="catFormSlug" required placeholder="category-slug" autocomplete="off" />
-            </div>
+          <div class="form-group">
+            <label>Category Name *</label>
+            <input type="text" id="catFormName" required placeholder="Category name" autocomplete="off" />
+            <input type="hidden" id="catFormSlug" />
           </div>
 
           <div class="form-group">
@@ -568,8 +687,8 @@
             </div>
 
             <div class="subcat-add-row">
-              <input type="text" id="subCatInputName" placeholder="Subcategory name (e.g. Recessed Downlights)" autocomplete="off" />
-              <input type="text" id="subCatInputSlug" placeholder="subcategory-slug" autocomplete="off" />
+              <input type="text" id="subCatInputName" placeholder="Subcategory name (e.g. Recessed Downlights)" autocomplete="off" style="flex: 1;" />
+              <input type="hidden" id="subCatInputSlug" />
               <button type="button" id="addSubCatBtn" class="btn btn-outline btn-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>Add</span>
@@ -577,7 +696,7 @@
             </div>
 
             <div id="subCategoriesList" class="subcat-items-list">
-              <div class="subcat-empty-msg">No subcategories added yet. Use the fields above to add one by one.</div>
+              <div class="subcat-empty-msg">No subcategories added yet. Use the field above to add one by one.</div>
             </div>
           </div>
         </div>
@@ -604,15 +723,10 @@
             <label>Parent Category</label>
             <input type="text" id="singleSubCatParentName" readonly style="background: var(--bg-base); font-weight: 600;" />
           </div>
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label>Subcategory Name *</label>
-              <input type="text" id="singleSubCatName" required placeholder="Subcategory name" autocomplete="off" />
-            </div>
-            <div class="form-group flex-1">
-              <label>Slug *</label>
-              <input type="text" id="singleSubCatSlug" required placeholder="subcategory-slug" autocomplete="off" />
-            </div>
+          <div class="form-group">
+            <label>Subcategory Name *</label>
+            <input type="text" id="singleSubCatName" required placeholder="Subcategory name" autocomplete="off" />
+            <input type="hidden" id="singleSubCatSlug" />
           </div>
           <div class="form-group">
             <label>Description</label>
@@ -645,7 +759,7 @@
             <input type="hidden" id="popupParentId" />
             <div class="subcat-popup-inputs">
               <input type="text" id="popupSubcatName" required placeholder="Subcategory name (e.g. Building wires)" autocomplete="off" />
-              <input type="text" id="popupSubcatSlug" required placeholder="slug (e.g. building-wires)" autocomplete="off" />
+              <input type="hidden" id="popupSubcatSlug" />
               <button type="submit" class="btn btn-primary btn-sm" id="popupAddSubcatBtn">Add</button>
             </div>
           </form>
@@ -748,6 +862,123 @@
           <button type="submit" class="btn btn-primary" id="saveBrandBtn">Save Brand</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW USER DETAILS -->
+  <div id="userDetailsModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div id="uModalAvatarCircle" class="user-avatar-circle" style="width: 46px; height: 46px; font-size: 17px;"></div>
+          <div>
+            <h3 id="uModalName" style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text-heading);">User Profile</h3>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+              <span id="uModalUsername" style="font-size: 13px; color: var(--text-muted); font-family: monospace;">@username</span>
+              <span id="uModalRole" class="status-chip completed" style="text-transform: capitalize; font-size: 11px; padding: 2px 8px; height: auto;">Customer</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="close-modal-btn" onclick="closeUserDetailsModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 22px;">
+        <!-- Top Stats Row -->
+        <div class="user-stats-banner" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Sign-in Method</div>
+            <div id="uModalProvider" style="margin-top: 6px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;"></div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Total Orders</div>
+            <div id="uModalOrdersCount" style="margin-top: 6px; font-weight: 700; font-size: 15px; color: #2563eb;">0 orders</div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Total Spent</div>
+            <div id="uModalTotalSpent" style="margin-top: 6px; font-weight: 700; font-size: 15px; color: #059669;">AED 0.00</div>
+          </div>
+        </div>
+
+        <!-- Personal & Account Information -->
+        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700;">Account & Contact Information</h4>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; font-size: 13px;">
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Customer ID</span>
+              <span id="uModalId" style="font-family: monospace; font-size: 12.5px; font-weight: 600; color: var(--text-heading);"></span>
+            </div>
+
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Account Security</span>
+              <span id="uModalSecurityStatus" style="font-size: 12.5px; font-weight: 500;"></span>
+            </div>
+
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Email Address</span>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                <span id="uModalEmail" style="font-weight: 600; word-break: break-all;"></span>
+                <button type="button" class="btn-icon" style="width: 22px; height: 22px; padding: 0;" onclick="copyUserEmail()" title="Copy email">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Phone Number</span>
+              <span id="uModalPhone" style="font-weight: 600; display: block; margin-top: 2px;"></span>
+            </div>
+
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Registered Date</span>
+              <span id="uModalCreatedAt" style="font-weight: 500; display: block; margin-top: 2px;"></span>
+            </div>
+
+            <div>
+              <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Google ID</span>
+              <span id="uModalGoogleId" style="font-family: monospace; font-size: 11.5px; color: var(--text-muted); word-break: break-all; display: block; margin-top: 2px;">None</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orders Activity -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700;">Customer Order History</h4>
+            <span id="uModalOrdersCountBadge" style="font-size: 11.5px; color: var(--text-muted);"></span>
+          </div>
+          <div class="table-responsive" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
+            <table class="data-table" style="font-size: 12px;">
+              <thead>
+                <tr>
+                  <th style="padding: 8px 12px;">Order #</th>
+                  <th style="padding: 8px 12px;">Date</th>
+                  <th style="padding: 8px 12px;">Total</th>
+                  <th style="padding: 8px 12px;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="uModalOrdersTable">
+                <tr><td colspan="4" class="text-center text-muted" style="padding: 14px;">No orders found for this user.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-outline btn-sm text-danger" id="uModalDeleteBtn" style="color: #dc2626; border-color: #fca5a5;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Delete User</span>
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <a id="uModalMailtoBtn" href="#" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>Email Customer</span>
+          </a>
+          <button type="button" class="btn btn-primary btn-sm" onclick="closeUserDetailsModal()">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 

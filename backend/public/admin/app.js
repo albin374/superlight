@@ -69,10 +69,28 @@ function setupEventListeners() {
   const prodSearch = document.getElementById('productSearchInput');
   const prodFilter = document.getElementById('productCategoryFilter');
   if (prodSearch) {
-    prodSearch.addEventListener('input', debounce(loadProducts, 300));
+    const debouncedProdLoad = debounce(loadProducts, 250);
+    prodSearch.addEventListener('input', () => {
+      if (typeof paginationState !== 'undefined' && paginationState.products) {
+        paginationState.products.page = 1;
+      }
+      const clearBtn = document.getElementById('clearProductSearchBtn');
+      if (clearBtn) clearBtn.style.display = prodSearch.value.trim() ? 'flex' : 'none';
+      debouncedProdLoad();
+    });
+    prodSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        clearProductSearch();
+      }
+    });
   }
   if (prodFilter) {
-    prodFilter.addEventListener('change', loadProducts);
+    prodFilter.addEventListener('change', () => {
+      if (typeof paginationState !== 'undefined' && paginationState.products) {
+        paginationState.products.page = 1;
+      }
+      loadProducts();
+    });
     setupModernSelect(prodFilter);
   }
   initAllModernSelects();
@@ -376,7 +394,7 @@ async function handleSyncCloudinary() {
 
 // Switch navigation tabs
 function switchTab(tabId) {
-  const validTabs = ['dashboard', 'products', 'categories', 'brands', 'orders', 'inquiries'];
+  const validTabs = ['dashboard', 'products', 'categories', 'brands', 'orders', 'users', 'inquiries'];
   if (!validTabs.includes(tabId)) tabId = 'dashboard';
   localStorage.setItem('superlight_admin_tab', tabId);
 
@@ -405,6 +423,7 @@ function switchTab(tabId) {
     categories: 'Product Categories',
     brands: 'Brand Partners & Manufacturers',
     orders: 'Customer Orders',
+    users: 'Registered Users',
     inquiries: 'Inquiries & Leads'
   };
   pageTitle.innerText = titles[tabId] || 'Dashboard';
@@ -415,6 +434,7 @@ function switchTab(tabId) {
   if (tabId === 'categories') loadCategories();
   if (tabId === 'brands') loadBrands();
   if (tabId === 'orders') loadOrders();
+  if (tabId === 'users') loadUsers();
   if (tabId === 'inquiries') loadInquiries();
 
   // Close mobile sidebar if open
@@ -437,6 +457,15 @@ async function loadDashboardStats() {
     document.getElementById('statTotalOrders').innerText = stats.totalOrders;
     document.getElementById('statTotalRevenue').innerText = `AED ${stats.totalRevenue.toLocaleString()}`;
     document.getElementById('statUnreadInquiries').innerText = stats.unreadInquiries;
+
+    if (document.getElementById('statTotalUsers') && stats.totalUsers !== undefined) {
+      document.getElementById('statTotalUsers').innerText = stats.totalUsers;
+    }
+    const usersBadge = document.getElementById('usersCountBadge');
+    if (usersBadge && stats.totalUsers !== undefined) {
+      usersBadge.innerText = stats.totalUsers;
+      usersBadge.style.display = stats.totalUsers > 0 ? 'inline-block' : 'none';
+    }
 
     const unreadBadge = document.getElementById('unreadBadge');
     if (unreadBadge) {
@@ -484,12 +513,193 @@ async function loadDashboardStats() {
 }
 
 /* ==========================================================================
+   UNIVERSAL TABLE PAGINATION CONTROLLER
+   ========================================================================== */
+const paginationState = {
+  products:   { page: 1, pageSize: 10, total: 0 },
+  categories: { page: 1, pageSize: 10, total: 0 },
+  brands:     { page: 1, pageSize: 10, total: 0 },
+  orders:     { page: 1, pageSize: 10, total: 0 },
+  users:      { page: 1, pageSize: 10, total: 0 },
+  inquiries:  { page: 1, pageSize: 10, total: 0 }
+};
+
+function paginateArray(array, section) {
+  if (!paginationState[section]) {
+    paginationState[section] = { page: 1, pageSize: 10, total: 0 };
+  }
+  const state = paginationState[section];
+  state.total = Array.isArray(array) ? array.length : 0;
+  const maxPage = Math.max(1, Math.ceil(state.total / state.pageSize));
+  if (state.page > maxPage) state.page = maxPage;
+  if (state.page < 1) state.page = 1;
+  const start = (state.page - 1) * state.pageSize;
+  const end = start + state.pageSize;
+  return Array.isArray(array) ? array.slice(start, end) : [];
+}
+
+function generatePageNumbers(current, total) {
+  if (total <= 7) {
+    const list = [];
+    for (let i = 1; i <= total; i++) list.push(i);
+    return list;
+  }
+  const pages = [];
+  pages.push(1);
+  if (current > 3) {
+    pages.push('...');
+  }
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  if (current < total - 2) {
+    pages.push('...');
+  }
+  pages.push(total);
+  return pages;
+}
+
+function renderPaginationFooter(section, totalItems) {
+  const container = document.getElementById(`pagination-${section}`);
+  if (!container) return;
+
+  if (!paginationState[section]) {
+    paginationState[section] = { page: 1, pageSize: 10, total: totalItems };
+  }
+  const state = paginationState[section];
+  state.total = totalItems;
+
+  if (totalItems <= 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const { page, pageSize } = state;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const startItem = (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalItems);
+
+  let buttonsHtml = '';
+
+  // Previous button
+  buttonsHtml += `
+    <button type="button" class="pagination-btn nav-btn" 
+      ${page <= 1 ? 'disabled' : ''} 
+      onclick="goToSectionPage('${section}', ${page - 1})" 
+      title="Previous page">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <span>Prev</span>
+    </button>
+  `;
+
+  // Numeric page buttons
+  const pages = generatePageNumbers(page, totalPages);
+  pages.forEach(p => {
+    if (p === '...') {
+      buttonsHtml += `<span class="pagination-ellipsis">&hellip;</span>`;
+    } else {
+      const isActive = p === page;
+      buttonsHtml += `
+        <button type="button" class="pagination-btn ${isActive ? 'active' : ''}" 
+          onclick="goToSectionPage('${section}', ${p})"
+          title="Page ${p}">
+          ${p}
+        </button>
+      `;
+    }
+  });
+
+  // Next button
+  buttonsHtml += `
+    <button type="button" class="pagination-btn nav-btn" 
+      ${page >= totalPages ? 'disabled' : ''} 
+      onclick="goToSectionPage('${section}', ${page + 1})" 
+      title="Next page">
+      <span>Next</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+  `;
+
+  container.innerHTML = `
+    <div class="table-pagination-footer">
+      <div class="pagination-left">
+        <div class="pagination-info">
+          Showing <strong>${startItem}–${endItem}</strong> of <strong>${totalItems}</strong> entries
+        </div>
+        <div class="pagination-size-wrap">
+          <span>Show</span>
+          <select class="pagination-size-select" onchange="changeSectionPageSize('${section}', this.value)" aria-label="Rows per page">
+            <option value="10" ${pageSize === 10 ? 'selected' : ''}>10</option>
+            <option value="25" ${pageSize === 25 ? 'selected' : ''}>25</option>
+            <option value="50" ${pageSize === 50 ? 'selected' : ''}>50</option>
+            <option value="100" ${pageSize === 100 ? 'selected' : ''}>100</option>
+          </select>
+          <span>per page</span>
+        </div>
+      </div>
+      <div class="pagination-buttons">
+        ${buttonsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function goToSectionPage(section, newPage) {
+  if (!paginationState[section]) return;
+  const state = paginationState[section];
+  const totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
+  if (newPage < 1) newPage = 1;
+  if (newPage > totalPages) newPage = totalPages;
+  state.page = newPage;
+  refreshSectionTable(section);
+}
+
+function changeSectionPageSize(section, newSize) {
+  if (!paginationState[section]) return;
+  paginationState[section].pageSize = parseInt(newSize, 10) || 10;
+  paginationState[section].page = 1;
+  refreshSectionTable(section);
+}
+
+function refreshSectionTable(section) {
+  switch (section) {
+    case 'products':
+      renderProductsTable();
+      break;
+    case 'categories':
+      filterCategories(false);
+      break;
+    case 'brands':
+      filterBrands(false);
+      break;
+    case 'orders':
+      filterOrders(false);
+      break;
+    case 'users':
+      filterUsers(false);
+      break;
+    case 'inquiries':
+      filterInquiries(false);
+      break;
+  }
+}
+
+/* ==========================================================================
    TAB 2: PRODUCTS
    ========================================================================== */
 async function loadProducts() {
   const tbody = document.getElementById('productsTableBody');
-  const search = document.getElementById('productSearchInput')?.value.trim() || '';
+  const searchInput = document.getElementById('productSearchInput');
+  const search = searchInput?.value.trim() || '';
   const catId = document.getElementById('productCategoryFilter')?.value || '';
+  const countSummaryEl = document.getElementById('productCountSummary');
+  const clearBtn = document.getElementById('clearProductSearchBtn');
+
+  if (clearBtn) {
+    clearBtn.style.display = search ? 'flex' : 'none';
+  }
 
   try {
     let url = `${API_BASE}/products?`;
@@ -500,58 +710,173 @@ async function loadProducts() {
     const data = await res.json();
 
     if (data.success) {
-      allProducts = data.products;
-      if (allProducts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding:32px;">No products found matching criteria.</td></tr>`;
-        return;
+      allProducts = data.products || [];
+
+      if (countSummaryEl) {
+        if (search) {
+          countSummaryEl.innerText = `${allProducts.length} result${allProducts.length === 1 ? '' : 's'} for "${search}"`;
+        } else if (catId) {
+          countSummaryEl.innerText = `${allProducts.length} product${allProducts.length === 1 ? '' : 's'} in category`;
+        } else {
+          countSummaryEl.innerText = `${allProducts.length} total product${allProducts.length === 1 ? '' : 's'}`;
+        }
       }
 
-      tbody.innerHTML = allProducts.map(p => `
-        <tr>
-          <td style="text-align:center; vertical-align:middle;">
-            <img src="${escapeHtml(p.image || '/prod_downlight_1791451418016.png')}" class="table-thumb" alt="${escapeHtml(p.name)}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
-          </td>
-          <td style="vertical-align:middle;">
-            <div class="product-title-wrap">
-              <div class="product-title-name">${escapeHtml(p.name)}</div>
-              <div class="product-badges-row">
-                ${p.is_featured ? '<span class="status-chip completed" style="font-size:10px; padding:2px 7px;">Featured</span>' : ''}
-                ${p.is_bestseller ? '<span class="status-chip" style="font-size:10px; padding:2px 7px; background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">Best Seller</span>' : ''}
-              </div>
-            </div>
-          </td>
-          <td style="vertical-align:middle;">
-            <span class="product-brand-chip">${escapeHtml(p.brand || '—')}</span>
-          </td>
-          <td style="vertical-align:middle;">
-            <div class="product-cat-name">${escapeHtml(p.category_name || 'Uncategorized')}</div>
-            ${p.subcategory_name ? `<div class="product-subcat-name">↳ ${escapeHtml(p.subcategory_name)}</div>` : ''}
-          </td>
-          <td style="vertical-align:middle;">
-            <div class="product-price-cell">
-              <div class="product-price-current">AED ${(typeof p.price === 'number' ? p.price : parseFloat(p.price || 0)).toFixed(2)}</div>
-              ${p.old_price ? `<div class="product-price-old">AED ${parseFloat(p.old_price).toFixed(2)}</div>` : ''}
-            </div>
-          </td>
-          <td style="text-align:right; vertical-align:middle; white-space:nowrap;">
-            <button class="btn-icon" title="Edit Product" onclick="openProductModal(${p.id})">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            </button>
-            <button class="btn-icon delete" title="Delete Product" onclick="deleteProduct(${p.id})">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      renderProductsTable();
     }
   } catch (err) {
     console.error('Error loading products:', err);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:#ef4444; padding:32px;">Failed to load products.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:#ef4444; padding:32px;">Failed to load products.</td></tr>`;
+    renderPaginationFooter('products', 0);
   }
+}
+
+function renderProductsTable() {
+  const tbody = document.getElementById('productsTableBody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('productSearchInput');
+  const search = searchInput?.value.trim() || '';
+
+  if (allProducts.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted" style="padding: 40px 20px;">
+          <div style="font-size: 15px; font-weight: 600; color: var(--text-heading); margin-bottom: 6px;">No products found</div>
+          <p style="margin: 0 0 16px; font-size: 13px;">No products matched "${escapeHtml(search || 'selected category')}". Try searching by product name, price (e.g. 50, 480), brand, or category.</p>
+          ${search ? '<button class="btn btn-sm btn-outline" onclick="clearProductSearch()">Clear Search</button>' : ''}
+        </td>
+      </tr>
+    `;
+    renderPaginationFooter('products', 0);
+    return;
+  }
+
+  const pageItems = paginateArray(allProducts, 'products');
+
+  tbody.innerHTML = pageItems.map(p => `
+    <tr>
+      <td style="text-align:center; vertical-align:middle;">
+        <img src="${escapeHtml(p.image || '/prod_downlight_1791451418016.png')}" class="table-thumb" alt="${escapeHtml(p.name)}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
+      </td>
+      <td style="vertical-align:middle;">
+        <div class="product-title-wrap">
+          <div class="product-title-name">${escapeHtml(p.name)}</div>
+          <div class="product-badges-row">
+            ${p.is_featured ? '<span class="status-chip completed" style="font-size:10px; padding:2px 7px;">Featured</span>' : ''}
+            ${p.is_bestseller ? '<span class="status-chip" style="font-size:10px; padding:2px 7px; background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">Best Seller</span>' : ''}
+            ${p.wattage ? `<span class="status-chip" style="font-size:10px; padding:2px 7px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;">${escapeHtml(p.wattage)}</span>` : ''}
+          </div>
+        </div>
+      </td>
+      <td style="vertical-align:middle;">
+        <span class="product-brand-chip">${escapeHtml(p.brand || '—')}</span>
+      </td>
+      <td style="vertical-align:middle;">
+        <div class="product-cat-name">${escapeHtml(p.category_name || 'Uncategorized')}</div>
+        ${p.subcategory_name ? `<div class="product-subcat-name">↳ ${escapeHtml(p.subcategory_name)}</div>` : ''}
+      </td>
+      <td style="vertical-align:middle;">
+        <div class="product-price-cell">
+          <div class="product-price-current">AED ${(typeof p.price === 'number' ? p.price : parseFloat(p.price || 0)).toFixed(2)}</div>
+          ${p.old_price ? `<div class="product-price-old">AED ${parseFloat(p.old_price).toFixed(2)}</div>` : ''}
+        </div>
+      </td>
+      <td style="text-align:right; vertical-align:middle; white-space:nowrap;">
+        <button class="btn-icon" title="Edit Product" onclick="openProductModal(${p.id})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
+        <button class="btn-icon delete" title="Delete Product" onclick="deleteProduct(${p.id})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  renderPaginationFooter('products', allProducts.length);
+}
+
+function clearProductSearch() {
+  if (typeof paginationState !== 'undefined' && paginationState.products) {
+    paginationState.products.page = 1;
+  }
+  const input = document.getElementById('productSearchInput');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const clearBtn = document.getElementById('clearProductSearchBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  loadProducts();
 }
 
 // Global state for product modal images (up to 4 pictures)
 let currentProductImages = [];
+
+/**
+ * Fast client-side image compressor.
+ * Automatically resizes giant camera photos to max 1400px and web-optimized format in 30ms,
+ * reducing payload from 10MB to ~150-250KB before uploading over network!
+ */
+async function fastCompressImage(file, maxDimension = 1400, quality = 0.85) {
+  if (!file || !file.type || !file.type.startsWith('image/') || file.type.includes('svg')) {
+    return file;
+  }
+  // If already under 150KB, upload as is
+  if (file.size <= 150 * 1024) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Try webp first; fallback to jpeg
+        canvas.toBlob((blob) => {
+          if (blob && blob.size < file.size) {
+            const newName = file.name.replace(/\.[^.]+$/, '.webp');
+            resolve(new File([blob], newName, { type: 'image/webp' }));
+          } else {
+            canvas.toBlob((jpgBlob) => {
+              if (jpgBlob && jpgBlob.size < file.size) {
+                const newName = file.name.replace(/\.[^.]+$/, '.jpg');
+                resolve(new File([jpgBlob], newName, { type: 'image/jpeg' }));
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', quality);
+          }
+        }, 'image/webp', quality);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
 
 function renderProductImagesGrid() {
   const container = document.getElementById('prodImagesGrid');
@@ -559,13 +884,22 @@ function renderProductImagesGrid() {
 
   let html = '';
   for (let i = 0; i < 4; i++) {
-    const imgUrl = currentProductImages[i];
-    if (imgUrl) {
+    const item = currentProductImages[i];
+    if (item) {
+      const isUploading = typeof item === 'object' && item.isUploading;
+      const url = typeof item === 'string' ? item : (item.previewUrl || '');
+
       html += `
-        <div class="prod-image-slot has-image">
-          <img src="${escapeHtml(imgUrl)}" class="prod-image-slot-thumb" alt="Product image ${i+1}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
-          <span class="prod-slot-badge ${i === 0 ? 'primary' : ''}">${i === 0 ? 'Cover Image' : `Photo ${i+1}`}</span>
-          <button type="button" class="prod-slot-delete-btn" onclick="removeProductImage(${i})" title="Remove image">&times;</button>
+        <div class="prod-image-slot has-image ${isUploading ? 'is-uploading' : ''}">
+          <img src="${escapeHtml(url)}" class="prod-image-slot-thumb" alt="Product image ${i+1}" onerror="this.onerror=null; this.src='/prod_downlight_1791451418016.png';" />
+          <span class="prod-slot-badge ${i === 0 ? 'primary' : ''}">${isUploading ? 'Uploading...' : (i === 0 ? 'Cover Image' : `Photo ${i+1}`)}</span>
+          ${isUploading ? `
+            <div class="prod-slot-upload-spinner" title="Uploading picture...">
+              <div class="slot-spinner"></div>
+            </div>
+          ` : `
+            <button type="button" class="prod-slot-delete-btn" onclick="removeProductImage(${i})" title="Remove image">&times;</button>
+          `}
         </div>
       `;
     } else {
@@ -590,6 +924,10 @@ window.triggerProductImageUpload = function(slotIndex) {
 };
 
 window.removeProductImage = function(index) {
+  const item = currentProductImages[index];
+  if (item && typeof item === 'object' && item.previewUrl) {
+    try { URL.revokeObjectURL(item.previewUrl); } catch (e) {}
+  }
   currentProductImages.splice(index, 1);
   renderProductImagesGrid();
 };
@@ -609,16 +947,27 @@ async function handleProductImageFilesUpload(e) {
     showToast(`Only ${availableSlots} more image(s) can be added (max 4).`, 'info');
   }
 
-  const formData = new FormData();
-  uploadFiles.forEach(file => {
-    formData.append('images', file);
-  });
+  // 1. Immediately create local instant preview items in the slots (Zero perceived delay)
+  const tempItems = uploadFiles.map(file => ({
+    isUploading: true,
+    previewUrl: URL.createObjectURL(file),
+    file
+  }));
+  currentProductImages.push(...tempItems);
+  renderProductImagesGrid();
 
   const uploadBtn = document.getElementById('prodUploadTriggerBtn');
   if (uploadBtn) uploadBtn.disabled = true;
 
   try {
-    showToast('Uploading picture(s)...', 'info');
+    // 2. Fast compress images client-side in parallel (~30ms)
+    const compressedFiles = await Promise.all(uploadFiles.map(f => fastCompressImage(f)));
+
+    const formData = new FormData();
+    compressedFiles.forEach(file => {
+      formData.append('images', file);
+    });
+
     const res = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
       headers: {
@@ -629,17 +978,34 @@ async function handleProductImageFilesUpload(e) {
     const data = await res.json();
     if (data.success) {
       const urls = data.urls || (data.imageUrl ? [data.imageUrl] : []);
-      urls.forEach(u => {
-        if (currentProductImages.length < 4) {
-          currentProductImages.push(u);
+      // Replace the temp items with final server URLs
+      tempItems.forEach((tempItem, idx) => {
+        try { URL.revokeObjectURL(tempItem.previewUrl); } catch (e) {}
+        const serverUrl = urls[idx] || urls[0];
+        const targetIndex = currentProductImages.indexOf(tempItem);
+        if (targetIndex !== -1 && serverUrl) {
+          currentProductImages[targetIndex] = serverUrl;
         }
       });
       renderProductImagesGrid();
-      showToast(`${urls.length} picture(s) uploaded successfully!`, 'success');
+      showToast(`${urls.length} picture(s) uploaded!`, 'success');
     } else {
+      // Revert temp items
+      tempItems.forEach(tempItem => {
+        try { URL.revokeObjectURL(tempItem.previewUrl); } catch (e) {}
+        const idx = currentProductImages.indexOf(tempItem);
+        if (idx !== -1) currentProductImages.splice(idx, 1);
+      });
+      renderProductImagesGrid();
       showToast(data.message || 'Image upload failed.', 'error');
     }
   } catch (err) {
+    tempItems.forEach(tempItem => {
+      try { URL.revokeObjectURL(tempItem.previewUrl); } catch (e) {}
+      const idx = currentProductImages.indexOf(tempItem);
+      if (idx !== -1) currentProductImages.splice(idx, 1);
+    });
+    renderProductImagesGrid();
     showToast('Error uploading images to server.', 'error');
   } finally {
     if (uploadBtn) uploadBtn.disabled = false;
@@ -980,16 +1346,6 @@ async function handleSaveProduct(e) {
     document.getElementById('prodFormName')?.focus();
     return;
   }
-  if (!brand) {
-    showToast('Please select a brand from the dropdown.', 'error');
-    const brandTrigger = document.querySelector('[data-target-id="prodFormBrand"] .modern-select-trigger');
-    if (brandTrigger) {
-      brandTrigger.focus();
-      brandTrigger.classList.add('is-invalid');
-      setTimeout(() => brandTrigger.classList.remove('is-invalid'), 2500);
-    }
-    return;
-  }
   if (!mainCatVal) {
     showToast('Please select a main category.', 'error');
     const catTrigger = document.querySelector('[data-target-id="prodFormMainCategory"] .modern-select-trigger');
@@ -1005,8 +1361,17 @@ async function handleSaveProduct(e) {
     return;
   }
 
-  // Set primary image
-  const primaryImage = currentProductImages.length > 0 ? currentProductImages[0] : '/prod_downlight_1791451418016.png';
+  if (currentProductImages.some(img => typeof img === 'object' && img.isUploading)) {
+    showToast('Please wait a moment for pictures to finish uploading.', 'info');
+    return;
+  }
+
+  // Set primary and all images
+  const cleanImages = currentProductImages
+    .map(img => (typeof img === 'string' ? img : (img.previewUrl || '')).trim())
+    .filter(Boolean);
+
+  const primaryImage = cleanImages.length > 0 ? cleanImages[0] : '/prod_downlight_1791451418016.png';
 
   const payload = {
     name,
@@ -1018,7 +1383,7 @@ async function handleSaveProduct(e) {
     warranty,
     wattage,
     model,
-    images: currentProductImages.length > 0 ? currentProductImages : [primaryImage],
+    images: cleanImages.length > 0 ? cleanImages : [primaryImage],
     image: primaryImage,
     description,
     is_featured,
@@ -1141,16 +1506,15 @@ function addModalSubcategory() {
   }
 
   if (!slug) slug = slugify(name);
-
-  // Check duplicate inside current modal list
-  if (modalSubcategories.some(s => s.slug.toLowerCase() === slug.toLowerCase())) {
-    showToast('A subcategory with this slug is already in the list.', 'error');
-    return;
+  let finalSlug = slug;
+  let counter = 1;
+  while (modalSubcategories.some(s => s.slug.toLowerCase() === finalSlug.toLowerCase())) {
+    finalSlug = `${slug}-${counter++}`;
   }
 
-  modalSubcategories.push({ name, slug });
+  modalSubcategories.push({ name, slug: finalSlug });
   nameInput.value = '';
-  slugInput.value = '';
+  if (slugInput) slugInput.value = '';
   renderModalSubcategories();
   nameInput.focus();
 }
@@ -1182,63 +1546,96 @@ async function loadCategories() {
         syncModernSelect(filterSelect);
       }
 
-      if (tbody) {
-        if (allCategories.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 36px 16px;">No categories created yet. Click "Add New Category" above to create one.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = allCategories.map(c => {
-          const subs = c.subcategories || [];
-
-          return `
-            <tr>
-              <td style="text-align: center; vertical-align: middle;">
-                <span class="cat-id-badge">#${c.id}</span>
-              </td>
-              <td style="vertical-align: middle;">
-                <div class="cat-title-cell">
-                  <span class="cat-name-text">${escapeHtml(c.name)}</span>
-                  ${c.description ? `<div class="cat-desc-text">${escapeHtml(c.description)}</div>` : ''}
-                </div>
-              </td>
-              <td style="vertical-align: middle;">
-                ${subs.length > 0 ? `
-                  <button type="button" class="subcat-pill-btn" onclick="openSubcategoriesPopup(${c.id})" title="Click to view and manage ${subs.length} subcategories">
-                    <span>${subs.length} Subcategor${subs.length === 1 ? 'y' : 'ies'}</span>
-                    <svg class="subcat-pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17l9.2-9.2M17 17V7.8H7.8"/></svg>
-                  </button>
-                ` : `
-                  <button type="button" class="subcat-pill-btn empty" onclick="openSubcategoriesPopup(${c.id})" title="Click to add subcategories to ${escapeHtml(c.name)}">
-                    <span>+ Add Subcategory</span>
-                  </button>
-                `}
-              </td>
-              <td style="vertical-align: middle;">
-                <span class="cat-product-count">${c.total_products || c.product_count || 0} items</span>
-              </td>
-              <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
-                <div class="cat-actions-cell">
-                  <button type="button" class="btn btn-sm btn-ghost cat-add-sub-btn" title="Manage subcategories for ${escapeHtml(c.name)}" onclick="openSubcategoriesPopup(${c.id})">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    <span>Subcategories</span>
-                  </button>
-                  <button type="button" class="btn-icon" title="Edit Category" onclick="openCategoryModal(${c.id})">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  </button>
-                  <button type="button" class="btn-icon delete" title="Delete Category" onclick="deleteCategory(${c.id}, '${escapeHtml(c.name)}')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
+      filterCategories(false);
     }
   } catch (err) {
     console.error('Error loading categories:', err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger" style="padding: 24px;">Failed to load categories.</td></tr>`;
+    renderPaginationFooter('categories', 0);
   }
+}
+
+function filterCategories(resetPage = true) {
+  if (resetPage && typeof paginationState !== 'undefined' && paginationState.categories) {
+    paginationState.categories.page = 1;
+  }
+  const search = (document.getElementById('categorySearchInput')?.value || '').trim().toLowerCase();
+  let filtered = allCategories;
+
+  if (search) {
+    filtered = allCategories.filter(c => {
+      const nameMatch = c.name && c.name.toLowerCase().includes(search);
+      const descMatch = c.description && c.description.toLowerCase().includes(search);
+      const subMatch = Array.isArray(c.subcategories) && c.subcategories.some(s => s.name && s.name.toLowerCase().includes(search));
+      const idMatch = String(c.id).includes(search);
+      return nameMatch || descMatch || subMatch || idMatch;
+    });
+  }
+
+  renderCategoriesTable(filtered);
+}
+
+function renderCategoriesTable(categoriesList) {
+  const tbody = document.getElementById('categoriesTableBody');
+  if (!tbody) return;
+
+  if (!categoriesList || categoriesList.length === 0) {
+    const search = document.getElementById('categorySearchInput')?.value.trim();
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 36px 16px;">${search ? `No categories matched "${escapeHtml(search)}".` : 'No categories created yet. Click "Add Category" above to create one.'}</td></tr>`;
+    renderPaginationFooter('categories', 0);
+    return;
+  }
+
+  const pageItems = paginateArray(categoriesList, 'categories');
+
+  tbody.innerHTML = pageItems.map(c => {
+    const subs = c.subcategories || [];
+
+    return `
+      <tr>
+        <td style="text-align: center; vertical-align: middle;">
+          <span class="cat-id-badge">#${c.id}</span>
+        </td>
+        <td style="vertical-align: middle;">
+          <div class="cat-title-cell">
+            <span class="cat-name-text">${escapeHtml(c.name)}</span>
+            ${c.description ? `<div class="cat-desc-text">${escapeHtml(c.description)}</div>` : ''}
+          </div>
+        </td>
+        <td style="vertical-align: middle;">
+          ${subs.length > 0 ? `
+            <button type="button" class="subcat-pill-btn" onclick="openSubcategoriesPopup(${c.id})" title="Click to view and manage ${subs.length} subcategories">
+              <span>${subs.length} Subcategor${subs.length === 1 ? 'y' : 'ies'}</span>
+              <svg class="subcat-pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17l9.2-9.2M17 17V7.8H7.8"/></svg>
+            </button>
+          ` : `
+            <button type="button" class="subcat-pill-btn empty" onclick="openSubcategoriesPopup(${c.id})" title="Click to add subcategories to ${escapeHtml(c.name)}">
+              <span>+ Add Subcategory</span>
+            </button>
+          `}
+        </td>
+        <td style="vertical-align: middle;">
+          <span class="cat-product-count">${c.total_products || c.product_count || 0} items</span>
+        </td>
+        <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
+          <div class="cat-actions-cell">
+            <button type="button" class="btn btn-sm btn-ghost cat-add-sub-btn" title="Manage subcategories for ${escapeHtml(c.name)}" onclick="openSubcategoriesPopup(${c.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Subcategories</span>
+            </button>
+            <button type="button" class="btn-icon" title="Edit Category" onclick="openCategoryModal(${c.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button type="button" class="btn-icon delete" title="Delete Category" onclick="deleteCategory(${c.id}, '${escapeHtml(c.name)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPaginationFooter('categories', categoriesList.length);
 }
 
 function openCategoryModal(categoryId = null) {
@@ -1286,7 +1683,8 @@ async function handleSaveCategory(e) {
   e.preventDefault();
   const id = document.getElementById('catFormId').value;
   const name = document.getElementById('catFormName').value.trim();
-  const slug = document.getElementById('catFormSlug').value.trim();
+  let slug = (document.getElementById('catFormSlug')?.value || '').trim();
+  if (!slug && name) slug = slugify(name);
   const description = document.getElementById('catFormDesc').value.trim();
 
   const payload = {
@@ -1372,7 +1770,8 @@ async function handleSaveSubCategory(e) {
   const subId = document.getElementById('singleSubCatId').value;
   const parentId = document.getElementById('singleSubCatParentId').value;
   const name = document.getElementById('singleSubCatName').value.trim();
-  const slug = document.getElementById('singleSubCatSlug').value.trim();
+  let slug = (document.getElementById('singleSubCatSlug')?.value || '').trim();
+  if (!slug && name) slug = slugify(name);
   const description = document.getElementById('singleSubCatDesc').value.trim();
 
   const payload = {
@@ -1618,14 +2017,16 @@ async function loadBrands() {
 
     if (data.success && Array.isArray(data.brands)) {
       allBrands = data.brands;
-      renderBrands(allBrands);
       updateBrandDatalist();
+      filterBrands(false);
     } else {
       tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 30px;">No brands found. Click "Add Brand" to create one.</td></tr>`;
+      renderPaginationFooter('brands', 0);
     }
   } catch (err) {
     console.error('Error loading brands:', err);
     tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 30px;">Failed to load brands from server.</td></tr>`;
+    renderPaginationFooter('brands', 0);
   }
 }
 
@@ -1636,17 +2037,20 @@ function updateBrandDatalist() {
   }
 }
 
-function filterBrands() {
-  const query = (document.getElementById('brandSearchInput')?.value || '').toLowerCase().trim();
-  if (!query) {
-    renderBrands(allBrands);
-    return;
+function filterBrands(resetPage = true) {
+  if (resetPage && typeof paginationState !== 'undefined' && paginationState.brands) {
+    paginationState.brands.page = 1;
   }
-  const filtered = allBrands.filter(b => 
-    (b.name && b.name.toLowerCase().includes(query)) ||
-    (b.slug && b.slug.toLowerCase().includes(query)) ||
-    (b.description && b.description.toLowerCase().includes(query))
-  );
+  const query = (document.getElementById('brandSearchInput')?.value || '').toLowerCase().trim();
+  let filtered = allBrands;
+  if (query) {
+    filtered = allBrands.filter(b => 
+      (b.name && b.name.toLowerCase().includes(query)) ||
+      (b.slug && b.slug.toLowerCase().includes(query)) ||
+      (b.description && b.description.toLowerCase().includes(query)) ||
+      (b.website && b.website.toLowerCase().includes(query))
+    );
+  }
   renderBrands(filtered);
 }
 
@@ -1663,10 +2067,13 @@ function renderBrands(brandsList) {
         </td>
       </tr>
     `;
+    renderPaginationFooter('brands', 0);
     return;
   }
 
-  tbody.innerHTML = brandsList.map(b => {
+  const pageItems = paginateArray(brandsList, 'brands');
+
+  tbody.innerHTML = pageItems.map(b => {
     const hasImage = b.image && b.image.trim();
     const websiteUrl = b.website && b.website.trim() ? b.website.trim() : null;
 
@@ -1725,6 +2132,8 @@ function renderBrands(brandsList) {
       </tr>
     `;
   }).join('');
+
+  renderPaginationFooter('brands', brandsList.length);
 }
 
 window.openBrandModal = function(brandId = null) {
@@ -1860,11 +2269,12 @@ window.handleBrandImageUpload = async function(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  const formData = new FormData();
-  formData.append('image', file);
-
   try {
     showToast('Uploading brand logo...', 'info');
+    const compressed = await fastCompressImage(file, 800, 0.9);
+    const formData = new FormData();
+    formData.append('image', compressed);
+
     const res = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${authToken}` },
@@ -1885,6 +2295,8 @@ window.handleBrandImageUpload = async function(event) {
 /* ==========================================================================
    TAB 4: ORDERS
    ========================================================================== */
+let allOrders = [];
+
 async function loadOrders() {
   const tbody = document.getElementById('ordersTableBody');
   try {
@@ -1893,50 +2305,101 @@ async function loadOrders() {
     });
     const data = await res.json();
     if (data.success) {
-      if (data.orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No orders found.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = data.orders.map(o => `
-        <tr>
-          <td>
-            <strong>${o.order_number}</strong>
-            ${o.order_source === 'WhatsApp' ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:4px; background:#dcfce7; color:#15803d;">WhatsApp</span></div>' : ''}
-          </td>
-          <td>
-            <div style="font-weight:600; color:var(--text-main);">${escapeHtml(o.customer_name)}</div>
-          </td>
-          <td>
-            <div>${escapeHtml(o.customer_email || '')}</div>
-            <div class="text-muted" style="font-size:12px;">📞 ${escapeHtml(o.customer_phone || '')}</div>
-            ${o.delivery_location ? `<div style="font-size:11.5px; color:#e6005c; margin-top:2px;">📍 ${escapeHtml(o.delivery_location)}</div>` : ''}
-            ${o.notes ? `<div style="font-size:11px; color:#6b7280; font-style:italic; margin-top:2px;">📝 ${escapeHtml(o.notes)}</div>` : ''}
-          </td>
-          <td>
-            <span style="font-size:12px; line-height: 1.4;">
-              ${o.items.map(it => `• <strong>${it.qty || it.quantity || 1}x</strong> ${escapeHtml(it.name)}`).join('<br>')}
-            </span>
-          </td>
-          <td><strong>AED ${Number(o.total_amount).toFixed(2)}</strong></td>
-          <td>
-            <select class="filter-select" style="padding:4px 8px; font-size:12px;" onchange="updateOrderStatus(${o.id}, this.value)">
-              <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
-              <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
-              <option value="Completed" ${o.status === 'Completed' ? 'selected' : ''}>Completed</option>
-              <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-            </select>
-          </td>
-          <td>${new Date(o.created_at).toLocaleDateString()}</td>
-          <td>
-            <span class="status-chip ${o.status.toLowerCase()}">${o.status}</span>
-          </td>
-        </tr>
-      `).join('');
+      allOrders = data.orders || [];
+      filterOrders(false);
+    } else {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">${escapeHtml(data.message || 'Failed to load orders.')}</td></tr>`;
+      renderPaginationFooter('orders', 0);
     }
   } catch (err) {
     console.error('Error loading orders:', err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger" style="padding: 24px;">Failed to load orders.</td></tr>`;
+    renderPaginationFooter('orders', 0);
   }
+}
+
+function filterOrders(resetPage = true) {
+  if (resetPage && typeof paginationState !== 'undefined' && paginationState.orders) {
+    paginationState.orders.page = 1;
+  }
+  const query = (document.getElementById('orderSearchInput')?.value || '').trim().toLowerCase();
+  const statusFilter = document.getElementById('orderStatusFilter')?.value || '';
+
+  let filtered = allOrders;
+  if (query || statusFilter) {
+    filtered = allOrders.filter(o => {
+      if (statusFilter && o.status !== statusFilter) return false;
+      if (query) {
+        const orderNum = (o.order_number || '').toLowerCase();
+        const customer = (o.customer_name || '').toLowerCase();
+        const email = (o.customer_email || '').toLowerCase();
+        const phone = (o.customer_phone || '').toLowerCase();
+        const loc = (o.delivery_location || '').toLowerCase();
+        const notes = (o.notes || '').toLowerCase();
+        const itemsMatch = Array.isArray(o.items) && o.items.some(it => (it.name || '').toLowerCase().includes(query));
+
+        if (!orderNum.includes(query) && !customer.includes(query) && !email.includes(query) && 
+            !phone.includes(query) && !loc.includes(query) && !notes.includes(query) && !itemsMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  renderOrdersTable(filtered);
+}
+
+function renderOrdersTable(ordersList) {
+  const tbody = document.getElementById('ordersTableBody');
+  if (!tbody) return;
+
+  if (!ordersList || ordersList.length === 0) {
+    const query = document.getElementById('orderSearchInput')?.value.trim();
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding: 32px;">${query ? `No orders matched "${escapeHtml(query)}".` : 'No orders found.'}</td></tr>`;
+    renderPaginationFooter('orders', 0);
+    return;
+  }
+
+  const pageItems = paginateArray(ordersList, 'orders');
+
+  tbody.innerHTML = pageItems.map(o => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(o.order_number)}</strong>
+        ${o.order_source === 'WhatsApp' ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:4px; background:#dcfce7; color:#15803d;">WhatsApp</span></div>' : ''}
+      </td>
+      <td>
+        <div style="font-weight:600; color:var(--text-main);">${escapeHtml(o.customer_name)}</div>
+      </td>
+      <td>
+        <div>${escapeHtml(o.customer_email || '')}</div>
+        <div class="text-muted" style="font-size:12px;">📞 ${escapeHtml(o.customer_phone || '')}</div>
+        ${o.delivery_location ? `<div style="font-size:11.5px; color:#e6005c; margin-top:2px;">📍 ${escapeHtml(o.delivery_location)}</div>` : ''}
+        ${o.notes ? `<div style="font-size:11px; color:#6b7280; font-style:italic; margin-top:2px;">📝 ${escapeHtml(o.notes)}</div>` : ''}
+      </td>
+      <td>
+        <span style="font-size:12px; line-height: 1.4;">
+          ${Array.isArray(o.items) ? o.items.map(it => `• <strong>${it.qty || it.quantity || 1}x</strong> ${escapeHtml(it.name)}`).join('<br>') : ''}
+        </span>
+      </td>
+      <td><strong>AED ${Number(o.total_amount).toFixed(2)}</strong></td>
+      <td>
+        <select class="filter-select" style="padding:4px 8px; font-size:12px;" onchange="updateOrderStatus(${o.id}, this.value)">
+          <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
+          <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+          <option value="Completed" ${o.status === 'Completed' ? 'selected' : ''}>Completed</option>
+          <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+        </select>
+      </td>
+      <td>${new Date(o.created_at).toLocaleDateString()}</td>
+      <td>
+        <span class="status-chip ${o.status.toLowerCase()}">${o.status}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  renderPaginationFooter('orders', ordersList.length);
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -1961,7 +2424,357 @@ async function updateOrderStatus(orderId, newStatus) {
 }
 
 /* ==========================================================================
-   TAB 5: INQUIRIES
+   TAB 5: REGISTERED USERS
+   ========================================================================== */
+let allUsers = [];
+let currentModalUser = null;
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  const summaryEl = document.getElementById('userCountSummary');
+  try {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allUsers = data.users || [];
+      if (summaryEl) {
+        summaryEl.innerText = `${allUsers.length} user${allUsers.length === 1 ? '' : 's'} registered`;
+      }
+      const badge = document.getElementById('usersCountBadge');
+      if (badge) {
+        badge.innerText = allUsers.length;
+        badge.style.display = allUsers.length > 0 ? 'inline-block' : 'none';
+      }
+      const statEl = document.getElementById('statTotalUsers');
+      if (statEl) statEl.innerText = allUsers.length;
+
+      filterUsers(false);
+    } else {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">${escapeHtml(data.message || 'Failed to load users.')}</td></tr>`;
+      renderPaginationFooter('users', 0);
+    }
+  } catch (err) {
+    console.error('Error loading registered users:', err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Error loading registered users: ${escapeHtml(err.message)}</td></tr>`;
+    renderPaginationFooter('users', 0);
+  }
+}
+
+function filterUsers(resetPage = true) {
+  if (resetPage && typeof paginationState !== 'undefined' && paginationState.users) {
+    paginationState.users.page = 1;
+  }
+  const query = (document.getElementById('userSearchInput')?.value || '').trim().toLowerCase();
+  const authFilter = document.getElementById('userAuthFilter')?.value || '';
+  const sortFilter = document.getElementById('userSortFilter')?.value || 'newest';
+
+  let filtered = allUsers.filter(u => {
+    // Search query
+    if (query) {
+      const name = (u.name || '').toLowerCase();
+      const username = (u.username || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      const phone = (u.phone || '').toLowerCase();
+      if (!name.includes(query) && !username.includes(query) && !email.includes(query) && !phone.includes(query)) {
+        return false;
+      }
+    }
+    // Auth method filter
+    if (authFilter) {
+      if (u.auth_provider !== authFilter) return false;
+    }
+    return true;
+  });
+
+  // Sorting
+  if (sortFilter === 'newest') {
+    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  } else if (sortFilter === 'oldest') {
+    filtered.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  } else if (sortFilter === 'name') {
+    filtered.sort((a, b) => (a.name || a.username || '').localeCompare(b.name || b.username || ''));
+  } else if (sortFilter === 'orders') {
+    filtered.sort((a, b) => (b.order_count || 0) - (a.order_count || 0));
+  } else if (sortFilter === 'spend') {
+    filtered.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+  }
+
+  renderUsersTable(filtered);
+}
+
+function renderUsersTable(users) {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding: 26px;">No registered users match your criteria.</td></tr>`;
+    renderPaginationFooter('users', 0);
+    return;
+  }
+
+  const pageItems = paginateArray(users, 'users');
+
+  tbody.innerHTML = pageItems.map(u => {
+    const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
+    const avatarHtml = u.avatar 
+      ? `<div class="user-avatar-circle"><img src="${escapeHtml(u.avatar)}" alt="${escapeHtml(u.name || u.username)}" onerror="this.parentElement.innerText='${initial}'" /></div>`
+      : `<div class="user-avatar-circle">${initial}</div>`;
+
+    const authBadge = u.auth_provider === 'google'
+      ? `<span class="auth-method-chip google">
+          <svg viewBox="0 0 24 24" width="13" height="13"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          <span>Google</span>
+        </span>`
+      : `<span class="auth-method-chip email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Email & Pass</span>
+        </span>`;
+
+    const formattedDate = u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+    const timeAgo = formatTimeAgo(u.created_at);
+
+    return `
+      <tr>
+        <td>
+          <div class="user-avatar-cell">
+            ${avatarHtml}
+            <div>
+              <div class="user-name-title">${escapeHtml(u.name || u.username)}</div>
+              <span class="user-role-badge">${escapeHtml(u.role || 'customer')}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="user-handle-sub">@${escapeHtml(u.username)}</span>
+        </td>
+        <td>
+          <a href="mailto:${escapeHtml(u.email)}" style="color: var(--brand); font-weight: 500; text-decoration: none;">
+            ${escapeHtml(u.email)}
+          </a>
+        </td>
+        <td>
+          <span style="font-size: 12.5px; color: ${u.phone ? 'var(--text-body)' : 'var(--text-muted)'};">
+            ${escapeHtml(u.phone || '—')}
+          </span>
+        </td>
+        <td>
+          ${authBadge}
+        </td>
+        <td>
+          <div style="font-weight: 600;">${u.order_count} order${u.order_count === 1 ? '' : 's'}</div>
+          <div class="text-muted" style="font-size: 11.5px;">AED ${Number(u.total_spent || 0).toFixed(2)}</div>
+        </td>
+        <td>
+          <div>${formattedDate}</div>
+          <div class="text-muted" style="font-size: 11px;">${timeAgo}</div>
+        </td>
+        <td>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn btn-sm btn-outline" onclick="viewUserDetails(${u.id})">Details</button>
+            <button class="btn-icon delete" title="Delete User" onclick="deleteUser(${u.id})">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPaginationFooter('users', users.length);
+}
+
+function formatTimeAgo(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  if (isNaN(diffMs)) return '';
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+async function viewUserDetails(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (!data.success || !data.user) {
+      showToast('User not found or unable to fetch details.', 'error');
+      return;
+    }
+
+    const u = data.user;
+    currentModalUser = u;
+
+    // Header
+    const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
+    const avatarEl = document.getElementById('uModalAvatarCircle');
+    if (avatarEl) {
+      if (u.avatar) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(u.avatar)}" alt="" onerror="this.parentElement.innerText='${initial}'" />`;
+      } else {
+        avatarEl.innerText = initial;
+      }
+    }
+    document.getElementById('uModalName').innerText = u.name || u.username || 'Customer';
+    document.getElementById('uModalUsername').innerText = `@${u.username}`;
+    document.getElementById('uModalRole').innerText = u.role || 'customer';
+
+    // Summary banner
+    const provEl = document.getElementById('uModalProvider');
+    if (provEl) {
+      if (u.auth_provider === 'google') {
+        provEl.innerHTML = `
+          <svg viewBox="0 0 24 24" width="15" height="15"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          <span>Google OAuth</span>
+        `;
+      } else {
+        provEl.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Email & Password</span>
+        `;
+      }
+    }
+    document.getElementById('uModalOrdersCount').innerText = `${u.order_count || 0} order${u.order_count === 1 ? '' : 's'}`;
+    document.getElementById('uModalTotalSpent').innerText = `AED ${Number(u.total_spent || 0).toFixed(2)}`;
+
+    // Details Grid
+    document.getElementById('uModalId').innerText = `#USR-${u.id}`;
+    document.getElementById('uModalSecurityStatus').innerText = u.auth_provider === 'google' 
+      ? 'Verified Google Account' 
+      : 'Password Hash Encrypted';
+    document.getElementById('uModalEmail').innerText = u.email || 'None';
+    document.getElementById('uModalPhone').innerText = u.phone || 'Not provided';
+    document.getElementById('uModalCreatedAt').innerText = u.created_at ? new Date(u.created_at).toLocaleString() : 'N/A';
+    document.getElementById('uModalGoogleId').innerText = u.google_id || 'None (Native account)';
+
+    // Orders table
+    const ordersTbody = document.getElementById('uModalOrdersTable');
+    const ordersBadge = document.getElementById('uModalOrdersCountBadge');
+    if (ordersBadge) ordersBadge.innerText = `${u.orders?.length || 0} total`;
+
+    if (ordersTbody) {
+      if (!u.orders || u.orders.length === 0) {
+        ordersTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted" style="padding: 14px;">No procurement orders placed yet.</td></tr>`;
+      } else {
+        ordersTbody.innerHTML = u.orders.map(o => `
+          <tr>
+            <td style="padding: 8px 12px;"><strong>${escapeHtml(o.order_number)}</strong></td>
+            <td style="padding: 8px 12px;">${o.created_at ? new Date(o.created_at).toLocaleDateString() : 'N/A'}</td>
+            <td style="padding: 8px 12px;"><strong>AED ${Number(o.total_amount || 0).toFixed(2)}</strong></td>
+            <td style="padding: 8px 12px;"><span class="status-chip ${(o.status || 'pending').toLowerCase()}">${escapeHtml(o.status || 'Pending')}</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // Actions
+    const mailtoBtn = document.getElementById('uModalMailtoBtn');
+    if (mailtoBtn) {
+      mailtoBtn.href = `mailto:${encodeURIComponent(u.email || '')}?subject=Superlight%20Support`;
+    }
+
+    const delBtn = document.getElementById('uModalDeleteBtn');
+    if (delBtn) {
+      delBtn.onclick = () => deleteUser(u.id);
+    }
+
+    document.getElementById('userDetailsModal').style.display = 'flex';
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+    showToast('Failed to load user details.', 'error');
+  }
+}
+
+function closeUserDetailsModal() {
+  document.getElementById('userDetailsModal').style.display = 'none';
+  currentModalUser = null;
+}
+
+function copyUserEmail() {
+  if (currentModalUser && currentModalUser.email) {
+    navigator.clipboard.writeText(currentModalUser.email).then(() => {
+      showToast('Email address copied to clipboard!', 'success');
+    }).catch(() => {
+      showToast('Could not copy email.', 'error');
+    });
+  }
+}
+
+async function deleteUser(userId) {
+  const user = allUsers.find(u => u.id === userId) || currentModalUser;
+  const username = user ? user.username : userId;
+
+  const confirmed = await showDeleteConfirm({
+    title: 'Delete User Account',
+    message: `Are you sure you want to permanently delete user account @${username}? This action cannot be undone.`,
+    confirmText: 'Delete User'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'User deleted successfully.', 'success');
+      closeUserDetailsModal();
+      loadUsers();
+      loadDashboardStats();
+    } else {
+      showToast(data.message || 'Failed to delete user.', 'error');
+    }
+  } catch (err) {
+    showToast('Error deleting user account.', 'error');
+  }
+}
+
+function exportUsersCSV() {
+  if (!allUsers || allUsers.length === 0) {
+    showToast('No users available to export.', 'info');
+    return;
+  }
+
+  const headers = ['User ID', 'Username', 'Name', 'Email', 'Phone', 'Role', 'Sign-in Method', 'Google ID', 'Orders Count', 'Total Spent (AED)', 'Registered Date'];
+  const rows = allUsers.map(u => [
+    u.id,
+    `"${(u.username || '').replace(/"/g, '""')}"`,
+    `"${(u.name || '').replace(/"/g, '""')}"`,
+    `"${(u.email || '').replace(/"/g, '""')}"`,
+    `"${(u.phone || '').replace(/"/g, '""')}"`,
+    `"${(u.role || 'customer').replace(/"/g, '""')}"`,
+    u.auth_provider === 'google' ? 'Google OAuth' : 'Email & Password',
+    `"${(u.google_id || '').replace(/"/g, '""')}"`,
+    u.order_count || 0,
+    Number(u.total_spent || 0).toFixed(2),
+    u.created_at ? new Date(u.created_at).toISOString() : ''
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `superlight_registered_users_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast('Users exported to CSV successfully.', 'success');
+}
+
+/* ==========================================================================
+   TAB 6: INQUIRIES
    ========================================================================== */
 let allInquiries = [];
 
@@ -1973,35 +2786,83 @@ async function loadInquiries() {
     });
     const data = await res.json();
     if (data.success) {
-      allInquiries = data.inquiries;
-      if (allInquiries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No customer inquiries found.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = allInquiries.map(inq => `
-        <tr>
-          <td>#${inq.id}</td>
-          <td><strong>${escapeHtml(inq.name)}</strong></td>
-          <td>
-            <div>${escapeHtml(inq.email)}</div>
-            <div class="text-muted" style="font-size:11px;">${escapeHtml(inq.phone || '')}</div>
-          </td>
-          <td><strong>${escapeHtml(inq.subject || 'General Inquiry')}</strong></td>
-          <td><span class="status-chip ${inq.status.toLowerCase()}">${inq.status}</span></td>
-          <td>${new Date(inq.created_at).toLocaleDateString()}</td>
-          <td>
-            <button class="btn btn-sm btn-outline" onclick="viewInquiry(${inq.id})">Read</button>
-            <button class="btn-icon delete" title="Delete" onclick="deleteInquiry(${inq.id})">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      allInquiries = data.inquiries || [];
+      filterInquiries(false);
+    } else {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">${escapeHtml(data.message || 'Failed to load inquiries.')}</td></tr>`;
+      renderPaginationFooter('inquiries', 0);
     }
   } catch (err) {
     console.error('Error loading inquiries:', err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 24px;">Failed to load inquiries.</td></tr>`;
+    renderPaginationFooter('inquiries', 0);
   }
+}
+
+function filterInquiries(resetPage = true) {
+  if (resetPage && typeof paginationState !== 'undefined' && paginationState.inquiries) {
+    paginationState.inquiries.page = 1;
+  }
+  const query = (document.getElementById('inquirySearchInput')?.value || '').trim().toLowerCase();
+  const statusFilter = document.getElementById('inquiryStatusFilter')?.value || '';
+
+  let filtered = allInquiries;
+  if (query || statusFilter) {
+    filtered = allInquiries.filter(inq => {
+      if (statusFilter && inq.status !== statusFilter) return false;
+      if (query) {
+        const idStr = String(inq.id || '');
+        const name = (inq.name || '').toLowerCase();
+        const email = (inq.email || '').toLowerCase();
+        const phone = (inq.phone || '').toLowerCase();
+        const subject = (inq.subject || '').toLowerCase();
+        const msg = (inq.message || '').toLowerCase();
+        if (!idStr.includes(query) && !name.includes(query) && !email.includes(query) && 
+            !phone.includes(query) && !subject.includes(query) && !msg.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  renderInquiriesTable(filtered);
+}
+
+function renderInquiriesTable(inquiriesList) {
+  const tbody = document.getElementById('inquiriesTableBody');
+  if (!tbody) return;
+
+  if (!inquiriesList || inquiriesList.length === 0) {
+    const query = document.getElementById('inquirySearchInput')?.value.trim();
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 32px;">${query ? `No inquiries matched "${escapeHtml(query)}".` : 'No customer inquiries found.'}</td></tr>`;
+    renderPaginationFooter('inquiries', 0);
+    return;
+  }
+
+  const pageItems = paginateArray(inquiriesList, 'inquiries');
+
+  tbody.innerHTML = pageItems.map(inq => `
+    <tr>
+      <td>#${inq.id}</td>
+      <td><strong>${escapeHtml(inq.name)}</strong></td>
+      <td>
+        <div>${escapeHtml(inq.email)}</div>
+        <div class="text-muted" style="font-size:11px;">${escapeHtml(inq.phone || '')}</div>
+      </td>
+      <td><strong>${escapeHtml(inq.subject || 'General Inquiry')}</strong></td>
+      <td><span class="status-chip ${inq.status.toLowerCase()}">${inq.status}</span></td>
+      <td>${new Date(inq.created_at).toLocaleDateString()}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="viewInquiry(${inq.id})">Read</button>
+        <button class="btn-icon delete" title="Delete" onclick="deleteInquiry(${inq.id})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  renderPaginationFooter('inquiries', inquiriesList.length);
 }
 
 function viewInquiry(inquiryId) {
