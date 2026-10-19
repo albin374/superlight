@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, ShoppingCart, ArrowRight, Plus, Minus } from 'lucide-react';
 import './FeaturedProducts.css';
+import './BestSellers.css';
 import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -191,9 +192,9 @@ const FeaturedProducts = ({ onProductClick }) => {
             const isFavorited = isInWishlist(product.id);
 
             return (
-              <div key={product.id} className="product-card" onClick={() => onProductClick(product)} style={{cursor: 'pointer'}}>
+              <div key={product.id} className="bs-product-card product-card" onClick={() => onProductClick(product)} style={{cursor: 'pointer'}}>
                 <button 
-                  className="heart-btn" 
+                  className="bs-heart-btn heart-btn" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleWishlist(product);
@@ -208,18 +209,18 @@ const FeaturedProducts = ({ onProductClick }) => {
                   />
                 </button>
                 
-                <div className="product-image-wrapper">
-                  <img src={product.image} alt={product.name} className="product-image" />
+                <div className="bs-product-image-wrapper product-image-wrapper">
+                  <img src={product.image} alt={product.name} className="bs-product-image product-image" />
                 </div>
                 
-                <div className="product-details">
-                  <h3 className="product-name">{product.name}</h3>
-                  <div className="product-price-row">
-                    <p className="product-price">{product.price}</p>
-                    <div className="product-qty-selector" onClick={(e) => e.stopPropagation()}>
+                <div className="bs-product-details product-details">
+                  <h3 className="bs-product-name product-name">{product.name}</h3>
+                  <div className="bs-product-price-row product-price-row">
+                    <p className="bs-product-price product-price">{product.price}</p>
+                    <div className="bs-product-qty-selector product-qty-selector" onClick={(e) => e.stopPropagation()}>
                       <button 
                         type="button" 
-                        className="qty-btn minus" 
+                        className="bs-qty-btn qty-btn minus" 
                         onClick={(e) => updateQty(e, product.id, -1)}
                         disabled={getQty(product.id) <= 1}
                         title="Decrease quantity"
@@ -227,10 +228,10 @@ const FeaturedProducts = ({ onProductClick }) => {
                       >
                         <Minus size={13} />
                       </button>
-                      <span className="qty-value">{getQty(product.id)}</span>
+                      <span className="bs-qty-value qty-value">{getQty(product.id)}</span>
                       <button 
                         type="button" 
-                        className="qty-btn plus" 
+                        className="bs-qty-btn plus" 
                         onClick={(e) => updateQty(e, product.id, 1)}
                         title="Increase quantity"
                         aria-label="Increase quantity"
@@ -240,7 +241,7 @@ const FeaturedProducts = ({ onProductClick }) => {
                     </div>
                   </div>
                   <button 
-                    className="add-to-cart-btn" 
+                    className="bs-add-to-cart-btn add-to-cart-btn" 
                     onClick={(e) => {
                       e.stopPropagation();
                       addToCart(product, getQty(product.id));
@@ -251,7 +252,7 @@ const FeaturedProducts = ({ onProductClick }) => {
                   </button>
                   <button 
                     type="button" 
-                    className="fp-whatsapp-btn" 
+                    className="bs-whatsapp-btn fp-whatsapp-btn" 
                     onClick={(e) => { 
                       e.stopPropagation(); 
                       requireAuth(() => setWaProduct({ ...product, quantity: getQty(product.id) }), {

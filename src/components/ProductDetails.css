@@ -258,7 +258,7 @@
   height: 42px;
 }
 
-.qty-btn {
+.quantity-selector .qty-btn {
   width: 36px;
   height: 100%;
   background: none;
@@ -268,7 +268,7 @@
   cursor: pointer;
 }
 
-.qty-input {
+.quantity-selector .qty-input {
   width: 44px;
   height: 100%;
   border: none;
@@ -627,11 +627,11 @@
     flex-shrink: 0;
   }
 
-  .qty-btn {
+  .quantity-selector .qty-btn {
     width: 34px;
   }
 
-  .qty-input {
+  .quantity-selector .qty-input {
     width: 38px;
     font-size: 14.5px;
   }

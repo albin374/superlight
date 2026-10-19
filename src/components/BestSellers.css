@@ -317,14 +317,13 @@
   }
 
   .bs-product-price {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 800;
     white-space: nowrap;
     margin: 0;
     line-height: 1.2;
     color: #E5007D;
-    flex-shrink: 1;
-    min-width: 0;
+    flex-shrink: 0;
   }
 
   .bs-product-qty-selector {
@@ -339,8 +338,8 @@
   }
 
   .bs-qty-btn {
-    width: 20px;
-    height: 20px;
+    width: 20px !important;
+    height: 20px !important;
     border-radius: 3px;
     padding: 0;
     display: inline-flex;
