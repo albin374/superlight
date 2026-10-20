@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import './ProductDetails.css';
 import { 
@@ -31,7 +31,7 @@ import {
   slugify
 } from '../utils/productUrl';
 
-const ProductDetails = ({ goHome, product: propProduct }) => {
+const ProductDetails = ({ goHome, product: propProduct, onProductClick }) => {
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,61 +40,46 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
   const urlSubcategorySlug = params.subcategorySlug;
   const urlProductSlug = params.productSlug;
 
-  // Resolve initial active product from prop, location state, or static catalog
+  const [dbProducts, setDbProducts] = useState([]);
+
+  // Resolve initial active product prioritizing navigation state (explicitly clicked item)
   const [activeProduct, setActiveProduct] = useState(() => {
-    if (propProduct) return propProduct;
     if (location.state?.product) return location.state.product;
     if (urlProductSlug) {
       const match = findProductInCatalog(STATIC_CATALOG, urlProductSlug, urlCategorySlug);
       if (match) return match;
     }
-    return null;
+    return propProduct || null;
   });
 
   // Sync / resolve product on URL change or navigation
   useEffect(() => {
-    // 1. Initial quick seed from prop or location state
-    const seed = propProduct || location.state?.product;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 1. Initial quick seed: prioritize location.state?.product (the item user just clicked)
+    const seed = location.state?.product || (
+      urlProductSlug ? findProductInCatalog(STATIC_CATALOG, urlProductSlug, urlCategorySlug) : null
+    ) || propProduct;
+
     if (seed) {
       const initialImages = Array.isArray(seed.images) && seed.images.length > 0
         ? seed.images
-        : (seed.image ? [seed.image] : []);
+        : (seed.image ? [seed.image] : ['/prod_downlight_1791451418016.png']);
 
-      setActiveProduct(prev => ({
-        ...prev,
-        ...seed,
-        images: initialImages.length > 0 ? initialImages : prev?.images
-      }));
+      setActiveProduct(seed);
+      setActiveImage(initialImages[0]);
     }
 
-    // 2. Immediate check in STATIC_CATALOG for instant sync resolution
-    if (urlProductSlug) {
-      const staticMatch = findProductInCatalog(STATIC_CATALOG, urlProductSlug, urlCategorySlug);
-      if (staticMatch) {
-        const staticImages = Array.isArray(staticMatch.images) && staticMatch.images.length > 0
-          ? staticMatch.images
-          : (staticMatch.image ? [staticMatch.image] : []);
-
-        setActiveProduct(prev => ({
-          ...prev,
-          ...staticMatch,
-          images: staticImages.length > 0 ? staticImages : prev?.images
-        }));
-
-        if (staticImages.length > 0) {
-          setActiveImage(staticImages[0]);
-        }
-      }
-    }
-
-    // 3. Query live database products to ensure complete product details & actual images
+    // 2. Query live database products to ensure complete product details & actual images
     let isMounted = true;
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         if (!isMounted) return;
         if (data && data.success && Array.isArray(data.products)) {
-          const targetProd = propProduct || location.state?.product;
+          setDbProducts(data.products);
+
+          const targetProd = location.state?.product || seed;
           const targetId = targetProd?.realId || targetProd?.id;
           const cleanId = String(targetId || '').replace(/^db-/, '');
 
@@ -129,7 +114,7 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
       });
 
     return () => { isMounted = false; };
-  }, [propProduct, location.state, urlProductSlug, urlCategorySlug]);
+  }, [location.pathname, location.search, location.state, urlProductSlug, urlCategorySlug, propProduct]);
 
   const pName = activeProduct?.name || (urlProductSlug 
     ? urlProductSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) 
@@ -205,11 +190,86 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
     setActiveImage(thumbnails[nextIndex]);
   };
 
+  // Live database related products (strictly from DB, never static dummy data)
+  const relatedProducts = useMemo(() => {
+    if (!Array.isArray(dbProducts) || dbProducts.length === 0) {
+      return [];
+    }
+
+    const currentId = activeProduct?.realId || activeProduct?.id;
+    const currentName = (activeProduct?.name || '').toLowerCase().trim();
+    const currentCatSlug = (activeProduct?.category_slug || resolvedCategorySlug || '').toLowerCase().trim();
+    const currentSubSlug = (activeProduct?.subcategory_slug || resolvedSubcategorySlug || '').toLowerCase().trim();
+    const currentBrand = (brand || activeProduct?.brand || '').toLowerCase().trim();
+
+    // 1. Exclude the current active product
+    const candidatePool = dbProducts.filter(p => {
+      if (currentId && (String(p.id) === String(currentId) || String(p.realId) === String(currentId))) return false;
+      if (currentName && p.name && p.name.toLowerCase().trim() === currentName) return false;
+      return true;
+    });
+
+    if (candidatePool.length === 0) return [];
+
+    // 2. Score candidates by relevance to current product
+    const scored = candidatePool.map(p => {
+      let score = 0;
+      const pCatSlug = (p.category_slug || '').toLowerCase().trim();
+      const pSubSlug = (p.subcategory_slug || '').toLowerCase().trim();
+      const pBrand = (p.brand || '').toLowerCase().trim();
+
+      if (currentSubSlug && pSubSlug && pSubSlug === currentSubSlug) {
+        score += 10;
+      }
+      if (currentCatSlug && pCatSlug && pCatSlug === currentCatSlug) {
+        score += 5;
+      }
+      if (currentBrand && pBrand && pBrand === currentBrand) {
+        score += 3;
+      }
+
+      return { product: p, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored.slice(0, 4).map(item => {
+      const p = item.product;
+      const formattedPrice = typeof p.price === 'number'
+        ? `AED ${p.price.toFixed(2)}`
+        : (p.price ? (String(p.price).startsWith('AED') ? p.price : `AED ${p.price}`) : 'AED 0.00');
+
+      const fullImages = (Array.isArray(p.images) && p.images.length > 0)
+        ? p.images
+        : (p.image ? [p.image] : ['/prod_downlight_1791451418016.png']);
+
+      return {
+        ...p,
+        realId: p.id,
+        price: formattedPrice,
+        image: fullImages[0],
+        images: fullImages,
+        brand: p.brand || 'Super Light',
+        name: p.name
+      };
+    });
+  }, [dbProducts, activeProduct, resolvedCategorySlug, resolvedSubcategorySlug, brand]);
+
   const handleRelatedClick = (p) => {
-    const fullItem = STATIC_CATALOG.find(c => c.id === p.id) || p;
-    const targetUrl = getProductUrl(fullItem);
-    setActiveProduct(fullItem);
-    navigate(targetUrl, { state: { product: fullItem } });
+    setActiveProduct(p);
+    const pImages = (Array.isArray(p.images) && p.images.length > 0)
+      ? p.images
+      : (p.image ? [p.image] : ['/prod_downlight_1791451418016.png']);
+    setActiveImage(pImages[0]);
+    setQuantity(1);
+
+    if (onProductClick) {
+      onProductClick(p);
+    } else {
+      const targetUrl = getProductUrl(p);
+      navigate(targetUrl, { state: { product: p } });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -402,53 +462,135 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
         </div>
       </div>
 
-      {/* Related Products */}
-      <div className="related-products">
-        <h2>Related Products <a href="#" className="view-all">View All <ArrowRight size={14} /></a></h2>
-        <div className="products-grid">
-          {[
-            { id: 1, name: 'Ducab Cable', img: '/prod_cable_1791451428788.png', price: 'AED 320.00' },
-            { id: 2, name: 'Legrand Switch', img: '/prod_socket_1791451439423.png', price: 'AED 18.00' },
-            { id: 3, name: 'Schneider MCB', img: '/prod_mcb_1791451449276.png', price: 'AED 25.00' },
-            { id: 4, name: 'LED Flood Light', img: '/prod_floodlight_1791451459906.png', price: 'AED 120.00' }
-          ].map(p => (
-            <div 
-              key={p.id} 
-              onClick={() => handleRelatedClick(p)}
-              style={{border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', position: 'relative', cursor: 'pointer'}}
-            >
-              <button
-                type="button"
+      {/* Related Products - only display live products from database */}
+      {relatedProducts.length > 0 && (
+        <div className="related-products">
+          <h2>
+            Related Products 
+            {resolvedCategorySlug && (
+              <a 
+                href={`/${resolvedCategorySlug}`} 
+                className="view-all"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  toggleWishlist(p);
+                  e.preventDefault();
+                  navigate(`/${resolvedCategorySlug}`);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                style={{position: 'absolute', right: '16px', top: '16px', background: 'none', border: 'none', cursor: 'pointer', padding: 0}}
-                aria-label="Add to Wishlist"
               >
-                <Heart size={20} color={isInWishlist(p.id) ? '#e6005c' : '#9ca3af'} fill={isInWishlist(p.id) ? '#e6005c' : 'none'} />
-              </button>
-              <img src={p.img} alt={p.name} style={{width: '100%', height: '200px', objectFit: 'contain', marginBottom: '16px'}} />
-              <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>Brand</div>
-              <div style={{fontWeight: '600', color: '#1b253c', marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase'}}>{(p.name || '').toUpperCase()}</div>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div style={{color: '#e6005c', fontWeight: '700'}}>{p.price}</div>
-                <button 
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(p, 1);
+                View All <ArrowRight size={14} />
+              </a>
+            )}
+          </h2>
+          <div className="products-grid">
+            {relatedProducts.map(p => {
+              const isFavorited = isInWishlist(p.id);
+              return (
+                <div 
+                  key={p.id} 
+                  onClick={() => handleRelatedClick(p)}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    background: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.2s ease'
                   }}
-                  style={{width: '32px', height: '32px', border: '1px solid #e6005c', background: 'transparent', color: '#e6005c', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}
-                  aria-label="Add to cart"
                 >
-                  <ShoppingCart size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWishlist(p);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '16px',
+                      top: '16px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      zIndex: 2
+                    }}
+                    aria-label="Add to Wishlist"
+                  >
+                    <Heart size={20} color={isFavorited ? '#e6005c' : '#9ca3af'} fill={isFavorited ? '#e6005c' : 'none'} />
+                  </button>
+                  <div style={{
+                    width: '100%',
+                    height: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '16px',
+                    overflow: 'hidden'
+                  }}>
+                    <img 
+                      src={p.image} 
+                      alt={p.name} 
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                      onError={(e) => { e.target.onerror = null; e.target.src = '/prod_downlight_1791451418016.png'; }}
+                    />
+                  </div>
+                  {p.brand && (
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#6b7280',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {(p.brand || '').toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{
+                    fontWeight: '600',
+                    color: '#1b253c',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    lineHeight: '1.35',
+                    flex: 1
+                  }}>
+                    {(p.name || '').toUpperCase()}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                    <div style={{ color: '#e6005c', fontWeight: '700', fontSize: '15px' }}>{p.price}</div>
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(p, 1);
+                      }}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '1px solid #e6005c',
+                        background: 'transparent',
+                        color: '#e6005c',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      aria-label="Add to cart"
+                    >
+                      <ShoppingCart size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <WhatsAppOrderModal 
         isOpen={isWaModalOpen} 

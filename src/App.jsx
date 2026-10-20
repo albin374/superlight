@@ -285,7 +285,7 @@ function AppContent() {
           <AcSpareParts onProductClick={goToDetails} />
         } />
         <Route path="/product-details" element={
-          <ProductDetails goHome={goHome} product={selectedProduct} />
+          <ProductDetails goHome={goHome} product={selectedProduct} onProductClick={goToDetails} />
         } />
         <Route path="/faqs" element={
           <Faq />
@@ -338,8 +338,8 @@ function AppContent() {
         <Route path="/search" element={<SearchResultsPage onProductClick={goToDetails} />} />
 
         {/* Semantic Hierarchical Product Details Routes */}
-        <Route path="/:categorySlug/:subcategorySlug/:productSlug" element={<ProductDetails goHome={goHome} product={selectedProduct} />} />
-        <Route path="/:categorySlug/:productSlug" element={<ProductDetails goHome={goHome} product={selectedProduct} />} />
+        <Route path="/:categorySlug/:subcategorySlug/:productSlug" element={<ProductDetails goHome={goHome} product={selectedProduct} onProductClick={goToDetails} />} />
+        <Route path="/:categorySlug/:productSlug" element={<ProductDetails goHome={goHome} product={selectedProduct} onProductClick={goToDetails} />} />
       </Routes>
       <Footer 
         goToCompanyOverview={goToCompanyOverview} 
