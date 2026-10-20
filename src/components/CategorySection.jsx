@@ -5,55 +5,84 @@ import './CategorySection.css';
 
 const DEFAULT_CATEGORIES = [
   { 
-    id: 1, 
+    id: 5, 
     name: 'Wires & Cables', 
     image: '/Red Insulated Cable Coil with Exposed Copper Strands.png',
     path: '/wires-cables',
     slug: 'wires-cables'
   },
   { 
-    id: 2, 
+    id: 8, 
     name: 'LED Lighting & Special Lamp', 
     image: '/lights.png',
     path: '/led-lighting-special-lamp',
     slug: 'led-lighting-special-lamp'
   },
   { 
-    id: 3, 
+    id: 10, 
     name: 'Switches, Sockets & Electrical Accessories', 
     image: '/switch.png',
     path: '/switches-sockets-electrical-accessories',
     slug: 'switches-sockets-electrical-accessories'
   },
   { 
-    id: 4, 
+    id: 12, 
     name: 'Switchgear & Control Panel Products', 
     image: '/brakers .png',
     path: '/switchgear-control-panel-products',
     slug: 'switchgear-control-panel-products'
   },
   { 
-    id: 5, 
+    id: 14, 
     name: 'Building Materials', 
     image: '/painting.png',
     path: '/building-materials',
     slug: 'building-materials'
   },
   { 
-    id: 6, 
+    id: 16, 
     name: 'Safety Products', 
     image: '/safety.png',
     path: '/safety-products',
     slug: 'safety-products'
   },
   { 
-    id: 7, 
-    name: 'AC Spair Parts', 
+    id: 18, 
+    name: 'AC Spare Parts', 
     image: '/ac.png',
     path: '/ac-spare-parts',
     slug: 'ac-spare-parts'
   }
 ];
+
+const normalizeCategoryKey = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/spair/g, 'spare')
+    .replace(/[^a-z0-9]/g, '');
+};
+
+const isSameCategory = (catA, catB) => {
+  if (!catA || !catB) return false;
+  // If either has ID and they match
+  if (catA.id && catB.id && Number(catA.id) === Number(catB.id)) return true;
+
+  // Special match for AC Spare Parts (ID 18 or 7 or slug/name variation)
+  const isAcA = (Number(catA.id) === 18 || Number(catA.id) === 7 || normalizeCategoryKey(catA.slug) === 'acspareparts' || normalizeCategoryKey(catA.name).includes('acspare'));
+  const isAcB = (Number(catB.id) === 18 || Number(catB.id) === 7 || normalizeCategoryKey(catB.slug) === 'acspareparts' || normalizeCategoryKey(catB.name).includes('acspare'));
+  if (isAcA && isAcB) return true;
+
+  const keySlugA = normalizeCategoryKey(catA.slug);
+  const keySlugB = normalizeCategoryKey(catB.slug);
+  if (keySlugA && keySlugB && keySlugA === keySlugB) return true;
+
+  const keyNameA = normalizeCategoryKey(catA.name);
+  const keyNameB = normalizeCategoryKey(catB.name);
+  if (keyNameA && keyNameB && keyNameA === keyNameB) return true;
+
+  return false;
+};
 
 const CategorySection = () => {
   const navigate = useNavigate();
@@ -72,33 +101,32 @@ const CategorySection = () => {
       .then(data => {
         if (data && data.success && Array.isArray(data.categories) && data.categories.length > 0 && isMounted) {
           const updated = DEFAULT_CATEGORIES.map(def => {
-            const match = data.categories.find(c => 
-              (c.slug && def.slug && c.slug.toLowerCase() === def.slug.toLowerCase()) ||
-              (c.name && def.name && c.name.toLowerCase() === def.name.toLowerCase())
-            );
+            const match = data.categories.find(c => isSameCategory(c, def));
             if (match) {
+              const displayName = (match.name || def.name).toUpperCase().replace(/SPAIR/g, 'SPARE');
               return {
                 ...def,
-                name: (match.name || def.name).toUpperCase(),
-                id: match.id || def.id
+                name: displayName,
+                id: match.id || def.id,
+                image: match.image || match.icon_url || def.image,
+                path: def.path || `/${match.slug || def.slug}`
               };
             }
             return {
               ...def,
-              name: def.name.toUpperCase()
+              name: def.name.toUpperCase().replace(/SPAIR/g, 'SPARE')
             };
           });
 
           // Add any newly created main categories from backend
           data.categories.forEach(c => {
-            const alreadyExists = updated.some(u => 
-              (u.slug && c.slug && u.slug.toLowerCase() === c.slug.toLowerCase()) ||
-              (u.name && c.name && u.name.toLowerCase() === c.name.toLowerCase())
-            );
-            if (!alreadyExists && !c.parent_id) {
+            if (c.parent_id) return; // Only top-level main categories
+
+            const alreadyExists = updated.some(u => isSameCategory(u, c));
+            if (!alreadyExists) {
               updated.push({
                 id: c.id,
-                name: (c.name || '').toUpperCase(),
+                name: (c.name || '').toUpperCase().replace(/SPAIR/g, 'SPARE'),
                 image: c.image || c.icon_url || '/prod_downlight_1791451418016.png',
                 path: `/${c.slug || c.id}`,
                 slug: c.slug
@@ -106,8 +134,19 @@ const CategorySection = () => {
             }
           });
 
-          setCategoriesList(updated);
-          setCurrentIndex(updated.length);
+          // Final deduplication safety pass to ensure absolutely no duplicate categories
+          const seen = new Set();
+          const deduplicated = [];
+          for (const item of updated) {
+            const key = normalizeCategoryKey(item.slug || item.name) || item.id;
+            if (!seen.has(key)) {
+              seen.add(key);
+              deduplicated.push(item);
+            }
+          }
+
+          setCategoriesList(deduplicated);
+          setCurrentIndex(deduplicated.length);
         }
       })
       .catch(() => {});
