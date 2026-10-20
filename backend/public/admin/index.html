@@ -704,39 +704,6 @@
     </div>
   </div>
 
-  <!-- MODAL: ADD / EDIT SINGLE SUBCATEGORY -->
-  <div id="subCategoryModal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="subCategoryModalTitle">Edit Subcategory</h3>
-        <button type="button" class="close-modal-btn" onclick="closeSubCategoryModal()">&times;</button>
-      </div>
-      <form id="subCategoryForm">
-        <input type="hidden" id="singleSubCatId" />
-        <input type="hidden" id="singleSubCatParentId" />
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Parent Category</label>
-            <input type="text" id="singleSubCatParentName" readonly style="background: var(--bg-base); font-weight: 600;" />
-          </div>
-          <div class="form-group">
-            <label>Subcategory Name *</label>
-            <input type="text" id="singleSubCatName" required placeholder="Subcategory name" autocomplete="off" />
-            <input type="hidden" id="singleSubCatSlug" />
-          </div>
-          <div class="form-group">
-            <label>Description</label>
-            <textarea id="singleSubCatDesc" rows="2" placeholder="Subcategory description..."></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeSubCategoryModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="saveSubCategoryBtn">Save Subcategory</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- MODAL: VIEW & MANAGE SUBCATEGORIES POPUP -->
   <div id="subcategoriesPopupModal" class="modal-backdrop" style="display: none;">
     <div class="modal-card">
@@ -774,6 +741,39 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeSubcategoriesPopup()">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT SINGLE SUBCATEGORY (Layered on top of Subcategories Popup) -->
+  <div id="subCategoryModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="subCategoryModalTitle">Edit Subcategory</h3>
+        <button type="button" class="close-modal-btn" onclick="closeSubCategoryModal()">&times;</button>
+      </div>
+      <form id="subCategoryForm">
+        <input type="hidden" id="singleSubCatId" />
+        <input type="hidden" id="singleSubCatParentId" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Parent Category</label>
+            <input type="text" id="singleSubCatParentName" readonly style="background: var(--bg-base); font-weight: 600;" />
+          </div>
+          <div class="form-group">
+            <label>Subcategory Name *</label>
+            <input type="text" id="singleSubCatName" required placeholder="Subcategory name" autocomplete="off" />
+            <input type="hidden" id="singleSubCatSlug" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="singleSubCatDesc" rows="2" placeholder="Subcategory description..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeSubCategoryModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveSubCategoryBtn">Save Subcategory</button>
+        </div>
+      </form>
     </div>
   </div>
 

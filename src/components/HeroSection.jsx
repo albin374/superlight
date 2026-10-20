@@ -114,36 +114,58 @@ const HeroSection = ({
 
   useEffect(() => {
     let isMounted = true;
-    const fetchMenuData = async () => {
-      try {
-        const [catRes, brandRes, prodRes] = await Promise.all([
-          fetch('/api/categories').catch(() => null),
-          fetch('/api/brands').catch(() => null),
-          fetch('/api/products').catch(() => null)
-        ]);
-        if (catRes && catRes.ok) {
-          const cData = await catRes.json();
-          if (cData.success && Array.isArray(cData.categories) && isMounted) {
-            setCategories(cData.categories);
-          }
+
+    try {
+      localStorage.removeItem('superlight_cached_categories_v1');
+      localStorage.removeItem('superlight_cached_categories_v2');
+      localStorage.removeItem('superlight_cached_brands_v1');
+      localStorage.removeItem('superlight_cached_brands_v2');
+      localStorage.removeItem('superlight_cached_products_v1');
+      localStorage.removeItem('superlight_cached_products_v2');
+    } catch (e) {}
+
+    // 1. Fetch categories directly from backend (including all newly added subcategories)
+    fetch('/api/categories')
+      .then(res => (res && res.ok ? res.json() : null))
+      .then(cData => {
+        if (cData && cData.success && Array.isArray(cData.categories) && isMounted) {
+          const normalized = cData.categories.map(c => ({
+            ...c,
+            name: (c.name || '').toUpperCase(),
+            subcategories: (c.subcategories || []).map(s => ({
+              ...s,
+              name: (s.name || '').toUpperCase()
+            }))
+          }));
+          setCategories(normalized);
         }
-        if (brandRes && brandRes.ok) {
-          const bData = await brandRes.json();
-          if (bData.success && Array.isArray(bData.brands) && isMounted) {
-            setBrands(bData.brands);
-          }
+      })
+      .catch(() => {});
+
+    // 2. Fetch brands directly from backend
+    fetch('/api/brands')
+      .then(res => (res && res.ok ? res.json() : null))
+      .then(bData => {
+        if (bData && bData.success && Array.isArray(bData.brands) && isMounted) {
+          const normalized = bData.brands.map(b => ({
+            ...b,
+            name: (b.name || '').toUpperCase()
+          }));
+          setBrands(normalized);
         }
-        if (prodRes && prodRes.ok) {
-          const pData = await prodRes.json();
-          if (pData.success && Array.isArray(pData.products) && isMounted) {
-            setAllDbProducts(pData.products);
-          }
+      })
+      .catch(() => {});
+
+    // 3. Fetch products directly from backend
+    fetch('/api/products')
+      .then(res => (res && res.ok ? res.json() : null))
+      .then(pData => {
+        if (pData && pData.success && Array.isArray(pData.products) && isMounted) {
+          setAllDbProducts(pData.products);
         }
-      } catch (err) {
-        console.error('Failed to load menu data:', err);
-      }
-    };
-    fetchMenuData();
+      })
+      .catch(() => {});
+
     return () => { isMounted = false; };
   }, []);
 

@@ -34,10 +34,10 @@ const SearchResultsPage = ({ onProductClick }) => {
   const searchParams = new URLSearchParams(location.search);
   const query = searchParams.get('q') || searchParams.get('query') || '';
 
-  // Data states
+  // Data states (Live backend data)
   const [dbProducts, setDbProducts] = useState([]);
-  const [categories, setCategories] = useState(ALL_CATEGORIES);
-  const [brands, setBrands] = useState(ALL_BRANDS);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filter & Sort states
@@ -64,31 +64,37 @@ const SearchResultsPage = ({ onProductClick }) => {
     });
   };
 
-  // Fetch live products, categories, brands from backend
+  // Fetch live products, categories, brands independently from backend
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
 
-    Promise.all([
-      fetch('/api/products').then(res => res.ok ? res.json() : null).catch(() => null),
-      fetch('/api/categories').then(res => res.ok ? res.json() : null).catch(() => null),
-      fetch('/api/brands').then(res => res.ok ? res.json() : null).catch(() => null)
-    ]).then(([pData, cData, bData]) => {
-      if (!isMounted) return;
+    fetch('/api/products')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(pData => {
+        if (pData && pData.success && Array.isArray(pData.products) && isMounted) {
+          setDbProducts(pData.products);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => { if (isMounted) setIsLoading(false); });
 
-      if (pData && pData.success && Array.isArray(pData.products)) {
-        setDbProducts(pData.products);
-      }
-      if (cData && cData.success && Array.isArray(cData.categories)) {
-        setCategories(cData.categories);
-      }
-      if (bData && bData.success && Array.isArray(bData.brands)) {
-        setBrands(bData.brands);
-      }
-      setIsLoading(false);
-    }).catch(() => {
-      if (isMounted) setIsLoading(false);
-    });
+    fetch('/api/categories')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(cData => {
+        if (cData && cData.success && Array.isArray(cData.categories) && isMounted) {
+          setCategories(cData.categories);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/brands')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(bData => {
+        if (bData && bData.success && Array.isArray(bData.brands) && isMounted) {
+          setBrands(bData.brands);
+        }
+      })
+      .catch(() => {});
 
     return () => { isMounted = false; };
   }, []);

@@ -1598,6 +1598,37 @@ body {
   width: 100%;
 }
 
+#subcategoriesPopupModal.modal-backdrop {
+  z-index: 1000;
+}
+
+#subCategoryModal.modal-backdrop {
+  z-index: 10100 !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+}
+
+#subCategoryModal .modal-card {
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--border-mid);
+  animation: popSubcatModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10101 !important;
+}
+
+@keyframes popSubcatModal {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .subcat-popup-add-card {
   background: #fafbfd;
   border: 1px solid var(--border-mid);

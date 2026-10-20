@@ -120,7 +120,7 @@ const CategoryProductPage = ({
   const location = useLocation();
   const currentPath = (location.pathname || '').toLowerCase();
 
-  // Backend Data States
+  // Backend Data States (Live data directly from backend)
   const [dbProducts, setDbProducts] = useState([]);
   const [apiCategories, setApiCategories] = useState([]);
   const [apiBrands, setApiBrands] = useState([]);
@@ -183,41 +183,37 @@ const CategoryProductPage = ({
     };
   }, [activeMobileSheet]);
 
-  // Fetch live products, categories and brands from API
+  // Fetch live products, categories and brands directly from API
   useEffect(() => {
     let isMounted = true;
-    const fetchApiData = async () => {
-      try {
-        const [prodRes, catRes, brandRes] = await Promise.all([
-          fetch('/api/products').catch(() => null),
-          fetch('/api/categories').catch(() => null),
-          fetch('/api/brands').catch(() => null)
-        ]);
 
-        if (prodRes && prodRes.ok) {
-          const pData = await prodRes.json();
-          if (pData.success && isMounted) {
-            setDbProducts(pData.products || []);
-          }
+    fetch('/api/products')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(pData => {
+        if (pData && pData.success && isMounted) {
+          setDbProducts(pData.products || []);
         }
-        if (catRes && catRes.ok) {
-          const cData = await catRes.json();
-          if (cData.success && isMounted) {
-            setApiCategories(cData.categories || []);
-          }
-        }
-        if (brandRes && brandRes.ok) {
-          const bData = await brandRes.json();
-          if (bData.success && isMounted) {
-            setApiBrands(bData.brands || []);
-          }
-        }
-      } catch (e) {
-        console.error('[CategoryProductPage] Error fetching API data:', e);
-      }
-    };
+      })
+      .catch(() => {});
 
-    fetchApiData();
+    fetch('/api/categories')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(cData => {
+        if (cData && cData.success && isMounted) {
+          setApiCategories(cData.categories || []);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/brands')
+      .then(res => res && res.ok ? res.json() : null)
+      .then(bData => {
+        if (bData && bData.success && isMounted) {
+          setApiBrands(bData.brands || []);
+        }
+      })
+      .catch(() => {});
+
     return () => { isMounted = false; };
   }, [categoryName, currentPath]);
 
@@ -227,8 +223,9 @@ const CategoryProductPage = ({
   }, [currentPath, categoryName]);
 
   const isMatchingThisPage = (p) => {
-    const pCatName = (p.category_name || '').toLowerCase();
-    const pCatSlug = (p.category_slug || '').toLowerCase();
+    if (!p) return false;
+    const pCatName = (p.category_name || p.name || '').toLowerCase();
+    const pCatSlug = (p.category_slug || p.slug || '').toLowerCase();
     const pSubName = (p.subcategory_name || '').toLowerCase();
     const pSubSlug = (p.subcategory_slug || '').toLowerCase();
     const pName = (p.name || '').toLowerCase();
@@ -329,14 +326,26 @@ const CategoryProductPage = ({
     const subMap = new Map();
 
     // 1. First, populate from matching API main category from backend
-    const matchingMainCat = apiCategories.find(isMatchingThisPage);
+    const cleanPath = (currentPath || '').replace(/^\//, '').replace(/\/$/, '').toLowerCase();
+    const targetCat = (categoryName || '').toLowerCase().trim();
+    const matchingMainCat = apiCategories.find(c => {
+      if (!c) return false;
+      const cSlug = (c.slug || '').toLowerCase();
+      const cName = (c.name || '').toLowerCase();
+      if (cleanPath && (cSlug === cleanPath || cleanPath.includes(cSlug) || cSlug.includes(cleanPath))) return true;
+      if (targetCat && (cName === targetCat || cName.includes(targetCat) || targetCat.includes(cName))) return true;
+      return isMatchingThisPage(c);
+    });
+
     if (matchingMainCat && Array.isArray(matchingMainCat.subcategories) && matchingMainCat.subcategories.length > 0) {
       matchingMainCat.subcategories.forEach(s => {
-        const key = s.name.toLowerCase().trim();
-        subMap.set(key, {
-          id: s.slug || key.replace(/[^a-z0-9]+/g, '-'),
-          name: s.name.trim()
-        });
+        const key = (s.name || '').toLowerCase().trim();
+        if (key) {
+          subMap.set(key, {
+            id: s.slug || key.replace(/[^a-z0-9]+/g, '-'),
+            name: (s.name || '').trim().toUpperCase()
+          });
+        }
       });
     }
 

@@ -769,6 +769,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 // GET /api/products
 app.get('/api/products', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const { category_id, category, search } = req.query;
     let query = `
       SELECT p.*, 
@@ -1093,6 +1094,7 @@ app.post('/api/products', authenticateToken, async (req, res) => {
 
     const productId = Number(result.lastInsertRowid);
     await logActivity(req.user.id, 'Created Product', `Added product: ${name} (ID: ${productId})`);
+    invalidateMenuCache();
 
     res.status(201).json({
       success: true,
@@ -1199,6 +1201,7 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
     );
 
     await logActivity(req.user.id, 'Updated Product', `Updated product ID: ${id} (${name || existing.name})`);
+    invalidateMenuCache();
 
     res.json({ success: true, message: 'Product updated successfully.' });
   } catch (err) {
@@ -1217,6 +1220,7 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
 
     await db.prepare('UPDATE products SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
     await logActivity(req.user.id, 'Soft Deleted Product', `Soft deleted product: ${product.name} (ID: ${id})`);
+    invalidateMenuCache();
 
     res.json({ success: true, message: 'Product deleted successfully.' });
   } catch (err) {
@@ -1225,12 +1229,16 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
 });
 
 /* ==========================================================================
-   CATEGORIES CRUD (WITH SUBCATEGORIES SUPPORT)
+   CATEGORIES CRUD (WITH SUBCATEGORIES SUPPORT & IN-MEMORY CACHE)
    ========================================================================== */
+
+function invalidateMenuCache() {}
 
 // GET /api/categories
 app.get('/api/categories', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
     const rawCategories = await db.prepare(`
       SELECT c.*, count(p.id) as product_count
       FROM categories c
@@ -1240,11 +1248,11 @@ app.get('/api/categories', async (req, res) => {
       ORDER BY c.id ASC
     `).all();
 
-    const mainCategories = rawCategories.filter(c => !c.parent_id);
-    const subCategories = rawCategories.filter(c => c.parent_id);
+    const mainCategories = rawCategories.filter(c => !c.parent_id || Number(c.parent_id) === 0);
+    const subCategories = rawCategories.filter(c => c.parent_id && Number(c.parent_id) > 0);
 
     const categories = mainCategories.map(main => {
-      const subs = subCategories.filter(s => s.parent_id === main.id);
+      const subs = subCategories.filter(s => Number(s.parent_id) === Number(main.id));
       return {
         ...main,
         subcategories: subs,
@@ -1317,6 +1325,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
 
     await logActivity(req.user.id, 'Created Category', `Created category: ${name} (ID: ${categoryId})`);
+    invalidateMenuCache();
     res.status(201).json({ success: true, message: 'Category created successfully.', categoryId });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1406,6 +1415,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     }
 
     await logActivity(req.user.id, 'Updated Category', `Updated category: ${newName} (ID: ${id})`);
+    invalidateMenuCache();
     res.json({ success: true, message: 'Category updated successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1428,6 +1438,7 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
     await db.prepare('UPDATE categories SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
 
     await logActivity(req.user.id, 'Soft Deleted Category', `Soft deleted category: ${cat.name} (ID: ${id})`);
+    invalidateMenuCache();
     res.json({ success: true, message: 'Category deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1441,6 +1452,8 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
 // GET /api/brands
 app.get('/api/brands', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
     const brands = await db.prepare(`
       SELECT b.*, count(p.id) as product_count
       FROM brands b
@@ -1499,6 +1512,7 @@ app.post('/api/brands', authenticateToken, async (req, res) => {
 
     const brandId = Number(result.lastInsertRowid);
     await logActivity(req.user.id, 'Created Brand', `Created brand: ${cleanName} (ID: ${brandId})`);
+    invalidateMenuCache();
 
     res.status(201).json({
       success: true,
@@ -1552,6 +1566,7 @@ app.put('/api/brands/:id', authenticateToken, async (req, res) => {
     );
 
     await logActivity(req.user.id, 'Updated Brand', `Updated brand: ${cleanName} (ID: ${id})`);
+    invalidateMenuCache();
 
     res.json({
       success: true,
@@ -1574,6 +1589,7 @@ app.delete('/api/brands/:id', authenticateToken, async (req, res) => {
     await db.prepare('UPDATE brands SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
 
     await logActivity(req.user.id, 'Soft Deleted Brand', `Soft deleted brand: ${brand.name} (ID: ${id})`);
+    invalidateMenuCache();
 
     res.json({
       success: true,

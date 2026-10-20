@@ -174,6 +174,14 @@ function setupEventListeners() {
     });
   }
 
+  // Subcategory Edit/Add Modal backdrop close
+  const subCatSingleModal = document.getElementById('subCategoryModal');
+  if (subCatSingleModal) {
+    subCatSingleModal.addEventListener('click', (e) => {
+      if (e.target === subCatSingleModal) closeSubCategoryModal();
+    });
+  }
+
   // Auto-slug generator for Category Form
   const catNameInput = document.getElementById('catFormName');
   const catSlugInput = document.getElementById('catFormSlug');
@@ -669,11 +677,11 @@ async function loadProducts() {
   }
 
   try {
-    let url = `${API_BASE}/products?`;
+    let url = `${API_BASE}/products?_t=${Date.now()}&`;
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (catId) url += `category_id=${catId}&`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
     const data = await res.json();
 
     if (data.success) {
@@ -1496,7 +1504,7 @@ async function loadCategories() {
   const filterSelect = document.getElementById('productCategoryFilter');
 
   try {
-    const res = await fetch(`${API_BASE}/categories`);
+    const res = await fetch(`${API_BASE}/categories?_t=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
     const data = await res.json();
     if (data.success) {
       allCategories = data.categories || [];
@@ -1731,6 +1739,7 @@ window.openEditSubCategory = function(subId) {
 function closeSubCategoryModal() {
   document.getElementById('subCategoryModal').style.display = 'none';
 }
+window.closeSubCategoryModal = closeSubCategoryModal;
 
 async function handleSaveSubCategory(e) {
   e.preventDefault();
@@ -1979,7 +1988,7 @@ async function loadBrands() {
   try {
     tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 30px;"><div class="loading-spinner"></div> Loading brands...</td></tr>`;
 
-    const res = await fetch(`${API_BASE}/brands`);
+    const res = await fetch(`${API_BASE}/brands?_t=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
     const data = await res.json();
 
     if (data.success && Array.isArray(data.brands)) {
