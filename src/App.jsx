@@ -8,6 +8,7 @@ import PromoBanners from './components/PromoBanners'
 import AboutUs from './components/aboutus/AboutUs'
 import ContactUs from './components/contactus/ContactUs'
 import BestSellers from './components/BestSellers'
+import AboutSection from './components/AboutSection'
 import LightingBanner from './components/LightingBanner'
 import Footer from './components/Footer'
 import ProductDetails from './components/ProductDetails'
@@ -161,6 +162,7 @@ function AppContent() {
             <BrandsSection />
             <PromoBanners />
             <BestSellers onProductClick={goToDetails} />
+            <AboutSection />
           </>
         } />
         <Route path="/company-overview" element={

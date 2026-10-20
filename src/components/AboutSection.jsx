@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Package, ShieldCheck, Headset } from 'lucide-react';
 import './AboutSection.css';
 
 const AboutSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="about-section">
       <div className="about-content-wrapper">
@@ -12,7 +15,7 @@ const AboutSection = () => {
           <p className="about-description">
             Super Light Electrical Trading L.L.C. is a trusted supplier of electrical, lighting and building materials in the UAE. We provide high-quality products from leading global brands, serving contractors, businesses and individual customers with reliable solutions and excellent service.
           </p>
-          <button className="about-btn">
+          <button className="about-btn" onClick={() => navigate('/about-us')}>
             Learn More About Us <ArrowRight size={18} />
           </button>
 

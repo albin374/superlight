@@ -366,6 +366,8 @@ const handleCustomerLogin = async (req, res) => {
         email: user.email,
         name: user.name,
         phone: user.phone,
+        avatar: user.avatar || null,
+        google_id: user.google_id || null,
         role: user.role || 'customer'
       }
     });
@@ -436,7 +438,7 @@ const handleGoogleLogin = async (req, res) => {
         await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').run(googleSub, user.id);
         user.google_id = googleSub;
       }
-      if (!user.avatar && picture) {
+      if (picture && user.avatar !== picture) {
         await db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
         user.avatar = picture;
       }
@@ -512,6 +514,7 @@ const handleGoogleLogin = async (req, res) => {
         email: user.email,
         name: user.name,
         avatar: user.avatar,
+        google_id: user.google_id || null,
         phone: user.phone || null,
         role: user.role || 'customer'
       }

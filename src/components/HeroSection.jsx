@@ -35,7 +35,14 @@ const HeroSection = ({
   const { cartCount, wishlistCount, ordersCount } = useShop();
   const { user, isAuthenticated, logout } = useAuth();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+  const [avatarDropdownError, setAvatarDropdownError] = useState(false);
   const accountMenuRef = useRef(null);
+
+  useEffect(() => {
+    setAvatarError(false);
+    setAvatarDropdownError(false);
+  }, [user?.avatar]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -493,36 +500,6 @@ const HeroSection = ({
           </button>
         </div>
         <div className="mobile-menu-content">
-          {/* Mobile User Card - Only shown if authenticated; guest Sign In / Register card removed as requested */}
-          {isAuthenticated && (
-            <div className="mobile-user-card">
-              <div className="mobile-user-logged">
-                <div className="mobile-user-avatar">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
-                  ) : (
-                    (user?.name || user?.username || 'U').charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="mobile-user-details">
-                  <span className="mobile-user-name">Hi, {user?.name || user?.username}</span>
-                  <span className="mobile-user-sub">{user?.email || `@${user?.username}`}</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="mobile-logout-button"
-                  title="Sign Out"
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="mobile-nav-links">
             <div className="mobile-offering-wrapper">
               <a 
@@ -712,7 +689,10 @@ const HeroSection = ({
       {/* Main Header */}
       <div className="main-header">
         <div className="container main-header-content">
-          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(true)}>
+          <button className="mobile-menu-btn" onClick={() => {
+            setIsMobileMenuOpen(true);
+            setIsAccountMenuOpen(false);
+          }}>
             <Menu size={24} />
           </button>
           
@@ -733,8 +713,12 @@ const HeroSection = ({
                 placeholder="Search for products, brands or categories..." 
                 className="search-input"
                 value={searchQuery}
-                onChange={handleSearchChange}
+                onChange={(e) => {
+                  setIsAccountMenuOpen(false);
+                  handleSearchChange(e);
+                }}
                 onFocus={() => {
+                  setIsAccountMenuOpen(false);
                   if (searchQuery.trim()) setIsSearchOpen(true);
                 }}
                 onKeyDown={handleSearchKeyDown}
@@ -914,16 +898,26 @@ const HeroSection = ({
               {isAuthenticated ? (
                 <div 
                   className="account-trigger"
-                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
+                  onClick={() => {
+                    setIsAccountMenuOpen(prev => !prev);
+                    setIsSearchOpen(false);
+                  }}
                   role="button"
                   tabIndex={0}
                   title="My Account"
                 >
                   <div className="account-avatar-pill">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
+                    {user?.avatar && !avatarError ? (
+                      <img 
+                        src={user.avatar} 
+                        alt="" 
+                        className="account-avatar-img"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={() => setAvatarError(true)}
+                      />
                     ) : (
-                      (user?.name || user?.username || 'U').charAt(0).toUpperCase()
+                      (user?.name || user?.username || user?.email || 'U').trim().charAt(0).toUpperCase()
                     )}
                   </div>
                   <div className="action-text">
@@ -956,10 +950,17 @@ const HeroSection = ({
                 <div className="account-dropdown-menu">
                   <div className="account-dropdown-header">
                     <div className="account-dropdown-avatar">
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt={user.name || user.username} className="account-avatar-img" />
+                      {user?.avatar && !avatarDropdownError ? (
+                        <img 
+                          src={user.avatar} 
+                          alt="" 
+                          className="account-avatar-img"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={() => setAvatarDropdownError(true)}
+                        />
                       ) : (
-                        (user?.name || user?.username || 'U').charAt(0).toUpperCase()
+                        (user?.name || user?.username || user?.email || 'U').trim().charAt(0).toUpperCase()
                       )}
                     </div>
                     <div className="account-dropdown-user-info">
