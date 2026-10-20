@@ -130,7 +130,7 @@ const CategoryProductPage = ({
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [brandSearch, setBrandSearch] = useState('');
   const [showAllBrands, setShowAllBrands] = useState(true);
-  const [maxPrice, setMaxPrice] = useState(2000);
+  const [selectedMaxPrice, setSelectedMaxPrice] = useState(null);
   const [isSubcategoriesOpen, setIsSubcategoriesOpen] = useState(true);
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
@@ -167,6 +167,7 @@ const CategoryProductPage = ({
     }
     setSelectedBrands([]);
     setBrandSearch('');
+    setSelectedMaxPrice(null);
     setActiveMobileSheet(null);
   }, [currentPath, location.search]);
 
@@ -226,24 +227,40 @@ const CategoryProductPage = ({
   }, [currentPath, categoryName]);
 
   const isMatchingThisPage = (p) => {
-    const pCatName = (p.category_name || p.name || '').toLowerCase();
-    const pCatSlug = (p.category_slug || p.slug || '').toLowerCase();
-    const itemKey = getCategoryKey(pCatSlug) || getCategoryKey(pCatName);
+    const pCatName = (p.category_name || '').toLowerCase();
+    const pCatSlug = (p.category_slug || '').toLowerCase();
+    const pSubName = (p.subcategory_name || '').toLowerCase();
+    const pSubSlug = (p.subcategory_slug || '').toLowerCase();
+    const pName = (p.name || '').toLowerCase();
+
+    const itemKey = getCategoryKey(pCatSlug) || 
+                    getCategoryKey(pCatName) || 
+                    getCategoryKey(pSubSlug) || 
+                    getCategoryKey(pSubName) || 
+                    getCategoryKey(pName);
 
     if (itemKey && pageCategoryKey && itemKey === pageCategoryKey) {
       return true;
     }
 
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
-    if (cleanPath && (pCatSlug === cleanPath || pCatSlug.includes(cleanPath) || cleanPath.includes(pCatSlug))) {
+    if (cleanPath && (
+      pCatSlug === cleanPath || pCatSlug.includes(cleanPath) || cleanPath.includes(pCatSlug) ||
+      pSubSlug === cleanPath || pSubSlug.includes(cleanPath) || cleanPath.includes(pSubSlug)
+    )) {
       return true;
     }
 
     const target = (categoryName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanCat = pCatName.replace(/[^a-z0-9]/g, '');
     const cleanSlug = pCatSlug.replace(/[^a-z0-9]/g, '');
+    const cleanSub = pSubName.replace(/[^a-z0-9]/g, '');
+    const cleanSubSlug = pSubSlug.replace(/[^a-z0-9]/g, '');
+
     if (target && cleanCat && (target.includes(cleanCat) || cleanCat.includes(target))) return true;
     if (target && cleanSlug && (target.includes(cleanSlug) || cleanSlug.includes(target))) return true;
+    if (target && cleanSub && (target.includes(cleanSub) || cleanSub.includes(target))) return true;
+    if (target && cleanSubSlug && (target.includes(cleanSubSlug) || cleanSubSlug.includes(target))) return true;
 
     return false;
   };
@@ -290,6 +307,21 @@ const CategoryProductPage = ({
   const combinedProducts = useMemo(() => {
     return formattedDbProducts;
   }, [formattedDbProducts]);
+
+  // Dynamic maximum catalog price ceiling
+  const catalogMaxPrice = useMemo(() => {
+    if (!combinedProducts || combinedProducts.length === 0) return 5000;
+    const maxVal = combinedProducts.reduce((acc, p) => {
+      const val = typeof p.price === 'number'
+        ? p.price
+        : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
+      return Math.max(acc, val);
+    }, 0);
+    return Math.max(5000, Math.ceil(maxVal / 500) * 500);
+  }, [combinedProducts]);
+
+  const currentMaxPrice = selectedMaxPrice !== null ? selectedMaxPrice : catalogMaxPrice;
+  const isPriceFiltered = selectedMaxPrice !== null && selectedMaxPrice < catalogMaxPrice;
 
   // Dynamic Subcategories (strictly for this category)
   const dynamicSubcategories = useMemo(() => {
@@ -415,7 +447,7 @@ const CategoryProductPage = ({
     setSelectedSubcategory('all');
     setSelectedBrands([]);
     setBrandSearch('');
-    setMaxPrice(2000);
+    setSelectedMaxPrice(null);
     setSortBy('default');
   };
 
@@ -466,13 +498,15 @@ const CategoryProductPage = ({
       });
     }
 
-    // Price Filter
-    list = list.filter((p) => {
-      const numPrice = typeof p.price === 'number'
-        ? p.price
-        : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
-      return numPrice <= maxPrice;
-    });
+    // Price Filter (only apply when user has set a price limit)
+    if (selectedMaxPrice !== null) {
+      list = list.filter((p) => {
+        const numPrice = typeof p.price === 'number'
+          ? p.price
+          : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
+        return numPrice <= selectedMaxPrice;
+      });
+    }
 
     // Sort
     if (sortBy === 'price-low') {
@@ -492,7 +526,7 @@ const CategoryProductPage = ({
     }
 
     return list;
-  }, [combinedProducts, selectedSubcategory, dynamicSubcategories, selectedBrands, maxPrice, sortBy]);
+  }, [combinedProducts, selectedSubcategory, dynamicSubcategories, selectedBrands, selectedMaxPrice, sortBy]);
 
   return (
     <div className="cpp-page">
@@ -622,24 +656,43 @@ const CategoryProductPage = ({
 
           {/* Price Range Block */}
           <div className="cpp-filter-group">
-            <h4 className="cpp-group-title">Price Range (AED)</h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <h4 className="cpp-group-title" style={{ margin: 0 }}>Price Range (AED)</h4>
+              {isPriceFiltered && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMaxPrice(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#e6005c',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
             
             <div className="cpp-slider-wrapper">
               <input 
                 type="range" 
                 min="0" 
-                max="2000" 
-                step="25"
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                max={catalogMaxPrice} 
+                step={catalogMaxPrice > 5000 ? 50 : 25}
+                value={currentMaxPrice} 
+                onChange={(e) => setSelectedMaxPrice(Number(e.target.value))}
                 className="cpp-price-slider"
                 style={{
-                  background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(maxPrice / 2000) * 100}%, #e2e8f0 ${(maxPrice / 2000) * 100}%, #e2e8f0 100%)`
+                  background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 100%)`
                 }}
               />
               <div className="cpp-slider-labels">
                 <span className="cpp-price-min">AED 0</span>
-                <span className="cpp-price-max">AED {maxPrice.toLocaleString()}</span>
+                <span className="cpp-price-max">AED {currentMaxPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -860,14 +913,14 @@ const CategoryProductPage = ({
 
         <button
           type="button"
-          className={`cpp-mobile-bottom-btn ${(selectedBrands.length > 0 || maxPrice < 2000) ? 'active' : ''}`}
+          className={`cpp-mobile-bottom-btn ${(selectedBrands.length > 0 || isPriceFiltered) ? 'active' : ''}`}
           onClick={() => setActiveMobileSheet('filter')}
         >
           <Filter size={16} />
           <span>Filter</span>
-          {(selectedBrands.length > 0 || maxPrice < 2000) && (
+          {(selectedBrands.length > 0 || isPriceFiltered) && (
             <span className="cpp-mobile-filter-badge">
-              {selectedBrands.length + (maxPrice < 2000 ? 1 : 0)}
+              {selectedBrands.length + (isPriceFiltered ? 1 : 0)}
             </span>
           )}
         </button>
@@ -940,14 +993,14 @@ const CategoryProductPage = ({
                 <div className="cpp-mobile-sheet-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h3 className="cpp-mobile-sheet-title">Filters</h3>
-                    {(selectedBrands.length > 0 || maxPrice < 2000) && (
+                    {(selectedBrands.length > 0 || isPriceFiltered) && (
                       <button 
                         type="button" 
                         className="cpp-mobile-sheet-reset-btn"
                         onClick={() => {
                           setSelectedBrands([]);
                           setBrandSearch('');
-                          setMaxPrice(2000);
+                          setSelectedMaxPrice(null);
                         }}
                       >
                         Reset
@@ -995,23 +1048,42 @@ const CategoryProductPage = ({
 
                   {/* Price Range (AED) */}
                   <div className="cpp-mobile-filter-section">
-                    <h4 className="cpp-mobile-section-title">Price Range (AED)</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <h4 className="cpp-mobile-section-title" style={{ margin: 0 }}>Price Range (AED)</h4>
+                      {isPriceFiltered && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMaxPrice(null)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#e6005c',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: 0
+                          }}
+                        >
+                          Reset Price
+                        </button>
+                      )}
+                    </div>
                     <div className="cpp-slider-wrapper" style={{ marginTop: '14px' }}>
                       <input 
                         type="range" 
                         min="0" 
-                        max="2000" 
-                        step="25"
-                        value={maxPrice} 
-                        onChange={(e) => setMaxPrice(Number(e.target.value))}
+                        max={catalogMaxPrice} 
+                        step={catalogMaxPrice > 5000 ? 50 : 25}
+                        value={currentMaxPrice} 
+                        onChange={(e) => setSelectedMaxPrice(Number(e.target.value))}
                         className="cpp-price-slider"
                         style={{
-                          background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(maxPrice / 2000) * 100}%, #e2e8f0 ${(maxPrice / 2000) * 100}%, #e2e8f0 100%)`
+                          background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 100%)`
                         }}
                       />
                       <div className="cpp-slider-labels">
                         <span className="cpp-price-min">AED 0</span>
-                        <span className="cpp-price-max">AED {maxPrice.toLocaleString()}</span>
+                        <span className="cpp-price-max">AED {currentMaxPrice.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -1024,7 +1096,7 @@ const CategoryProductPage = ({
                     onClick={() => {
                       setSelectedBrands([]);
                       setBrandSearch('');
-                      setMaxPrice(2000);
+                      setSelectedMaxPrice(null);
                     }}
                   >
                     Clear All

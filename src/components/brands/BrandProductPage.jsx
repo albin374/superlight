@@ -142,7 +142,7 @@ const BrandProductPage = ({
   
   // Filter States
   const [selectedSubcategory, setSelectedSubcategory] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(3000);
+  const [selectedMaxPrice, setSelectedMaxPrice] = useState(null);
   const [isSubcategoriesOpen, setIsSubcategoriesOpen] = useState(true);
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
@@ -173,6 +173,7 @@ const BrandProductPage = ({
   useEffect(() => {
     window.scrollTo(0, 0);
     setSelectedSubcategory('all');
+    setSelectedMaxPrice(null);
     setActiveMobileSheet(null);
   }, [location.pathname]);
 
@@ -320,6 +321,21 @@ const BrandProductPage = ({
     return formattedDbProducts;
   }, [formattedDbProducts]);
 
+  // Dynamic maximum catalog price ceiling
+  const catalogMaxPrice = useMemo(() => {
+    if (!combinedProducts || combinedProducts.length === 0) return 5000;
+    const maxVal = combinedProducts.reduce((acc, p) => {
+      const val = typeof p.price === 'number'
+        ? p.price
+        : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
+      return Math.max(acc, val);
+    }, 0);
+    return Math.max(5000, Math.ceil(maxVal / 500) * 500);
+  }, [combinedProducts]);
+
+  const currentMaxPrice = selectedMaxPrice !== null ? selectedMaxPrice : catalogMaxPrice;
+  const isPriceFiltered = selectedMaxPrice !== null && selectedMaxPrice < catalogMaxPrice;
+
   // Calculate dynamic subcategories from all available products
   const dynamicSubcategories = useMemo(() => {
     const subMap = new Map();
@@ -376,7 +392,7 @@ const BrandProductPage = ({
 
   const handleReset = () => {
     setSelectedSubcategory('all');
-    setMaxPrice(3000);
+    setSelectedMaxPrice(null);
     setSortBy('default');
   };
 
@@ -396,13 +412,15 @@ const BrandProductPage = ({
       }
     }
 
-    // Price Filter
-    list = list.filter(p => {
-      const numPrice = typeof p.price === 'number'
-        ? p.price
-        : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
-      return numPrice <= maxPrice;
-    });
+    // Price Filter (only apply when user has set a price limit)
+    if (selectedMaxPrice !== null) {
+      list = list.filter(p => {
+        const numPrice = typeof p.price === 'number'
+          ? p.price
+          : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
+        return numPrice <= selectedMaxPrice;
+      });
+    }
 
     // Sort
     if (sortBy === 'price-low') {
@@ -422,7 +440,7 @@ const BrandProductPage = ({
     }
 
     return list;
-  }, [combinedProducts, selectedSubcategory, dynamicSubcategories, maxPrice, sortBy]);
+  }, [combinedProducts, selectedSubcategory, dynamicSubcategories, selectedMaxPrice, sortBy]);
 
   // Clean banner image path for CSS url (encode spaces)
   const encodedBanner = encodeURI(bannerImage || '');
@@ -524,24 +542,43 @@ const BrandProductPage = ({
 
           {/* Price Range Block */}
           <div className="cpp-filter-group">
-            <h4 className="cpp-group-title">Price Range (AED)</h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <h4 className="cpp-group-title" style={{ margin: 0 }}>Price Range (AED)</h4>
+              {isPriceFiltered && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMaxPrice(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#e6005c',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
             
             <div className="cpp-slider-wrapper">
               <input 
                 type="range" 
                 min="0" 
-                max="3000" 
-                step="25"
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                max={catalogMaxPrice} 
+                step={catalogMaxPrice > 5000 ? 50 : 25}
+                value={currentMaxPrice} 
+                onChange={(e) => setSelectedMaxPrice(Number(e.target.value))}
                 className="cpp-price-slider"
                 style={{
-                  background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(maxPrice / 3000) * 100}%, #e2e8f0 ${(maxPrice / 3000) * 100}%, #e2e8f0 100%)`
+                  background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 100%)`
                 }}
               />
               <div className="cpp-slider-labels">
                 <span className="cpp-price-min">AED 0</span>
-                <span className="cpp-price-max">AED {maxPrice.toLocaleString()}</span>
+                <span className="cpp-price-max">AED {currentMaxPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -803,7 +840,7 @@ const BrandProductPage = ({
         >
           <Filter size={18} />
           <span>Filter</span>
-          {maxPrice < 3000 && (
+          {isPriceFiltered && (
             <span className="cpp-mobile-filter-badge">1</span>
           )}
         </button>
@@ -879,12 +916,12 @@ const BrandProductPage = ({
                 <div className="cpp-mobile-sheet-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h3 className="cpp-mobile-sheet-title">Filters</h3>
-                    {maxPrice < 3000 && (
+                    {isPriceFiltered && (
                       <button 
                         type="button" 
                         className="cpp-mobile-sheet-reset-btn"
                         onClick={() => {
-                          setMaxPrice(3000);
+                          setSelectedMaxPrice(null);
                         }}
                       >
                         Reset
@@ -945,23 +982,42 @@ const BrandProductPage = ({
 
                   {/* Price Range (AED) */}
                   <div className="cpp-mobile-filter-section">
-                    <h4 className="cpp-mobile-section-title">Price Range (AED)</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <h4 className="cpp-mobile-section-title" style={{ margin: 0 }}>Price Range (AED)</h4>
+                      {isPriceFiltered && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMaxPrice(null)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#e6005c',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: 0
+                          }}
+                        >
+                          Reset Price
+                        </button>
+                      )}
+                    </div>
                     <div className="cpp-slider-wrapper" style={{ marginTop: '14px' }}>
                       <input 
                         type="range" 
                         min="0" 
-                        max="3000" 
-                        step="25"
-                        value={maxPrice} 
-                        onChange={(e) => setMaxPrice(Number(e.target.value))}
+                        max={catalogMaxPrice} 
+                        step={catalogMaxPrice > 5000 ? 50 : 25}
+                        value={currentMaxPrice} 
+                        onChange={(e) => setSelectedMaxPrice(Number(e.target.value))}
                         className="cpp-price-slider"
                         style={{
-                          background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(maxPrice / 3000) * 100}%, #e2e8f0 ${(maxPrice / 3000) * 100}%, #e2e8f0 100%)`
+                          background: `linear-gradient(to right, #e6005c 0%, #e6005c ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 ${(currentMaxPrice / catalogMaxPrice) * 100}%, #e2e8f0 100%)`
                         }}
                       />
                       <div className="cpp-slider-labels">
                         <span className="cpp-price-min">AED 0</span>
-                        <span className="cpp-price-max">AED {maxPrice.toLocaleString()}</span>
+                        <span className="cpp-price-max">AED {currentMaxPrice.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -972,7 +1028,7 @@ const BrandProductPage = ({
                     type="button"
                     className="cpp-mobile-sheet-clear-btn"
                     onClick={() => {
-                      setMaxPrice(3000);
+                      setSelectedMaxPrice(null);
                     }}
                   >
                     Clear All

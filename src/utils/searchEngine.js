@@ -338,8 +338,11 @@ export function searchLocalCatalog(rawQuery, { liveProducts = [], liveCategories
       const modelScore = calculateMatchScore(p.model, query);
       const skuScore = calculateMatchScore(p.sku, query);
       const descScore = calculateMatchScore(p.description, query) * 0.5;
+      const cleanNum = query.replace(/[^0-9.]/g, '');
+      const priceStr = String(Math.round(p.rawPrice || 0));
+      const priceScore = cleanNum && cleanNum.length >= 2 && (priceStr === cleanNum || (cleanNum.length >= 3 && priceStr.includes(cleanNum))) ? 80 : 0;
 
-      const maxScore = Math.max(nameScore, brandScore, catScore, subScore, modelScore, skuScore, descScore);
+      const maxScore = Math.max(nameScore, brandScore, catScore, subScore, modelScore, skuScore, descScore, priceScore);
       return { ...p, score: maxScore };
     })
     .filter(p => p.score > 0)

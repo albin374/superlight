@@ -43,7 +43,7 @@ const SearchResultsPage = ({ onProductClick }) => {
   // Filter & Sort states
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(2500);
+  const [selectedMaxPrice, setSelectedMaxPrice] = useState(null);
   const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState('grid');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -159,6 +159,7 @@ const SearchResultsPage = ({ onProductClick }) => {
       const model = (p.model || '').toLowerCase();
       const sku = (p.sku || '').toLowerCase();
       const desc = (p.description || '').toLowerCase();
+      const priceStr = String(Math.round(p.rawPrice || 0));
 
       return name.includes(q) ||
              brand.includes(q) ||
@@ -166,9 +167,21 @@ const SearchResultsPage = ({ onProductClick }) => {
              sub.includes(q) ||
              model.includes(q) ||
              sku.includes(q) ||
-             desc.includes(q);
+             desc.includes(q) ||
+             priceStr === q ||
+             (q.length >= 2 && priceStr.includes(q));
     });
   }, [allFormattedProducts, query]);
+
+  // Dynamic maximum catalog price ceiling for search results
+  const catalogMaxPrice = useMemo(() => {
+    if (!searchMatchedProducts || searchMatchedProducts.length === 0) return 5000;
+    const maxVal = searchMatchedProducts.reduce((acc, p) => Math.max(acc, p.rawPrice || 0), 0);
+    return Math.max(5000, Math.ceil(maxVal / 500) * 500);
+  }, [searchMatchedProducts]);
+
+  const currentMaxPrice = selectedMaxPrice !== null ? selectedMaxPrice : catalogMaxPrice;
+  const isPriceFiltered = selectedMaxPrice !== null && selectedMaxPrice < catalogMaxPrice;
 
   // Apply user sidebar filters: Category, Brand, Price Range, Sort
   const filteredProducts = useMemo(() => {
@@ -190,8 +203,10 @@ const SearchResultsPage = ({ onProductClick }) => {
       list = list.filter(p => (p.brand || '').toLowerCase() === targetBrand);
     }
 
-    // Filter by price
-    list = list.filter(p => p.rawPrice <= maxPrice);
+    // Filter by price (only apply when user has chosen a price limit)
+    if (selectedMaxPrice !== null) {
+      list = list.filter(p => p.rawPrice <= selectedMaxPrice);
+    }
 
     // Sorting
     if (sortBy === 'price-low') {
@@ -205,7 +220,7 @@ const SearchResultsPage = ({ onProductClick }) => {
     }
 
     return list;
-  }, [searchMatchedProducts, selectedCategory, selectedBrand, maxPrice, sortBy]);
+  }, [searchMatchedProducts, selectedCategory, selectedBrand, selectedMaxPrice, sortBy]);
 
   // Distinct categories and brands for sidebar filters
   const filterOptions = useMemo(() => {
@@ -249,7 +264,7 @@ const SearchResultsPage = ({ onProductClick }) => {
   const resetFilters = () => {
     setSelectedCategory('all');
     setSelectedBrand('all');
-    setMaxPrice(2500);
+    setSelectedMaxPrice(null);
     setSortBy('relevance');
   };
 
@@ -364,7 +379,7 @@ const SearchResultsPage = ({ onProductClick }) => {
                 <Filter size={18} />
                 <span>Filters</span>
               </div>
-              {(selectedCategory !== 'all' || selectedBrand !== 'all' || maxPrice < 2500) && (
+              {(selectedCategory !== 'all' || selectedBrand !== 'all' || isPriceFiltered) && (
                 <button type="button" className="srp-reset-btn" onClick={resetFilters}>
                   <RotateCcw size={13} />
                   <span>Reset</span>
@@ -443,20 +458,20 @@ const SearchResultsPage = ({ onProductClick }) => {
             <div className="srp-filter-group">
               <div className="srp-price-heading-row">
                 <h3 className="srp-filter-heading">Max Price</h3>
-                <span className="srp-price-val">AED {maxPrice}</span>
+                <span className="srp-price-val">AED {currentMaxPrice.toLocaleString()}</span>
               </div>
               <input 
                 type="range" 
-                min="20" 
-                max="2500" 
-                step="20" 
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))} 
+                min="0" 
+                max={catalogMaxPrice} 
+                step={catalogMaxPrice > 5000 ? 50 : 20} 
+                value={currentMaxPrice} 
+                onChange={(e) => setSelectedMaxPrice(Number(e.target.value))} 
                 className="srp-price-slider"
               />
               <div className="srp-price-labels">
-                <span>AED 20</span>
-                <span>AED 2,500+</span>
+                <span>AED 0</span>
+                <span>AED {catalogMaxPrice.toLocaleString()}+</span>
               </div>
             </div>
 
