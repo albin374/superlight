@@ -124,6 +124,7 @@ const CategoryProductPage = ({
   const [dbProducts, setDbProducts] = useState([]);
   const [apiCategories, setApiCategories] = useState([]);
   const [apiBrands, setApiBrands] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter States
   const [selectedSubcategory, setSelectedSubcategory] = useState('all');
@@ -186,6 +187,7 @@ const CategoryProductPage = ({
   // Fetch live products, categories and brands directly from API
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
 
     fetch('/api/products')
       .then(res => res && res.ok ? res.json() : null)
@@ -194,7 +196,10 @@ const CategoryProductPage = ({
           setDbProducts(pData.products || []);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
     fetch('/api/categories')
       .then(res => res && res.ok ? res.json() : null)
@@ -485,15 +490,47 @@ const CategoryProductPage = ({
 
     // Subcategory Filter
     if (selectedSubcategory !== 'all') {
-      const activeSubObj = dynamicSubcategories.find((s) => s.id === selectedSubcategory);
-      if (activeSubObj) {
-        list = list.filter((p) => {
-          if (!p.subcategory) return false;
-          const pSub = p.subcategory.toLowerCase().trim();
-          const targetSub = activeSubObj.name.toLowerCase().trim();
-          return pSub === targetSub || pSub.includes(targetSub) || targetSub.includes(pSub);
-        });
-      }
+      const cleanSub = (selectedSubcategory || '').toLowerCase().trim();
+      const cleanSubAlpha = cleanSub.replace(/[^a-z0-9]/g, '');
+
+      const activeSubObj = dynamicSubcategories.find((s) => {
+        if (!s) return false;
+        const sId = (s.id || '').toLowerCase().trim();
+        const sName = (s.name || '').toLowerCase().trim();
+        const sIdAlpha = sId.replace(/[^a-z0-9]/g, '');
+        const sNameAlpha = sName.replace(/[^a-z0-9]/g, '');
+
+        return sId === cleanSub || 
+               sName === cleanSub ||
+               (cleanSubAlpha && sIdAlpha === cleanSubAlpha) ||
+               (cleanSubAlpha && sNameAlpha === cleanSubAlpha);
+      });
+
+      const targetSubName = activeSubObj ? (activeSubObj.name || '').toLowerCase().trim() : '';
+      const targetSubId = activeSubObj ? (activeSubObj.id || '').toLowerCase().trim() : cleanSub;
+
+      list = list.filter((p) => {
+        const pSub = (p.subcategory || p.subcategory_name || '').toLowerCase().trim();
+        const pSubSlug = (p.subcategory_slug || '').toLowerCase().trim();
+        const pSubAlpha = pSub.replace(/[^a-z0-9]/g, '');
+        const pSubSlugAlpha = pSubSlug.replace(/[^a-z0-9]/g, '');
+
+        if (targetSubName && (pSub === targetSubName || pSub.includes(targetSubName) || targetSubName.includes(pSub))) {
+          return true;
+        }
+        if (targetSubId && (pSubSlug === targetSubId || pSubSlug.includes(targetSubId) || targetSubId.includes(pSubSlug))) {
+          return true;
+        }
+        if (cleanSubAlpha && (
+          pSubAlpha === cleanSubAlpha || 
+          pSubSlugAlpha === cleanSubAlpha || 
+          pSubAlpha.includes(cleanSubAlpha) || 
+          cleanSubAlpha.includes(pSubAlpha)
+        )) {
+          return true;
+        }
+        return false;
+      });
     }
 
     // Brand Filter
@@ -714,7 +751,11 @@ const CategoryProductPage = ({
             <div className="cpp-top-title-group">
               <h2 className="cpp-main-heading">All {categoryName} Products</h2>
               <span className="cpp-top-count">
-                Showing 1 - {filteredProducts.length} of {combinedProducts.length} products
+                {isLoading ? (
+                  'Loading products...'
+                ) : (
+                  `Showing 1 - ${filteredProducts.length} of ${combinedProducts.length} products`
+                )}
               </span>
             </div>
 
@@ -758,7 +799,21 @@ const CategoryProductPage = ({
           </div>
 
           {/* Product Grid / List */}
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className={`cpp-products-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="cpp-product-card cpp-skeleton-card">
+                  <div className="cpp-skeleton-img" />
+                  <div className="cpp-card-body">
+                    <div className="cpp-skeleton-line short" />
+                    <div className="cpp-skeleton-line medium" />
+                    <div className="cpp-skeleton-line long" />
+                    <div className="cpp-skeleton-line btn" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className={`cpp-products-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
               {filteredProducts.map((product) => {
                 const isFavorited = isInWishlist(product.id);

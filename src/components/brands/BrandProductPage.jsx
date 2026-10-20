@@ -128,6 +128,7 @@ const BrandProductPage = ({
 
   // Backend Data States
   const [dbProducts, setDbProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [allBrands, setAllBrands] = useState([
     { id: 14, name: 'Dewalt', slug: 'dewalt' },
     { id: 5, name: 'Makita', slug: 'makita' },
@@ -231,6 +232,7 @@ const BrandProductPage = ({
   // Fetch live products from backend API matching this brand
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
     const fetchBrandProducts = async () => {
       try {
         const prodRes = await fetch('/api/products').catch(() => null);
@@ -242,6 +244,8 @@ const BrandProductPage = ({
         }
       } catch (e) {
         console.error('[BrandProductPage] Error fetching products:', e);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -669,7 +673,21 @@ const BrandProductPage = ({
           </div>
 
           {/* Product Grid / List - Same card as WE ARE OFFERING, without warranty or model */}
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className={`cpp-products-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="cpp-product-card cpp-skeleton-card">
+                  <div className="cpp-skeleton-img" />
+                  <div className="cpp-card-body">
+                    <div className="cpp-skeleton-line short" />
+                    <div className="cpp-skeleton-line medium" />
+                    <div className="cpp-skeleton-line long" />
+                    <div className="cpp-skeleton-line btn" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className={`cpp-products-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
               {filteredProducts.map((product) => {
                 const isFavorited = isInWishlist(product.id);
