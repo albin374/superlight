@@ -721,8 +721,8 @@ const BrandProductPage = ({
 
                     {/* Card Content */}
                     <div className="cpp-card-body">
-                      <span className="cpp-brand-name">{product.brand || brandName}</span>
-                      <h3 className="cpp-product-title" title={product.name}>{product.name}</h3>
+                      <span className="cpp-brand-name">{((product.brand || brandName) || '').toUpperCase()}</span>
+                      <h3 className="cpp-product-title" title={product.name}>{(product.name || '').toUpperCase()}</h3>
 
                       {/* Ratings */}
                       <div className="cpp-rating-row">
@@ -964,7 +964,7 @@ const BrandProductPage = ({
                                   color: isCurrentBrand ? '#e6005c' : '#1e293b' 
                                 }}
                               >
-                                {b.name}
+                                {(b.name || '').toUpperCase()}
                               </span>
                             </div>
                             {isCurrentBrand ? (

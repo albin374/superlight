@@ -218,6 +218,7 @@
   overflow: hidden;
   min-height: 36px;
   transition: color 0.15s ease;
+  text-transform: uppercase !important;
 }
 
 .wishlist-product-name:hover {

@@ -109,8 +109,8 @@ const WhatsAppOrderModal = ({ isOpen, product, onClose }) => {
 `*NEW ORDER INQUIRY - SUPER LIGHT*
 *Order Number:* #${orderNumber}
 --------------------------------
-*Product:* ${product.name}
-*Brand:* ${product.brand || 'Super Light'}
+*Product:* ${(product.name || '').toUpperCase()}
+*Brand:* ${((product.brand || 'Super Light') || '').toUpperCase()}
 *Price:* ${currencyPrefix}${numericPrice.toFixed(2)}
 *Quantity:* ${quantity}
 *Total Amount:* ${currencyPrefix}${totalPrice}
@@ -175,8 +175,8 @@ _Order recorded & submitted via Super Light Online Store_`;
             />
           </div>
           <div className="wa-snapshot-details">
-            {product.brand && <span className="wa-snapshot-brand">{product.brand}</span>}
-            <h4 className="wa-snapshot-name" title={product.name}>{product.name}</h4>
+            {product.brand && <span className="wa-snapshot-brand">{(product.brand || '').toUpperCase()}</span>}
+            <h4 className="wa-snapshot-name" title={product.name}>{(product.name || '').toUpperCase()}</h4>
             <div className="wa-snapshot-price-row">
               <span className="wa-snapshot-price">{currencyPrefix}{numericPrice.toFixed(2)}</span>
               {product.oldPrice && <span className="wa-snapshot-old-price">{product.oldPrice}</span>}

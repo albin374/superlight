@@ -173,7 +173,7 @@
   font-weight: 700;
   margin: 0;
   line-height: 1.4;
-  text-transform: uppercase;
+  text-transform: uppercase !important;
   transition: color 0.2s ease;
 }
 

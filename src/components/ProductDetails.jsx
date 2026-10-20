@@ -266,10 +266,10 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
         {/* Product Info */}
         <div className="product-info">
           <div className="product-meta">
-            <div className="brand-logo">{brand}</div>
+            <div className="brand-logo">{(brand || '').toUpperCase()}</div>
           </div>
 
-          <h1 className="product-title">{pName}</h1>
+          <h1 className="product-title">{(pName || '').toUpperCase()}</h1>
 
           <div className="price-row">
             <span className="price">{pPrice}</span>
@@ -388,8 +388,8 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
           <div className="tab-content-right">
             <table className="specs-table">
               <tbody>
-                <tr><td>Brand</td><td>{brand}</td></tr>
-                <tr><td>Product Name</td><td>{pName}</td></tr>
+                <tr><td>Brand</td><td>{(brand || '').toUpperCase()}</td></tr>
+                <tr><td>Product Name</td><td>{(pName || '').toUpperCase()}</td></tr>
                 {activeProduct?.model && <tr><td>Model</td><td>{activeProduct.model}</td></tr>}
                 {activeProduct?.wattage && <tr><td>Wattage</td><td>{activeProduct.wattage}</td></tr>}
                 {activeProduct?.warranty && <tr><td>Warranty</td><td>{activeProduct.warranty}</td></tr>}
@@ -430,7 +430,7 @@ const ProductDetails = ({ goHome, product: propProduct }) => {
               </button>
               <img src={p.img} alt={p.name} style={{width: '100%', height: '200px', objectFit: 'contain', marginBottom: '16px'}} />
               <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>Brand</div>
-              <div style={{fontWeight: '600', color: '#1b253c', marginBottom: '12px', fontSize: '14px'}}>{p.name}</div>
+              <div style={{fontWeight: '600', color: '#1b253c', marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase'}}>{(p.name || '').toUpperCase()}</div>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div style={{color: '#e6005c', fontWeight: '700'}}>{p.price}</div>
                 <button 

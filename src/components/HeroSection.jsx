@@ -546,7 +546,7 @@ const HeroSection = ({
                             lineHeight: '1.35'
                           }}
                         >
-                          <span>{cat.name}</span>
+                          <span>{(cat.name || '').toUpperCase()}</span>
                           {hasSub && (
                             <ChevronDown
                               size={15}
@@ -566,9 +566,19 @@ const HeroSection = ({
                                 key={sub.id}
                                 href={`#${sub.slug}`}
                                 onClick={(e) => { handleCategoryClick(e, sub, cat); setIsMobileMenuOpen(false); }}
-                                style={{ fontSize: '13px', color: '#64748b', padding: '4px 0', textDecoration: 'none', display: 'block', lineHeight: '1.4' }}
+                                style={{
+                                  fontSize: '12.5px',
+                                  color: '#64748b',
+                                  padding: '4px 0',
+                                  textDecoration: 'none',
+                                  display: 'block',
+                                  lineHeight: '1.4',
+                                  textTransform: 'uppercase',
+                                  fontWeight: '600',
+                                  letterSpacing: '0.3px'
+                                }}
                               >
-                                {sub.name}
+                                {(sub.name || '').toUpperCase()}
                               </a>
                             ))}
                           </div>
@@ -613,7 +623,7 @@ const HeroSection = ({
                       onClick={(e) => handleBrandClick(e, b)}
                       style={{ fontSize: '13px', color: '#4b5563', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', padding: '5px 0' }}
                     >
-                      {b.name}
+                      {(b.name || '').toUpperCase()}
                     </a>
                   ))}
                 </div>
@@ -637,7 +647,7 @@ const HeroSection = ({
                       onClick={(e) => { handleCategoryClick(e, cat); setIsMobileMenuOpen(false); }}
                       style={{ fontSize: '13px', color: '#4b5563', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', padding: '5px 0' }}
                     >
-                      {cat.name}
+                      {(cat.name || '').toUpperCase()}
                     </a>
                   ))}
                 </div>
@@ -764,10 +774,10 @@ const HeroSection = ({
                               </div>
                               <div className="search-item-info">
                                 <span className="search-item-main-name">
-                                  {renderHighlightedText(cat.name, searchQuery)}
+                                  {renderHighlightedText((cat.name || '').toUpperCase(), searchQuery)}
                                 </span>
                                 <span className="search-item-subtext">
-                                  {cat.isMain ? 'Main Category' : (cat.parentName ? `in ${cat.parentName}` : 'Subcategory')}
+                                  {cat.isMain ? 'MAIN CATEGORY' : (cat.parentName ? `IN ${(cat.parentName || '').toUpperCase()}` : 'SUBCATEGORY')}
                                 </span>
                               </div>
                               <ChevronRight size={15} className="search-item-arrow" />
@@ -801,7 +811,7 @@ const HeroSection = ({
                                 </div>
                                 <div className="search-item-info">
                                   <span className="search-item-main-name">
-                                    {renderHighlightedText(b.name, searchQuery)}
+                                    {renderHighlightedText((b.name || '').toUpperCase(), searchQuery)}
                                   </span>
                                   <span className="search-brand-store-tag">Official Brand</span>
                                 </div>
@@ -838,11 +848,11 @@ const HeroSection = ({
                                 </div>
                                 <div className="search-item-info">
                                   <span className="search-prod-name">
-                                    {renderHighlightedText(prod.name, searchQuery)}
+                                    {renderHighlightedText((prod.name || '').toUpperCase(), searchQuery)}
                                   </span>
                                   <div className="search-prod-meta-row">
-                                    {prod.brand && <span className="search-prod-brand-tag">{prod.brand}</span>}
-                                    {prod.category_name && <span className="search-prod-cat-tag">{prod.category_name}</span>}
+                                    {prod.brand && <span className="search-prod-brand-tag">{(prod.brand || '').toUpperCase()}</span>}
+                                    {prod.category_name && <span className="search-prod-cat-tag">{(prod.category_name || '').toUpperCase()}</span>}
                                   </div>
                                 </div>
                                 <div className="search-prod-pricing">
@@ -1118,7 +1128,7 @@ const HeroSection = ({
                             setIsAllCatHovered(false);
                           }}
                         >
-                          {cat.name}
+                          {(cat.name || '').toUpperCase()}
                         </a>
                         
                         {/* Subcategories Vertical List */}
@@ -1133,7 +1143,7 @@ const HeroSection = ({
                                   handleCategoryClick(e, sub, cat);
                                 }}
                               >
-                                <span className="all-cat-sub-name">{sub.name}</span>
+                                <span className="all-cat-sub-name">{(sub.name || '').toUpperCase()}</span>
                                 <ChevronRight size={14} strokeWidth={2} className="all-cat-sub-chevron" />
                               </a>
                             ))
@@ -1146,7 +1156,7 @@ const HeroSection = ({
                                 setIsAllCatHovered(false);
                               }}
                             >
-                              <span className="all-cat-sub-name">View all products</span>
+                              <span className="all-cat-sub-name">VIEW ALL PRODUCTS</span>
                               <ChevronRight size={14} strokeWidth={2} className="all-cat-sub-chevron" />
                             </a>
                           )}
@@ -1187,7 +1197,7 @@ const HeroSection = ({
                   brands.map((b) => (
                     <div key={b.id} className="mega-menu-item">
                       <a href={`/${b.slug || ''}`} onClick={(e) => handleBrandClick(e, b)}>
-                        {b.name}
+                        {(b.name || '').toUpperCase()}
                         {b.is_featured ? <span className="best-seller-tag">FEATURED</span> : null}
                       </a>
                     </div>
@@ -1209,7 +1219,7 @@ const HeroSection = ({
                         href={`#${cat.slug}`}
                         onClick={(e) => handleCategoryClick(e, cat)}
                       >
-                        {cat.name}
+                        {(cat.name || '').toUpperCase()}
                       </a>
                     </div>
                   ))

@@ -181,7 +181,7 @@ const FeaturedProducts = ({ onProductClick }) => {
                 className={`filter-btn ${selectedCategory === category ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(category)}
               >
-                {category}
+                {(category || '').toUpperCase()}
               </button>
             ))}
           </div>
@@ -214,7 +214,7 @@ const FeaturedProducts = ({ onProductClick }) => {
                 </div>
                 
                 <div className="bs-product-details product-details">
-                  <h3 className="bs-product-name product-name">{product.name}</h3>
+                  <h3 className="bs-product-name product-name">{(product.name || '').toUpperCase()}</h3>
                   <div className="bs-product-price-row product-price-row">
                     <p className="bs-product-price product-price">{product.price}</p>
                     <div className="bs-product-qty-selector product-qty-selector" onClick={(e) => e.stopPropagation()}>

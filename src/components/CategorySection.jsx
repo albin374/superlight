@@ -1,67 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './CategorySection.css';
 
-const categories = [
+const DEFAULT_CATEGORIES = [
   { 
     id: 1, 
     name: 'Wires & Cables', 
     image: '/Red Insulated Cable Coil with Exposed Copper Strands.png',
-    path: '/wires-cables'
+    path: '/wires-cables',
+    slug: 'wires-cables'
   },
   { 
     id: 2, 
     name: 'LED Lighting & Special Lamp', 
     image: '/lights.png',
-    path: '/led-lighting-special-lamp'
+    path: '/led-lighting-special-lamp',
+    slug: 'led-lighting-special-lamp'
   },
   { 
     id: 3, 
     name: 'Switches, Sockets & Electrical Accessories', 
     image: '/switch.png',
-    path: '/switches-sockets-electrical-accessories'
+    path: '/switches-sockets-electrical-accessories',
+    slug: 'switches-sockets-electrical-accessories'
   },
   { 
     id: 4, 
     name: 'Switchgear & Control Panel Products', 
     image: '/brakers .png',
-    path: '/switchgear-control-panel-products'
+    path: '/switchgear-control-panel-products',
+    slug: 'switchgear-control-panel-products'
   },
   { 
     id: 5, 
     name: 'Building Materials', 
     image: '/painting.png',
-    path: '/building-materials'
+    path: '/building-materials',
+    slug: 'building-materials'
   },
   { 
     id: 6, 
     name: 'Safety Products', 
     image: '/safety.png',
-    path: '/safety-products'
+    path: '/safety-products',
+    slug: 'safety-products'
   },
   { 
     id: 7, 
     name: 'AC Spair Parts', 
     image: '/ac.png',
-    path: '/ac-spare-parts'
+    path: '/ac-spare-parts',
+    slug: 'ac-spare-parts'
   }
-];
-
-const loopedCategories = [
-  ...categories.map((c) => ({ ...c, uniqueKey: `loop1-${c.id}` })),
-  ...categories.map((c) => ({ ...c, uniqueKey: `loop2-${c.id}` })),
-  ...categories.map((c) => ({ ...c, uniqueKey: `loop3-${c.id}` }))
 ];
 
 const CategorySection = () => {
   const navigate = useNavigate();
-  const [currentIndex, setCurrentIndex] = useState(categories.length);
+  const [categoriesList, setCategoriesList] = useState(DEFAULT_CATEGORIES);
+  const [currentIndex, setCurrentIndex] = useState(DEFAULT_CATEGORIES.length);
   const [withTransition, setWithTransition] = useState(true);
   const [visibleCount, setVisibleCount] = useState(6);
   const [isPaused, setIsPaused] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.categories) && data.categories.length > 0 && isMounted) {
+          const updated = DEFAULT_CATEGORIES.map(def => {
+            const match = data.categories.find(c => 
+              (c.slug && def.slug && c.slug.toLowerCase() === def.slug.toLowerCase()) ||
+              (c.name && def.name && c.name.toLowerCase() === def.name.toLowerCase())
+            );
+            if (match) {
+              return {
+                ...def,
+                name: (match.name || def.name).toUpperCase(),
+                id: match.id || def.id
+              };
+            }
+            return {
+              ...def,
+              name: def.name.toUpperCase()
+            };
+          });
+
+          // Add any newly created main categories from backend
+          data.categories.forEach(c => {
+            const alreadyExists = updated.some(u => 
+              (u.slug && c.slug && u.slug.toLowerCase() === c.slug.toLowerCase()) ||
+              (u.name && c.name && u.name.toLowerCase() === c.name.toLowerCase())
+            );
+            if (!alreadyExists && !c.parent_id) {
+              updated.push({
+                id: c.id,
+                name: (c.name || '').toUpperCase(),
+                image: c.image || c.icon_url || '/prod_downlight_1791451418016.png',
+                path: `/${c.slug || c.id}`,
+                slug: c.slug
+              });
+            }
+          });
+
+          setCategoriesList(updated);
+          setCurrentIndex(updated.length);
+        }
+      })
+      .catch(() => {});
+
+    return () => { isMounted = false; };
+  }, []);
+
+  const loopedCategories = useMemo(() => {
+    if (!categoriesList.length) return [];
+    return [
+      ...categoriesList.map((c) => ({ ...c, uniqueKey: `loop1-${c.id}` })),
+      ...categoriesList.map((c) => ({ ...c, uniqueKey: `loop2-${c.id}` })),
+      ...categoriesList.map((c) => ({ ...c, uniqueKey: `loop3-${c.id}` }))
+    ];
+  }, [categoriesList]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -83,12 +144,13 @@ const CategorySection = () => {
 
   // Seamless infinite loop jump on transition end
   const handleTransitionEnd = () => {
-    if (currentIndex >= categories.length * 2) {
+    const total = categoriesList.length;
+    if (currentIndex >= total * 2) {
       setWithTransition(false);
-      setCurrentIndex((prev) => prev - categories.length);
-    } else if (currentIndex < categories.length) {
+      setCurrentIndex((prev) => prev - total);
+    } else if (currentIndex < total) {
       setWithTransition(false);
-      setCurrentIndex((prev) => prev + categories.length);
+      setCurrentIndex((prev) => prev + total);
     }
   };
 
@@ -212,7 +274,7 @@ const CategorySection = () => {
                     />
                   </div>
                   <div className="card-content">
-                    <h3 className="category-name">{category.name}</h3>
+                    <h3 className="category-name">{(category.name || '').toUpperCase()}</h3>
                   </div>
                 </div>
               </div>

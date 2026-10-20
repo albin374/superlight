@@ -237,13 +237,13 @@ const MyOrdersPage = ({ onProductClick }) => {
                                 onError={(e) => { e.target.onerror = null; e.target.src = '/prod_downlight_1791451418016.png'; }}
                               />
                               <div className="order-item-details">
-                                {item.brand && <div className="order-item-brand">{item.brand}</div>}
+                                {item.brand && <div className="order-item-brand">{(item.brand || '').toUpperCase()}</div>}
                                 <div 
                                   className="order-item-name" 
                                   title={item.name}
                                   onClick={() => handleItemClick(item)}
                                 >
-                                  {item.name}
+                                  {(item.name || '').toUpperCase()}
                                 </div>
                                 <div className="order-item-meta">
                                   <span className="order-meta-qty">Qty: <strong>{qty}</strong></span>

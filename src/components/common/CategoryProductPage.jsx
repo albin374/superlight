@@ -593,7 +593,7 @@ const CategoryProductPage = ({
                         <div className={`cpp-custom-checkbox ${isChecked ? 'checked' : ''}`}>
                           {isChecked && <Check size={12} strokeWidth={3} />}
                         </div>
-                        <span className="cpp-subcat-name">{sub.name}</span>
+                        <span className="cpp-subcat-name">{(sub.name || '').toUpperCase()}</span>
                       </div>
                       <span className="cpp-subcat-count">({sub.count})</span>
                     </div>
@@ -635,7 +635,7 @@ const CategoryProductPage = ({
                       <div className={`cpp-custom-checkbox ${isChecked ? 'checked' : ''}`}>
                         {isChecked && <Check size={12} strokeWidth={3} />}
                       </div>
-                      <span className="cpp-brand-name-label">{b.name}</span>
+                      <span className="cpp-brand-name-label">{(b.name || '').toUpperCase()}</span>
                     </div>
                     <span className="cpp-brand-count">({b.count})</span>
                   </div>
@@ -801,8 +801,8 @@ const CategoryProductPage = ({
 
                     {/* Card Content */}
                     <div className="cpp-card-body">
-                      <span className="cpp-brand-name">{product.brand}</span>
-                      <h3 className="cpp-product-title" title={product.name}>{product.name}</h3>
+                      <span className="cpp-brand-name">{(product.brand || '').toUpperCase()}</span>
+                      <h3 className="cpp-product-title" title={product.name}>{(product.name || '').toUpperCase()}</h3>
 
                       {/* Ratings */}
                       <div className="cpp-rating-row">
@@ -976,7 +976,7 @@ const CategoryProductPage = ({
                             <div className={`cpp-mobile-radio-indicator ${isSelected ? 'checked' : ''}`}>
                               {isSelected && <div className="cpp-mobile-radio-dot" />}
                             </div>
-                            <span className="cpp-mobile-subcat-label">{sub.name}</span>
+                            <span className="cpp-mobile-subcat-label">{(sub.name || '').toUpperCase()}</span>
                           </div>
                           <span className="cpp-mobile-subcat-count">({sub.count})</span>
                         </div>
@@ -1035,7 +1035,7 @@ const CategoryProductPage = ({
                               <div className={`cpp-custom-checkbox ${isChecked ? 'checked' : ''}`}>
                                 {isChecked && <Check size={12} strokeWidth={3} />}
                               </div>
-                              <span className="cpp-brand-name-label">{b.name}</span>
+                              <span className="cpp-brand-name-label">{(b.name || '').toUpperCase()}</span>
                             </div>
                             <span className="cpp-brand-count">({b.count})</span>
                           </div>

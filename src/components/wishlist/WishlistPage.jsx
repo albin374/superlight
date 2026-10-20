@@ -143,9 +143,9 @@ const WishlistPage = ({ onProductClick }) => {
 
                   {/* Card Body */}
                   <div className="wishlist-card-body">
-                    <span className="wishlist-brand">{item.brand || 'Super Light'}</span>
+                    <span className="wishlist-brand">{((item.brand || 'Super Light') || '').toUpperCase()}</span>
                     <h3 className="wishlist-product-name" title={item.name}>
-                      {item.name}
+                      {(item.name || '').toUpperCase()}
                     </h3>
 
                     {/* Price */}

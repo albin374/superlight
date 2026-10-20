@@ -341,7 +341,7 @@ const SearchResultsPage = ({ onProductClick }) => {
                           className="srp-tag-chip srp-brand-chip"
                           onClick={() => navigate(brand.path || getBrandPath(brand))}
                         >
-                          <span>{brand.name}</span>
+                          <span>{(brand.name || '').toUpperCase()}</span>
                         </button>
                       ))}
                     </div>
@@ -447,7 +447,7 @@ const SearchResultsPage = ({ onProductClick }) => {
                         checked={selectedBrand === brand} 
                         onChange={() => setSelectedBrand(brand)} 
                       />
-                      <span>{brand}</span>
+                      <span>{(brand || '').toUpperCase()}</span>
                     </label>
                   ))}
                 </div>
@@ -565,17 +565,17 @@ const SearchResultsPage = ({ onProductClick }) => {
                         <Heart size={16} fill={inWishlist ? '#e6005c' : 'none'} color={inWishlist ? '#e6005c' : '#475569'} />
                       </button>
                       {product.brand && (
-                        <span className="srp-card-brand-badge">{product.brand}</span>
+                        <span className="srp-card-brand-badge">{(product.brand || '').toUpperCase()}</span>
                       )}
                     </div>
 
                     <div className="srp-card-details">
                       {product.category_name && (
-                        <span className="srp-card-category">{product.category_name}</span>
+                        <span className="srp-card-category">{(product.category_name || '').toUpperCase()}</span>
                       )}
 
                       <h3 className="srp-card-title">
-                        {renderHighlightedText(product.name, query)}
+                        {renderHighlightedText((product.name || '').toUpperCase(), query)}
                       </h3>
 
                       <div className="srp-card-rating">

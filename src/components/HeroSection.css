@@ -297,6 +297,18 @@
   margin-top: 2px;
 }
 
+.search-category-item .search-item-main-name,
+.search-brand-item .search-item-main-name {
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+}
+
+.search-category-item .search-item-subtext {
+  text-transform: uppercase !important;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+}
+
 .search-prod-name {
   font-size: 13px;
   font-weight: 600;
@@ -305,6 +317,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase !important;
 }
 
 .search-prod-meta-row {
@@ -1008,16 +1021,19 @@ mark.search-highlight {
   text-decoration: none;
   color: #334155 !important;
   font-size: 13.5px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   line-height: 1.4;
   transition: all 0.18s ease;
   cursor: pointer;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px;
 }
 
 .all-cat-sub-name {
   white-space: normal;
   word-break: break-word;
   padding-right: 8px;
+  text-transform: uppercase !important;
 }
 
 .all-cat-sub-chevron {
@@ -1172,6 +1188,12 @@ mark.search-highlight {
   font-size: 14.5px;
   line-height: 1.35;
   transition: color 0.18s ease;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px;
+}
+
+.mega-menu-item a {
+  text-transform: uppercase !important;
 }
 
 .dropdown-menu.mega-menu a:hover {

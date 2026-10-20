@@ -194,13 +194,13 @@ _Order recorded & submitted via Super Light Online Store_`;
                           />
                         </div>
                         <div className="cart-product-info">
-                          <span className="cart-product-brand">{item.brand}</span>
+                          <span className="cart-product-brand">{(item.brand || '').toUpperCase()}</span>
                           <h4 
                             className="cart-product-name"
                             onClick={() => handleProductClick(item)}
                             title={item.name}
                           >
-                            {item.name}
+                            {(item.name || '').toUpperCase()}
                           </h4>
                         </div>
                       </div>

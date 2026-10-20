@@ -121,10 +121,12 @@
 .bs-product-name {
   color: #4a5568;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   margin: 0 0 16px 0;
   line-height: 1.4;
   flex: 1;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px;
 }
 
 .bs-product-price-row {

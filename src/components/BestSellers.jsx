@@ -176,7 +176,7 @@ const BestSellers = ({ onProductClick }) => {
                 </div>
 
                 <div className="bs-product-details">
-                  <h3 className="bs-product-name">{product.name}</h3>
+                  <h3 className="bs-product-name">{(product.name || '').toUpperCase()}</h3>
                   <div className="bs-product-price-row">
                     <p className="bs-product-price">{product.price}</p>
                     <div className="bs-product-qty-selector" onClick={(e) => e.stopPropagation()}>

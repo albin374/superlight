@@ -111,6 +111,11 @@
   border-radius: 8px;
 }
 
+.cpp-brand-name-label {
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px;
+}
+
 .cpp-brand-item.active-brand .cpp-brand-name-label {
   color: #e6005c !important;
   font-weight: 700 !important;
