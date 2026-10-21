@@ -75,7 +75,7 @@ const MyOrdersPage = ({ onProductClick }) => {
   const totalOrders = orders.length;
   const pendingCount = orders.filter(o => o.status === 'Pending').length;
   const processingCount = orders.filter(o => o.status === 'Processing').length;
-  const completedCount = orders.filter(o => o.status === 'Completed').length;
+  const deliveredCount = orders.filter(o => o.status === 'Delivered' || o.status === 'Completed').length;
 
   return (
     <div className="my-orders-page">
@@ -146,12 +146,12 @@ const MyOrdersPage = ({ onProductClick }) => {
             </div>
 
             <div className="order-stat-card">
-              <div className="order-stat-icon completed">
+              <div className="order-stat-icon delivered">
                 <CheckCircle2 size={22} />
               </div>
               <div className="order-stat-info">
-                <div className="stat-value">{completedCount}</div>
-                <div className="stat-label">Completed / Delivered</div>
+                <div className="stat-value">{deliveredCount}</div>
+                <div className="stat-label">Delivered</div>
               </div>
             </div>
           </div>
@@ -205,9 +205,9 @@ const MyOrdersPage = ({ onProductClick }) => {
                       <span className={`order-status-chip ${statusKey}`}>
                         {statusKey === 'pending' && <Clock size={13} />}
                         {statusKey === 'processing' && <RotateCw size={13} />}
-                        {statusKey === 'completed' && <CheckCircle2 size={13} />}
+                        {(statusKey === 'completed' || statusKey === 'delivered') && <CheckCircle2 size={13} />}
                         {statusKey === 'cancelled' && <XCircle size={13} />}
-                        {order.status || 'Pending'}
+                        {order.status === 'Completed' ? 'Delivered' : (order.status || 'Pending')}
                       </span>
                     </div>
                   </div>

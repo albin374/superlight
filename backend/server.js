@@ -28,6 +28,13 @@ const app = express();
 // Initialize SQL database
 await initDatabase();
 
+// Auto-migrate legacy 'Completed' order statuses to 'Delivered'
+try {
+  await db.prepare("UPDATE orders SET status = 'Delivered' WHERE status = 'Completed'").run();
+} catch (e) {
+  // Ignored if table not created yet or already migrated
+}
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
@@ -630,6 +637,7 @@ app.get('/api/admin/users/:id', authenticateToken, async (req, res) => {
 
         orders = (rawOrders || []).map(ord => ({
           ...ord,
+          status: ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending'),
           total_amount: Number(ord.total_amount || 0),
           items: ord.items_json ? (typeof ord.items_json === 'string' ? JSON.parse(ord.items_json) : ord.items_json) : []
         }));
@@ -718,6 +726,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 
     const formattedRecentOrders = recentOrders.map(ord => ({
       ...ord,
+      status: ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending'),
       total_amount: Number(ord.total_amount || 0)
     }));
 
@@ -1716,6 +1725,7 @@ app.post('/api/orders/lookup', async (req, res) => {
 
     const formatted = orders.map(o => ({
       ...o,
+      status: o.status === 'Completed' ? 'Delivered' : (o.status || 'Pending'),
       total_amount: Number(o.total_amount || 0),
       items: o.items_json ? JSON.parse(o.items_json) : []
     }));
@@ -1732,6 +1742,7 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
     const orders = await db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
     const formattedOrders = orders.map(ord => ({
       ...ord,
+      status: ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending'),
       total_amount: Number(ord.total_amount || 0),
       items: ord.items_json ? JSON.parse(ord.items_json) : []
     }));
@@ -1747,15 +1758,17 @@ app.put('/api/orders/:id/status', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+    const validStatuses = ['Pending', 'Processing', 'Delivered', 'Cancelled', 'Completed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid order status.' });
     }
 
-    await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
-    await logActivity(req.user.id, 'Updated Order Status', `Order ID ${id} marked as ${status}`);
+    const finalStatus = status === 'Completed' ? 'Delivered' : status;
 
-    res.json({ success: true, message: `Order status updated to ${status}.` });
+    await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(finalStatus, id);
+    await logActivity(req.user.id, 'Updated Order Status', `Order ID ${id} marked as ${finalStatus}`);
+
+    res.json({ success: true, message: `Order status updated to ${finalStatus}.` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

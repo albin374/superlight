@@ -454,15 +454,18 @@ async function loadDashboardStats() {
       if (stats.recentOrders.length === 0) {
         ordersTbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No orders recorded yet.</td></tr>`;
       } else {
-        ordersTbody.innerHTML = stats.recentOrders.map(ord => `
+        ordersTbody.innerHTML = stats.recentOrders.map(ord => {
+          const displayStatus = ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending');
+          return `
           <tr>
             <td><strong>${ord.order_number}</strong></td>
             <td>${escapeHtml(ord.customer_name || 'Customer')}</td>
             <td><strong>AED ${Number(ord.total_amount || 0).toFixed(2)}</strong></td>
-            <td><span class="status-chip ${(ord.status || 'pending').toLowerCase()}">${ord.status || 'Pending'}</span></td>
+            <td><span class="status-chip ${displayStatus.toLowerCase()}">${displayStatus}</span></td>
             <td>${ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'N/A'}</td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 
@@ -2304,7 +2307,13 @@ function filterOrders(resetPage = true) {
   let filtered = allOrders;
   if (query || statusFilter) {
     filtered = allOrders.filter(o => {
-      if (statusFilter && o.status !== statusFilter) return false;
+      if (statusFilter) {
+        if (statusFilter === 'Delivered') {
+          if (o.status !== 'Delivered' && o.status !== 'Completed') return false;
+        } else if (o.status !== statusFilter) {
+          return false;
+        }
+      }
       if (query) {
         const orderNum = (o.order_number || '').toLowerCase();
         const customer = (o.customer_name || '').toLowerCase();
@@ -2364,13 +2373,13 @@ function renderOrdersTable(ordersList) {
         <select class="filter-select" style="padding:4px 8px; font-size:12px;" onchange="updateOrderStatus(${o.id}, this.value)">
           <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
           <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
-          <option value="Completed" ${o.status === 'Completed' ? 'selected' : ''}>Completed</option>
+          <option value="Delivered" ${o.status === 'Delivered' || o.status === 'Completed' ? 'selected' : ''}>Delivered</option>
           <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
         </select>
       </td>
       <td>${new Date(o.created_at).toLocaleDateString()}</td>
       <td>
-        <span class="status-chip ${o.status.toLowerCase()}">${o.status}</span>
+        <span class="status-chip ${(o.status === 'Completed' ? 'delivered' : (o.status || 'pending')).toLowerCase()}">${escapeHtml(o.status === 'Completed' ? 'Delivered' : (o.status || 'Pending'))}</span>
       </td>
     </tr>
   `).join('');
@@ -2641,14 +2650,17 @@ async function viewUserDetails(userId) {
       if (!u.orders || u.orders.length === 0) {
         ordersTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted" style="padding: 14px;">No procurement orders placed yet.</td></tr>`;
       } else {
-        ordersTbody.innerHTML = u.orders.map(o => `
+        ordersTbody.innerHTML = u.orders.map(o => {
+          const displayStatus = o.status === 'Completed' ? 'Delivered' : (o.status || 'Pending');
+          return `
           <tr>
             <td style="padding: 8px 12px;"><strong>${escapeHtml(o.order_number)}</strong></td>
             <td style="padding: 8px 12px;">${o.created_at ? new Date(o.created_at).toLocaleDateString() : 'N/A'}</td>
             <td style="padding: 8px 12px;"><strong>AED ${Number(o.total_amount || 0).toFixed(2)}</strong></td>
-            <td style="padding: 8px 12px;"><span class="status-chip ${(o.status || 'pending').toLowerCase()}">${escapeHtml(o.status || 'Pending')}</span></td>
+            <td style="padding: 8px 12px;"><span class="status-chip ${displayStatus.toLowerCase()}">${escapeHtml(displayStatus)}</span></td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 

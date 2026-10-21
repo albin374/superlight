@@ -133,7 +133,8 @@
 .order-stat-icon.total { background: #f1f5f9; color: #475569; }
 .order-stat-icon.pending { background: #fef3c7; color: #d97706; }
 .order-stat-icon.processing { background: #e0f2fe; color: #0284c7; }
-.order-stat-icon.completed { background: #dcfce7; color: #16a34a; }
+.order-stat-icon.completed,
+.order-stat-icon.delivered { background: #dcfce7; color: #16a34a; }
 
 .order-stat-info .stat-value {
   font-size: 22px;
@@ -223,7 +224,8 @@
   border: 1px solid #bae6fd;
 }
 
-.order-status-chip.completed {
+.order-status-chip.completed,
+.order-status-chip.delivered {
   background: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
