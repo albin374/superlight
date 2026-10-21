@@ -2437,12 +2437,12 @@ async function loadUsers() {
 
       filterUsers(false);
     } else {
-      if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">${escapeHtml(data.message || 'Failed to load users.')}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">${escapeHtml(data.message || 'Failed to load users.')}</td></tr>`;
       renderPaginationFooter('users', 0);
     }
   } catch (err) {
     console.error('Error loading registered users:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Error loading registered users: ${escapeHtml(err.message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Error loading registered users: ${escapeHtml(err.message)}</td></tr>`;
     renderPaginationFooter('users', 0);
   }
 }
@@ -2494,7 +2494,7 @@ function renderUsersTable(users) {
   if (!tbody) return;
 
   if (!users || users.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding: 26px;">No registered users match your criteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 26px;">No registered users match your criteria.</td></tr>`;
     renderPaginationFooter('users', 0);
     return;
   }
@@ -2546,10 +2546,6 @@ function renderUsersTable(users) {
         </td>
         <td>
           ${authBadge}
-        </td>
-        <td>
-          <div style="font-weight: 600;">${u.order_count} order${u.order_count === 1 ? '' : 's'}</div>
-          <div class="text-muted" style="font-size: 11.5px;">AED ${Number(u.total_spent || 0).toFixed(2)}</div>
         </td>
         <td>
           <div>${formattedDate}</div>
