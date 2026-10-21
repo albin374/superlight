@@ -562,31 +562,37 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
       ORDER BY id DESC
     `).all();
 
-    // Safely collect order count and spend per user by customer_email without cross-collation joins
-    let orderMap = {};
+    // Aggregate orders & spend dynamically by user_id, email, phone digits, or customer name
+    let allOrders = [];
     try {
-      const orderStats = await db.prepare(`
-        SELECT customer_email, count(*) as count, sum(total_amount) as total 
-        FROM orders 
-        WHERE customer_email IS NOT NULL AND customer_email != ''
-        GROUP BY customer_email
+      allOrders = await db.prepare(`
+        SELECT id, order_number, customer_name, customer_email, customer_phone, total_amount, status, user_id 
+        FROM orders
       `).all();
-
-      (orderStats || []).forEach(o => {
-        if (o.customer_email) {
-          orderMap[o.customer_email.trim().toLowerCase()] = {
-            count: Number(o.count || 0),
-            total: Number(o.total || 0)
-          };
-        }
-      });
     } catch (orderErr) {
-      console.warn('Could not aggregate user order stats:', orderErr.message);
+      console.warn('Could not fetch orders for user stats:', orderErr.message);
     }
 
     const formattedUsers = (users || []).map(u => {
-      const emailKey = (u.email || '').trim().toLowerCase();
-      const stats = orderMap[emailKey] || { count: 0, total: 0 };
+      const uEmail = (u.email || '').toLowerCase().trim();
+      const uPhoneDigits = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const uName = (u.name || '').toLowerCase().trim();
+
+      const matchedOrders = allOrders.filter(o => {
+        if (o.user_id && Number(o.user_id) === Number(u.id)) return true;
+        const oEmail = (o.customer_email || '').toLowerCase().trim();
+        if (uEmail && oEmail && oEmail === uEmail) return true;
+        const oPhoneDigits = (o.customer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+        if (uPhoneDigits && uPhoneDigits.length >= 7) {
+          if (oPhoneDigits && (oPhoneDigits === uPhoneDigits || oPhoneDigits.endsWith(uPhoneDigits) || uPhoneDigits.endsWith(oPhoneDigits))) return true;
+          if (oEmail.includes(uPhoneDigits)) return true;
+        }
+        if (uName && uName.length >= 3 && (o.customer_name || '').toLowerCase().trim() === uName) return true;
+        return false;
+      });
+
+      const totalSpent = matchedOrders.reduce((sum, ord) => sum + (ord.status !== 'Cancelled' ? Number(ord.total_amount || 0) : 0), 0);
+
       return {
         id: u.id,
         username: u.username,
@@ -597,8 +603,8 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
         role: u.role || 'customer',
         google_id: u.google_id || null,
         auth_provider: u.google_id ? 'google' : 'email',
-        order_count: stats.count,
-        total_spent: Number(stats.total.toFixed(2)),
+        order_count: matchedOrders.length,
+        total_spent: Number(totalSpent.toFixed(2)),
         created_at: u.created_at,
         updated_at: u.updated_at
       };
@@ -626,24 +632,50 @@ app.get('/api/admin/users/:id', authenticateToken, async (req, res) => {
     }
 
     let orders = [];
-    if (user.email) {
-      try {
-        const rawOrders = await db.prepare(`
-          SELECT id, order_number, customer_name, customer_email, customer_phone, total_amount, status, items_json, delivery_location, notes, order_source, created_at 
-          FROM orders 
-          WHERE LOWER(customer_email) = ? 
-          ORDER BY id DESC
-        `).all(user.email.trim().toLowerCase());
+    try {
+      const uPhoneDigits = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const uEmail = (user.email || '').toLowerCase().trim();
+      const uName = (user.name || '').toLowerCase().trim();
 
-        orders = (rawOrders || []).map(ord => ({
-          ...ord,
-          status: ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending'),
-          total_amount: Number(ord.total_amount || 0),
-          items: ord.items_json ? (typeof ord.items_json === 'string' ? JSON.parse(ord.items_json) : ord.items_json) : []
-        }));
-      } catch (ordErr) {
-        console.warn('Error fetching orders for user:', ordErr.message);
+      let conditions = ['(user_id = ?)'];
+      let params = [user.id];
+
+      if (uEmail) {
+        conditions.push('(LOWER(customer_email) = ?)');
+        params.push(uEmail);
       }
+      if (uPhoneDigits && uPhoneDigits.length >= 7) {
+        conditions.push('(customer_phone LIKE ? OR customer_email LIKE ?)');
+        params.push(`%${uPhoneDigits}%`, `%${uPhoneDigits}%`);
+      }
+      if (uName && uName.length >= 3) {
+        conditions.push('(LOWER(TRIM(customer_name)) = ?)');
+        params.push(uName);
+      }
+
+      const sql = `
+        SELECT id, order_number, customer_name, customer_email, customer_phone, total_amount, status, items_json, delivery_location, notes, order_source, created_at, user_id 
+        FROM orders 
+        WHERE ${conditions.join(' OR ')} 
+        ORDER BY id DESC
+      `;
+
+      const rawOrders = await db.prepare(sql).all(...params);
+
+      // De-duplicate orders by id
+      const seenOrderIds = new Set();
+      orders = (rawOrders || []).filter(ord => {
+        if (seenOrderIds.has(ord.id)) return false;
+        seenOrderIds.add(ord.id);
+        return true;
+      }).map(ord => ({
+        ...ord,
+        status: ord.status === 'Completed' ? 'Delivered' : (ord.status || 'Pending'),
+        total_amount: Number(ord.total_amount || 0),
+        items: ord.items_json ? (typeof ord.items_json === 'string' ? JSON.parse(ord.items_json) : ord.items_json) : []
+      }));
+    } catch (ordErr) {
+      console.warn('Error fetching orders for user:', ordErr.message);
     }
 
     const totalSpent = orders.reduce((sum, ord) => sum + (ord.status !== 'Cancelled' ? ord.total_amount : 0), 0);
@@ -1626,14 +1658,57 @@ app.post('/api/orders', async (req, res) => {
       total_amount,
       items,
       status = 'Pending',
-      order_source = 'WhatsApp'
+      order_source = 'WhatsApp',
+      user_id
     } = req.body;
 
     const cleanName = (customer_name && customer_name.trim()) ? customer_name.trim() : 'Customer';
     const cleanPhone = (customer_phone && customer_phone.trim()) ? customer_phone.trim() : '';
-    const cleanEmail = (customer_email && customer_email.trim())
+
+    let resolvedUserId = user_id ? Number(user_id) : null;
+    let resolvedEmail = (customer_email && customer_email.trim() && !customer_email.includes('@whatsapp.customer'))
       ? customer_email.trim()
-      : (cleanPhone ? `${cleanPhone.replace(/[^0-9]/g, '')}@whatsapp.customer` : 'whatsapp-order@superlight.ae');
+      : null;
+
+    // Check auth token if available
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded && decoded.id) {
+          resolvedUserId = resolvedUserId || decoded.id;
+          resolvedEmail = resolvedEmail || decoded.email;
+        }
+      } catch (e) {}
+    }
+
+    // If we have resolvedUserId, try to look up user to fill email & phone
+    if (resolvedUserId) {
+      try {
+        const userRow = await db.prepare('SELECT id, email, phone FROM users WHERE id = ?').get(resolvedUserId);
+        if (userRow) {
+          if (!resolvedEmail && userRow.email) resolvedEmail = userRow.email;
+          if (cleanPhone && (!userRow.phone || !userRow.phone.trim())) {
+            await db.prepare('UPDATE users SET phone = ? WHERE id = ?').run(cleanPhone, resolvedUserId);
+          }
+        }
+      } catch (uErr) {}
+    } else if (cleanPhone) {
+      // Try to find user by phone
+      try {
+        const phoneDigits = cleanPhone.replace(/[^0-9]/g, '').slice(-10);
+        if (phoneDigits.length >= 7) {
+          const userByPhone = await db.prepare('SELECT id, email FROM users WHERE phone LIKE ? LIMIT 1').get(`%${phoneDigits}%`);
+          if (userByPhone) {
+            resolvedUserId = userByPhone.id;
+            if (!resolvedEmail && userByPhone.email) resolvedEmail = userByPhone.email;
+          }
+        }
+      } catch (pErr) {}
+    }
+
+    const cleanEmail = resolvedEmail || (customer_email && customer_email.trim()) || (cleanPhone ? `${cleanPhone.replace(/[^0-9]/g, '')}@whatsapp.customer` : 'whatsapp-order@superlight.ae');
     const cleanLocation = (delivery_location && delivery_location.trim()) ? delivery_location.trim() : '';
     const cleanNotes = (notes && notes.trim()) ? notes.trim() : '';
     const numTotal = typeof total_amount === 'number'
@@ -1658,9 +1733,9 @@ app.post('/api/orders', async (req, res) => {
     const result = await db.prepare(`
       INSERT INTO orders (
         order_number, customer_name, customer_email, customer_phone,
-        total_amount, status, items_json, delivery_location, notes, order_source
+        total_amount, status, items_json, delivery_location, notes, order_source, user_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       finalOrderNumber,
       cleanName,
@@ -1671,7 +1746,8 @@ app.post('/api/orders', async (req, res) => {
       itemsJson,
       cleanLocation,
       cleanNotes,
-      order_source
+      order_source,
+      resolvedUserId
     );
 
     const orderId = Number(result.lastInsertRowid);

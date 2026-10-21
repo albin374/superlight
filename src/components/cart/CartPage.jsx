@@ -67,8 +67,10 @@ const CartPage = ({ onProductClick }) => {
     // 1. Record order in backend DB & customer local orders
     createOrder({
       order_number: orderNumber,
-      customer_name: customerName.trim() || 'WhatsApp Customer',
+      customer_name: customerName.trim() || user?.name || user?.username || 'WhatsApp Customer',
+      customer_email: user?.email || '',
       customer_phone: customerPhone.trim(),
+      user_id: user?.id || null,
       delivery_location: deliveryLocation.trim(),
       notes: notes.trim(),
       total_amount: orderTotal,

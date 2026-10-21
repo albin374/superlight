@@ -96,9 +96,13 @@ export const ShopProvider = ({ children }) => {
     };
 
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(finalPayload)
       });
       if (res.ok) {

@@ -146,6 +146,16 @@ if (isMySQLConfigured) {
             await pool.query("ALTER TABLE products MODIFY COLUMN brand VARCHAR(100) NULL DEFAULT ''");
           }
         } catch (bErr) {}
+
+        // Ensure orders.user_id exists
+        try {
+          const [oCols] = await pool.query('SHOW COLUMNS FROM orders');
+          const oNames = oCols.map(c => c.Field);
+          if (!oNames.includes('user_id')) {
+            await pool.query('ALTER TABLE `orders` ADD COLUMN user_id INT NULL DEFAULT NULL');
+            console.log(' [Aiven MySQL] Added user_id column to orders');
+          }
+        } catch (oErr) {}
       } catch (colErr) {
         console.warn('⚠️ [Aiven MySQL] Column check notice:', colErr.message);
       }
@@ -231,6 +241,14 @@ if (isMySQLConfigured) {
           }
         } catch (te) {}
       }
+
+      try {
+        const oCols = sqliteDb.prepare("PRAGMA table_info('orders')").all();
+        const oNames = oCols.map(c => c.name);
+        if (oNames.length > 0 && !oNames.includes('user_id')) {
+          sqliteDb.exec('ALTER TABLE `orders` ADD COLUMN user_id INTEGER;');
+        }
+      } catch (oe) {}
     } catch (e) {}
     console.log('[SQLite] Local database initialized with uploaded_files and users tables.');
   };
