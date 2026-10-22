@@ -6,68 +6,11 @@ import WhatsAppOrderModal, { WhatsAppIcon } from './common/WhatsAppOrderModal';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 
-const DEFAULT_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Philips LED Downlight 15W Round (Cool White)',
-    price: 'AED 35.00',
-    image: '/prod_downlight_1791451418016.png',
-    brand: 'PHILIPS',
-    category_slug: 'led-lighting-special-lamp',
-    category_name: 'LED Lighting & Special Lamp',
-    subcategory_slug: 'down-lights',
-    subcategory_name: 'Down Lights'
-  },
-  {
-    id: 2,
-    name: 'Ducab Electrical Cable 3 Core 2.5mm (100m)',
-    price: 'AED 320.00',
-    image: '/prod_cable_1791451428788.png',
-    brand: 'DUCAB',
-    category_slug: 'wires-cables',
-    category_name: 'Wires & Cables',
-    subcategory_slug: 'building-wires',
-    subcategory_name: 'Building Wires'
-  },
-  {
-    id: 3,
-    name: 'Legrand 13A Switch Socket White',
-    price: 'AED 18.00',
-    image: '/prod_socket_1791451439423.png',
-    brand: 'LEGRAND',
-    category_slug: 'switches-sockets-electrical-accessories',
-    category_name: 'Switches, Sockets & Electrical Accessories',
-    subcategory_slug: 'power-sockets-outlets',
-    subcategory_name: 'Power Sockets & Outlets'
-  },
-  {
-    id: 4,
-    name: 'Schneider MCB 63A 1P',
-    price: 'AED 25.00',
-    image: '/prod_mcb_1791451449276.png',
-    brand: 'SCHNEIDER',
-    category_slug: 'switchgear-control-panel-products',
-    category_name: 'Switchgear & Control Panel Products',
-    subcategory_slug: 'mcb',
-    subcategory_name: 'MCB'
-  },
-  {
-    id: 5,
-    name: 'LED Flood Light 100W IP65 (Outdoor)',
-    price: 'AED 120.00',
-    image: '/prod_floodlight_1791451459906.png',
-    brand: 'PHILIPS',
-    category_slug: 'led-lighting-special-lamp',
-    category_name: 'LED Lighting & Special Lamp',
-    subcategory_slug: 'flood-lights',
-    subcategory_name: 'Flood Lights'
-  }
-];
-
 const categories = ['All', 'Lighting', 'Switches', 'Cables', 'Electrical Equipment', 'Tools'];
 
 const FeaturedProducts = ({ onProductClick }) => {
   const [dbProducts, setDbProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [waProduct, setWaProduct] = useState(null);
   const [quantities, setQuantities] = useState({});
@@ -87,10 +30,11 @@ const FeaturedProducts = ({ onProductClick }) => {
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        if (data.success && Array.isArray(data.products) && data.products.length > 0 && isMounted) {
+        if (data.success && Array.isArray(data.products) && isMounted) {
           const formatted = data.products.map(p => {
             const pPrice = typeof p.price === 'number' ? `AED ${p.price.toFixed(2)}` : p.price;
             const mainImg = (Array.isArray(p.images) && p.images.length > 0) ? p.images[0] : (p.image || '/prod_downlight_1791451418016.png');
@@ -119,21 +63,22 @@ const FeaturedProducts = ({ onProductClick }) => {
           setDbProducts(formatted);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
     return () => { isMounted = false; };
   }, []);
 
   const displayedProducts = useMemo(() => {
-    let pool = dbProducts.length > 0 ? dbProducts : DEFAULT_PRODUCTS;
-    
-    if (dbProducts.length > 0) {
-      const featuredOnly = dbProducts.filter(p => p.is_featured);
-      if (featuredOnly.length > 0) {
-        pool = featuredOnly;
-      }
+    if (dbProducts.length === 0) return [];
+
+    let pool = dbProducts.filter(p => p.is_featured);
+    if (pool.length === 0) {
+      pool = dbProducts;
     }
 
-    // Sort latest featured product first by first (highest/newest ID first)
+    // Sort latest featured product first (highest/newest ID first)
     pool = [...pool].sort((a, b) => {
       const idA = typeof a.realId === 'number' ? a.realId : (typeof a.id === 'number' ? a.id : 0);
       const idB = typeof b.realId === 'number' ? b.realId : (typeof b.id === 'number' ? b.id : 0);
@@ -147,13 +92,13 @@ const FeaturedProducts = ({ onProductClick }) => {
 
     const catLower = selectedCategory.toLowerCase();
     const filtered = pool.filter(p => {
-      const cat = (p.category_name || p.category || '').toLowerCase();
+      const cat = (p.category_name || p.category || p.category_slug || '').toLowerCase();
       const name = (p.name || '').toLowerCase();
-      if (catLower === 'lighting') return cat.includes('light') || name.includes('light') || name.includes('lamp');
+      if (catLower === 'lighting') return cat.includes('light') || cat.includes('lamp') || name.includes('light') || name.includes('lamp');
       if (catLower === 'switches') return cat.includes('switch') || cat.includes('socket') || name.includes('switch') || name.includes('socket');
       if (catLower === 'cables') return cat.includes('cable') || cat.includes('wire') || name.includes('cable') || name.includes('wire');
-      if (catLower.includes('equipment') || catLower.includes('electrical')) return cat.includes('switchgear') || name.includes('mcb') || name.includes('breaker');
-      if (catLower === 'tools') return cat.includes('tool') || name.includes('tester') || name.includes('drill');
+      if (catLower.includes('equipment') || catLower.includes('electrical')) return cat.includes('switchgear') || cat.includes('control') || name.includes('mcb') || name.includes('breaker');
+      if (catLower === 'tools') return cat.includes('tool') || cat.includes('hardware') || name.includes('tester') || name.includes('drill');
       return true;
     });
 
@@ -188,7 +133,16 @@ const FeaturedProducts = ({ onProductClick }) => {
         </div>
 
         <div className="products-grid">
-          {displayedProducts.map(product => {
+          {isLoading ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: '14px' }}>
+              Loading products...
+            </div>
+          ) : displayedProducts.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: '14px' }}>
+              No featured products found.
+            </div>
+          ) : (
+            displayedProducts.map(product => {
             const isFavorited = isInWishlist(product.id);
 
             return (
@@ -269,7 +223,7 @@ const FeaturedProducts = ({ onProductClick }) => {
                 </div>
             </div>
             );
-          })}
+          }))}
         </div>
 
       </div>
