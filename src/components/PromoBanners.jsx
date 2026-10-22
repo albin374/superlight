@@ -30,16 +30,26 @@ const PromoBanners = () => {
         {/* Banner 2 */}
         <div 
           className="promo-banner"
-          style={{ backgroundImage: 'url("/Digital Multimeter and Electrical Tools.png")' }}
+          style={{ 
+            backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.45) 0%, transparent 35%), url("/Industrial Safety Gear Still Life.png")',
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate('/safety-products')}
         >
           <div className="promo-content">
-            <h4 className="promo-subtitle">TOOLS & HARDWARE</h4>
-            <h2 className="promo-title">Power Tools for<br/>Professionals.</h2>
+            <h4 className="promo-subtitle">SAFETY PRODUCTS</h4>
+            <h2 className="promo-title">Safety Equipment for<br/>Professionals.</h2>
             <p className="promo-desc">
-              Durable and reliable tools for construction and electrical work.
+              Certified protective gear, high-visibility apparel,<br/>and worksite safety essentials.
             </p>
-            <button className="promo-btn">
-              Shop Tools <ArrowRight size={16} />
+            <button 
+              className="promo-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/safety-products');
+              }}
+            >
+              Shop Safety Products <ArrowRight size={16} />
             </button>
           </div>
         </div>
