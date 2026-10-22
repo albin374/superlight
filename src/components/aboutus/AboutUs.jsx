@@ -78,8 +78,8 @@ const AboutUs = () => {
           <div className="about-us-visual">
             <div className="about-showroom-card">
               <img 
-                src="/Super Light Electrical Showroom Lobby.png" 
-                alt="Super Light Electrical Showroom Lobby" 
+                src="/Modern Superlight Electrical Showroom.png" 
+                alt="Modern Superlight Electrical Showroom" 
                 className="about-showroom-img" 
               />
             </div>

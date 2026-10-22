@@ -46,7 +46,6 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
               <li><a href="#home-automation" onClick={(e) => { e.preventDefault(); goToHomeAutomation && goToHomeAutomation(); }}>Home Automation</a></li>
               <li><a href="#tools-hardware" onClick={(e) => { e.preventDefault(); goToAdhesivesToolsHardware && goToAdhesivesToolsHardware(); }}>Tools & Hardware</a></li>
               <li><a href="#plumbing-materials" onClick={(e) => { e.preventDefault(); goToPlumbingMaterials && goToPlumbingMaterials(); }}>Plumbing Materials</a></li>
-              <li><a href="#">Offers</a></li>
             </ul>
           </div>
 
@@ -57,7 +56,6 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
               <li><a href="/about-us">About Us</a></li>
               <li><a href="/faqs">FAQ</a></li>
               <li><a href="/contact-us">Contact Us</a></li>
-              <li><a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">Parent Company (Cables House)</a></li>
               <li><a href="/my-orders">Track Order / My Orders</a></li>
             </ul>
           </div>
@@ -70,8 +68,6 @@ const Footer = ({ goToCompanyOverview, goToAdhesivesToolsHardware, goToElectrica
               <li><a href="/my-orders">My Orders</a></li>
               <li><a href="/contact-us">Contact Us</a></li>
               <li><a href="/faqs">Help & Support</a></li>
-              <li><a href="#">Terms & Conditions</a></li>
-              <li><a href="#">Privacy Policy</a></li>
             </ul>
           </div>
 

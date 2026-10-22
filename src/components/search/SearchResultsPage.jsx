@@ -238,8 +238,22 @@ const SearchResultsPage = ({ onProductClick }) => {
       if (p.brand) brs.add(p.brand);
     });
 
+    const getCatRank = (name) => {
+      const lower = String(name || '').toLowerCase();
+      if (lower.includes('lighting')) return 1;
+      if (lower.includes('wire') || lower.includes('cable')) return 2;
+      return 100;
+    };
+
+    const sortedCats = Array.from(cats).sort((a, b) => {
+      const rA = getCatRank(a);
+      const rB = getCatRank(b);
+      if (rA !== rB) return rA - rB;
+      return String(a).localeCompare(String(b));
+    });
+
     return {
-      categories: Array.from(cats),
+      categories: sortedCats,
       brands: Array.from(brs)
     };
   }, [searchMatchedProducts]);

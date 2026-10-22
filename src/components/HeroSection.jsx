@@ -129,7 +129,22 @@ const HeroSection = ({
       .then(res => (res && res.ok ? res.json() : null))
       .then(cData => {
         if (cData && cData.success && Array.isArray(cData.categories) && isMounted) {
-          const normalized = cData.categories.map(c => ({
+          const getCatRank = (cat) => {
+            const slug = (cat.slug || '').toLowerCase();
+            const name = (cat.name || '').toLowerCase();
+            if (slug.includes('lighting') || name.includes('lighting') || Number(cat.id) === 8) return 1;
+            if (slug.includes('wire') || name.includes('wire') || (name.includes('cable') && !name.includes('management')) || Number(cat.id) === 5) return 2;
+            return 100;
+          };
+
+          const sortedCats = [...cData.categories].sort((a, b) => {
+            const rA = getCatRank(a);
+            const rB = getCatRank(b);
+            if (rA !== rB) return rA - rB;
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+          });
+
+          const normalized = sortedCats.map(c => ({
             ...c,
             name: (c.name || '').toUpperCase(),
             subcategories: (c.subcategories || []).map(s => ({
@@ -452,7 +467,7 @@ const HeroSection = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const slides = [
+  const defaultSlides = [
     { 
       id: 1, 
       desktopImage: '/home page banner 1.png',
@@ -464,18 +479,39 @@ const HeroSection = ({
       mobileImage: '/Sunlit Luxury Kitchen with Skyline Views.png'
     },
     {
-      id: 3,
+      id: 3, 
       desktopImage: '/Warm Modern Open-Plan Interior.png',
       mobileImage: '/Luxurious Warm-Toned Open-Plan Interior.png'
     }
   ];
 
+  const [slides, setSlides] = useState(defaultSlides);
+
+  useEffect(() => {
+    fetch('/api/banners')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.banners) && data.banners.length > 0) {
+          setSlides(data.banners.map((b, idx) => ({
+            id: b.id || idx + 1,
+            desktopImage: b.image_url,
+            mobileImage: b.mobile_image_url || b.image_url,
+            title: b.title || '',
+            link_url: b.link_url || ''
+          })));
+        }
+      })
+      .catch(err => {
+        console.warn('[HeroSection] Could not load dynamic banners, using defaults:', err);
+      });
+  }, []);
+
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    setCurrentSlide((prev) => (prev >= slides.length - 1 ? 0 : prev + 1));
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+    setCurrentSlide((prev) => (prev <= 0 ? Math.max(0, slides.length - 1) : prev - 1));
   };
 
   const handleShopProducts = (e) => {
@@ -503,11 +539,12 @@ const HeroSection = ({
   };
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      nextSlide();
+      setCurrentSlide((prev) => (prev >= slides.length - 1 ? 0 : prev + 1));
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   return (
     <div className="superlight-hero-container">
@@ -612,20 +649,18 @@ const HeroSection = ({
               )}
             </div>
             <a 
-              href="/" 
+              href="/about-us" 
               onClick={(e) => { 
                 e.preventDefault(); 
-                if (goHome) {
-                  goHome();
+                if (goToAboutUs) {
+                  goToAboutUs();
                 } else {
-                  navigate('/');
+                  navigate('/about-us');
                 }
-                window.scrollTo({ top: 0, behavior: 'smooth' });
                 setIsMobileMenuOpen(false); 
               }}
-              style={{ fontWeight: '600' }}
             >
-              BELCABLE
+              ABOUT US
             </a>
             <div className="mobile-offering-wrapper">
               <a 
@@ -675,9 +710,7 @@ const HeroSection = ({
                 </div>
               )}
             </div>
-            <a href="#" onClick={(e) => { e.preventDefault(); goToAboutUs && goToAboutUs(); setIsMobileMenuOpen(false); }}>ABOUT US</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); setIsMobileMenuOpen(false); }}>COMPANY OVERVIEW</a>
-            <a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToContactUs && goToContactUs(); setIsMobileMenuOpen(false); }}>CONTACT US</a>
             <a href="#" onClick={(e) => { e.preventDefault(); goToFaqs && goToFaqs(); setIsMobileMenuOpen(false); }}>FAQS</a>
           </div>
@@ -697,20 +730,25 @@ const HeroSection = ({
       <div className="top-bar">
         <div className="container top-bar-content">
           <div className="top-bar-left">
-            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToAboutUs}>ABOUT US</span>
-            <span className="divider">|</span>
-            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToContactUs}>CONTACT US</span>
-            <span className="divider">|</span>
-            <span className="top-bar-item" style={{cursor: 'pointer', fontWeight: '600'}} onClick={goToFaqs}>FAQS</span>
+            <div className="top-bar-socials">
+              <a href="#" className="top-bar-social-link" aria-label="Facebook">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+              </a>
+              <a href="#" className="top-bar-social-link" aria-label="X (Twitter)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></svg>
+              </a>
+              <a href="#" className="top-bar-social-link" aria-label="Instagram">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              </a>
+              <a href="https://wa.me/971545810080" target="_blank" rel="noopener noreferrer" className="top-bar-social-link" aria-label="WhatsApp">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              </a>
+              <a href="#" className="top-bar-social-link" aria-label="LinkedIn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+              </a>
+            </div>
           </div>
           <div className="top-bar-right">
-            <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
-              <a href="#" style={{color: 'white', display: 'flex', alignItems: 'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a>
-              <a href="#" style={{color: 'white', display: 'flex', alignItems: 'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></svg></a>
-              <a href="#" style={{color: 'white', display: 'flex', alignItems: 'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></a>
-              <a href="#" style={{color: 'white', display: 'flex', alignItems: 'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
-            </div>
-            <span className="divider" style={{marginLeft: '12px', marginRight: '4px'}}>|</span>
             <span className="top-bar-item" style={{fontWeight: '600'}}>Email: Sales1@superlight.ae</span>
             <span className="divider" style={{marginLeft: '4px', marginRight: '4px'}}>|</span>
             <span className="top-bar-item" style={{fontWeight: '600'}}>WhatsApp: +971545810080</span>
@@ -1198,18 +1236,18 @@ const HeroSection = ({
           <ul className="nav-links">
             <li>
               <a 
-                href="/" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (goHome) {
-                    goHome();
+                href="/about-us" 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  if (goToAboutUs) {
+                    goToAboutUs();
                   } else {
-                    navigate('/');
+                    navigate('/about-us');
                   }
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
-                BELCABLE
+                ABOUT US
               </a>
             </li>
             <li className="dropdown">
@@ -1253,8 +1291,23 @@ const HeroSection = ({
               </div>
             </li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); goToCompanyOverview && goToCompanyOverview(); }}>COMPANY OVERVIEW</a></li>
-            <li><a href="https://cableshouse-me.com/en/" target="_blank" rel="noopener noreferrer">PARENT COMPANY</a></li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); goToContactUs(); }}>CONTACT US</a></li>
+            <li>
+              <a 
+                href="/faqs" 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  if (goToFaqs) {
+                    goToFaqs();
+                  } else {
+                    navigate('/faqs');
+                  }
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                FAQS
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -1263,7 +1316,7 @@ const HeroSection = ({
       {isHome && (
         <div 
           className="hero-banner" 
-          style={{ backgroundImage: `url('${isMobile ? slides[currentSlide].mobileImage : slides[currentSlide].desktopImage}')`, transition: 'background-image 0.5s ease-in-out' }}
+          style={{ backgroundImage: `url('${isMobile ? (slides[currentSlide]?.mobileImage || slides[currentSlide]?.desktopImage || '/home page banner 1.png') : (slides[currentSlide]?.desktopImage || '/home page banner 1.png')}')`, transition: 'background-image 0.5s ease-in-out' }}
         >
           <div className="container hero-content-wrapper">
             <div className="hero-text-content">

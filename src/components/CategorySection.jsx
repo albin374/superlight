@@ -5,18 +5,18 @@ import './CategorySection.css';
 
 const DEFAULT_CATEGORIES = [
   { 
-    id: 5, 
-    name: 'Wires & Cables', 
-    image: '/Red Insulated Cable Coil with Exposed Copper Strands.png',
-    path: '/wires-cables',
-    slug: 'wires-cables'
-  },
-  { 
     id: 8, 
     name: 'LED Lighting & Special Lamp', 
     image: '/lights.png',
     path: '/led-lighting-special-lamp',
     slug: 'led-lighting-special-lamp'
+  },
+  { 
+    id: 5, 
+    name: 'Wires & Cables', 
+    image: '/Red Insulated Cable Coil with Exposed Copper Strands.png',
+    path: '/wires-cables',
+    slug: 'wires-cables'
   },
   { 
     id: 10, 
@@ -144,6 +144,20 @@ const CategorySection = () => {
               deduplicated.push(item);
             }
           }
+
+          const getCatRank = (cat) => {
+            const slug = (cat.slug || '').toLowerCase();
+            const name = (cat.name || '').toLowerCase();
+            if (slug.includes('lighting') || name.includes('lighting') || Number(cat.id) === 8) return 1;
+            if (slug.includes('wire') || name.includes('wire') || (name.includes('cable') && !name.includes('management')) || Number(cat.id) === 5) return 2;
+            return 100;
+          };
+          deduplicated.sort((a, b) => {
+            const rA = getCatRank(a);
+            const rB = getCatRank(b);
+            if (rA !== rB) return rA - rB;
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+          });
 
           setCategoriesList(deduplicated);
           setCurrentIndex(deduplicated.length);

@@ -32,6 +32,27 @@
   gap: 20px;
 }
 
+.top-bar-socials {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: 16px;
+}
+
+.top-bar-social-link {
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0.92;
+}
+
+.top-bar-social-link:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 .top-bar-item {
   display: flex;
   align-items: center;
@@ -1209,10 +1230,13 @@ mark.search-highlight {
 /* Hero Banner */
 .hero-banner {
   position: relative;
-  height: 600px;
+  width: 100%;
+  aspect-ratio: 2048 / 728;
+  height: auto;
   background-image: url('/home page banner 1.png');
   background-size: cover;
   background-position: center;
+  overflow: hidden;
 }
 
 .hero-banner::before {
@@ -1233,23 +1257,23 @@ mark.search-highlight {
 }
 
 .hero-text-content {
-  max-width: 650px;
-  padding-right: 40px;
+  max-width: clamp(380px, 46vw, 650px);
+  padding-right: 24px;
 }
 
 .hero-subtitle {
   color: #E5007D;
-  font-size: 14px;
+  font-size: clamp(11px, 1.1vw, 14px);
   font-weight: 700;
   letter-spacing: 2px;
-  margin-bottom: 20px;
+  margin-bottom: clamp(8px, 1.2vw, 20px);
   margin-top: 0;
 }
 
 .hero-title {
-  font-size: 64px;
+  font-size: clamp(28px, 4.2vw, 64px);
   line-height: 1.1;
-  margin: 0 0 24px 0;
+  margin: 0 0 clamp(10px, 1.5vw, 24px) 0;
   font-weight: 800;
 }
 
@@ -1262,30 +1286,30 @@ mark.search-highlight {
 }
 
 .hero-description {
-  font-size: 18px;
+  font-size: clamp(12px, 1.2vw, 18px);
   color: #4b5563;
-  line-height: 1.6;
-  margin-bottom: 40px;
+  line-height: 1.55;
+  margin-bottom: clamp(16px, 2.2vw, 40px);
   max-width: 550px;
 }
 
 .hero-buttons {
   display: flex;
-  gap: 16px;
+  gap: clamp(8px, 1.2vw, 16px);
 }
 
 .btn-primary {
   background-color: #E5007D;
   color: white;
   border: none;
-  padding: 16px 32px;
-  font-size: 16px;
+  padding: clamp(10px, 1vw, 16px) clamp(18px, 1.8vw, 32px);
+  font-size: clamp(13px, 1vw, 16px);
   font-weight: 600;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 0.8vw, 12px);
   transition: background-color 0.2s;
 }
 
@@ -1297,8 +1321,8 @@ mark.search-highlight {
   background-color: white;
   color: #1b253c;
   border: 1px solid #E5007D;
-  padding: 16px 32px;
-  font-size: 16px;
+  padding: clamp(10px, 1vw, 16px) clamp(18px, 1.8vw, 32px);
+  font-size: clamp(13px, 1vw, 16px);
   font-weight: 600;
   border-radius: 4px;
   cursor: pointer;
@@ -1312,8 +1336,8 @@ mark.search-highlight {
 /* Slider Controls */
 .slider-controls {
   position: absolute;
-  bottom: 40px;
-  right: 20px;
+  bottom: clamp(16px, 2.5vw, 40px);
+  right: clamp(16px, 2vw, 40px);
   display: flex;
   align-items: center;
   gap: 32px;

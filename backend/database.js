@@ -156,6 +156,31 @@ if (isMySQLConfigured) {
             console.log(' [Aiven MySQL] Added user_id column to orders');
           }
         } catch (oErr) {}
+
+        // Ensure banners table exists
+        try {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS banners (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              image_url VARCHAR(500) NOT NULL,
+              mobile_image_url VARCHAR(500) NULL,
+              title VARCHAR(255) NULL,
+              link_url VARCHAR(500) NULL,
+              sort_order INT DEFAULT 0,
+              is_active TINYINT(1) DEFAULT 1,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          const [bRows] = await pool.query('SELECT count(*) as count FROM banners');
+          if (bRows[0].count === 0) {
+            await pool.query(`
+              INSERT INTO banners (image_url, mobile_image_url, title, sort_order) VALUES
+              ('/home page banner 1.png', '/Sunlit Modern Dining Kitchen.png', 'Modern Dining Kitchen Solutions', 1),
+              ('/home page banner 2.png', '/Sunlit Luxury Kitchen with Skyline Views.png', 'Luxury Architectural Lighting', 2),
+              ('/Warm Modern Open-Plan Interior.png', '/Luxurious Warm-Toned Open-Plan Interior.png', 'Warm Modern Interior Ambiance', 3)
+            `);
+          }
+        } catch (banErr) {}
       } catch (colErr) {
         console.warn('⚠️ [Aiven MySQL] Column check notice:', colErr.message);
       }
@@ -249,6 +274,28 @@ if (isMySQLConfigured) {
           sqliteDb.exec('ALTER TABLE `orders` ADD COLUMN user_id INTEGER;');
         }
       } catch (oe) {}
+
+      try {
+        sqliteDb.exec(`
+          CREATE TABLE IF NOT EXISTS banners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_url TEXT NOT NULL,
+            mobile_image_url TEXT,
+            title TEXT,
+            link_url TEXT,
+            sort_order INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        const bCount = sqliteDb.prepare('SELECT count(*) as count FROM banners').get().count;
+        if (bCount === 0) {
+          const stmt = sqliteDb.prepare('INSERT INTO banners (image_url, mobile_image_url, title, sort_order) VALUES (?, ?, ?, ?)');
+          stmt.run('/home page banner 1.png', '/Sunlit Modern Dining Kitchen.png', 'Modern Dining Kitchen Solutions', 1);
+          stmt.run('/home page banner 2.png', '/Sunlit Luxury Kitchen with Skyline Views.png', 'Luxury Architectural Lighting', 2);
+          stmt.run('/Warm Modern Open-Plan Interior.png', '/Luxurious Warm-Toned Open-Plan Interior.png', 'Warm Modern Interior Ambiance', 3);
+        }
+      } catch (banErr) {}
     } catch (e) {}
     console.log('[SQLite] Local database initialized with uploaded_files and users tables.');
   };

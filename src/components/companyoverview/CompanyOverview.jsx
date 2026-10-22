@@ -29,17 +29,17 @@ const CompanyOverview = () => {
   const productCategories = [
     {
       id: '01',
-      title: 'Wires & Cables',
-      image: '/Assorted Cable Reels and Cross-Sections.png',
-      alt: 'Wires & Cables',
-      path: '/wires-cables'
-    },
-    {
-      id: '02',
       title: 'LED Lighting & Special Lamp',
       image: '/Modern LED Lighting Fixture Collection.png',
       alt: 'LED Lighting & Special Lamp',
       path: '/led-lighting-special-lamp'
+    },
+    {
+      id: '02',
+      title: 'Wires & Cables',
+      image: '/Assorted Cable Reels and Cross-Sections.png',
+      alt: 'Wires & Cables',
+      path: '/wires-cables'
     },
     {
       id: '03',

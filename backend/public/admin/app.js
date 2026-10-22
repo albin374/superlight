@@ -358,7 +358,7 @@ function showApp() {
 
 // Switch navigation tabs
 function switchTab(tabId) {
-  const validTabs = ['dashboard', 'products', 'categories', 'brands', 'orders', 'users', 'inquiries'];
+  const validTabs = ['dashboard', 'products', 'categories', 'brands', 'orders', 'users', 'inquiries', 'banners'];
   if (!validTabs.includes(tabId)) tabId = 'dashboard';
   localStorage.setItem('superlight_admin_tab', tabId);
 
@@ -399,7 +399,8 @@ function switchTab(tabId) {
     brands: 'Brand Partners & Manufacturers',
     orders: 'Customer Orders',
     users: 'Registered Users',
-    inquiries: 'Inquiries & Leads'
+    inquiries: 'Inquiries & Leads',
+    banners: 'Home Page Banner Slider'
   };
   pageTitle.innerText = titles[tabId] || 'Dashboard';
 
@@ -411,6 +412,7 @@ function switchTab(tabId) {
   if (tabId === 'orders') loadOrders();
   if (tabId === 'users') loadUsers();
   if (tabId === 'inquiries') loadInquiries();
+  if (tabId === 'banners') loadBanners();
 
   // Close mobile sidebar if open
   document.querySelector('.sidebar')?.classList.remove('open');
@@ -3017,4 +3019,641 @@ function debounce(fn, ms) {
     clearTimeout(timer);
     timer = setTimeout(() => fn.apply(this, args), ms);
   };
+}
+
+
+/* ==========================================================================
+   TAB 7: HOME PAGE BANNERS MANAGEMENT
+   ========================================================================== */
+let allBanners = [];
+let previewSlideIndex = 0;
+let previewSlideInterval = null;
+
+async function loadBanners() {
+  const container = document.getElementById('bannersGridContainer');
+  const countBadge = document.getElementById('bannersSlotBadge');
+  const addBtn = document.getElementById('btnAddBanner');
+  const bulkBtn = document.getElementById('btnBulkUpload');
+  const dropzone = document.getElementById('bannerDropzoneArea');
+  const listCountEl = document.getElementById('bannerListCount');
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/banners`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allBanners = data.banners || [];
+
+      // Update counters
+      const count = allBanners.length;
+      if (listCountEl) listCountEl.innerText = count;
+      if (countBadge) {
+        countBadge.innerText = `${count} / 6 Banners`;
+        if (count >= 6) {
+          countBadge.style.background = '#fef3c7';
+          countBadge.style.color = '#b45309';
+        } else {
+          countBadge.style.background = '#e0f2fe';
+          countBadge.style.color = '#0284c7';
+        }
+      }
+
+      // Sidebar pill
+      const sidebarBadge = document.getElementById('bannersCountBadge');
+      if (sidebarBadge) {
+        sidebarBadge.innerText = count;
+        sidebarBadge.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+
+      // Disable add/drop if >= 6
+      if (addBtn) addBtn.disabled = count >= 6;
+      if (bulkBtn) bulkBtn.disabled = count >= 6;
+      if (dropzone) {
+        dropzone.style.display = count >= 6 ? 'none' : 'block';
+      }
+
+      renderBannersList();
+      renderPreviewSlider();
+    } else {
+      if (container) container.innerHTML = `<div class="text-muted text-center" style="padding: 24px;">${escapeHtml(data.message || 'Failed to load banners.')}</div>`;
+    }
+  } catch (err) {
+    console.error('Error loading banners:', err);
+    if (container) container.innerHTML = `<div class="text-danger text-center" style="padding: 24px;">Error loading banners.</div>`;
+  }
+}
+
+function renderBannersList() {
+  const container = document.getElementById('bannersGridContainer');
+  if (!container) return;
+
+  if (allBanners.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 36px 20px; text-align: center; color: var(--text-muted);">
+        <p style="font-size: 15px; margin-bottom: 8px; font-weight: 600;">No home page banners configured yet.</p>
+        <p style="font-size: 13px; margin: 0;">Use the dropzone below or click "+ Add Banner" to upload your first banner image.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = allBanners.map((b, idx) => {
+    const isFirst = idx === 0;
+    const isLast = idx === allBanners.length - 1;
+    const isActive = b.is_active !== 0;
+
+    return `
+      <div class="banner-admin-card" data-id="${b.id}">
+        <div class="banner-card-img-wrap">
+          <img src="${escapeHtml(b.image_url)}" alt="${escapeHtml(b.title || 'Banner Slide')}" onerror="this.src='/home page banner 1.png'" />
+          <span class="banner-card-order-badge">Slide #${idx + 1}</span>
+        </div>
+
+        <div class="banner-card-info">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="banner-card-title">Banner Slide #${idx + 1}</div>
+            <span class="status-chip ${isActive ? 'completed' : 'pending'}" style="font-size: 10.5px; padding: 2px 8px; cursor: pointer;" onclick="toggleBannerActive(${b.id})" title="Click to toggle status">
+              ${isActive ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+          <div class="banner-card-meta">
+            <span><strong>Desktop URL:</strong> <a href="${escapeHtml(b.image_url)}" target="_blank" style="color: var(--brand); text-decoration: none;">${escapeHtml(b.image_url.length > 40 ? b.image_url.substring(0, 37) + '...' : b.image_url)}</a></span>
+            ${b.mobile_image_url ? `<span><strong>Mobile:</strong> <a href="${escapeHtml(b.mobile_image_url)}" target="_blank" style="color: var(--text-secondary); text-decoration: none;">Set</a></span>` : '<span style="color: var(--text-muted);">Mobile: Auto (Uses Desktop)</span>'}
+          </div>
+        </div>
+
+        <div class="banner-card-actions">
+          <button type="button" class="btn-icon" title="Move Up" onclick="moveBanner(${idx}, -1)" ${isFirst ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          </button>
+          <button type="button" class="btn-icon" title="Move Down" onclick="moveBanner(${idx}, 1)" ${isLast ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="openEditBannerModal(${b.id})">Edit</button>
+          <button type="button" class="btn-icon delete" title="Delete Banner" onclick="deleteBanner(${b.id})">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPreviewSlider() {
+  const slideEl = document.getElementById('bannerPreviewSlide');
+  const badgeEl = document.getElementById('bannerPreviewBadge');
+  const titleEl = document.getElementById('bannerPreviewTitle');
+  const dotsContainer = document.getElementById('bannerPreviewDots');
+  if (!slideEl) return;
+
+  const activeBanners = allBanners.filter(b => b.is_active !== 0);
+
+  if (activeBanners.length === 0) {
+    slideEl.style.backgroundImage = `url('/home page banner 1.png')`;
+    if (badgeEl) badgeEl.innerText = 'Preview';
+    if (titleEl) titleEl.innerText = 'No Active Slides (Upload or enable banners)';
+    if (dotsContainer) dotsContainer.innerHTML = '';
+    return;
+  }
+
+  if (previewSlideIndex >= activeBanners.length) previewSlideIndex = 0;
+  const current = activeBanners[previewSlideIndex];
+
+  slideEl.style.backgroundImage = `url('${current.image_url}')`;
+  if (badgeEl) badgeEl.innerText = `Slide ${previewSlideIndex + 1} of ${activeBanners.length}`;
+  if (titleEl) titleEl.innerText = current.title || 'Superlight Electrical & Lighting Solutions';
+
+  if (dotsContainer) {
+    dotsContainer.innerHTML = activeBanners.map((_, i) => `
+      <span class="dot ${i === previewSlideIndex ? 'active' : ''}" onclick="goToPreviewSlide(${i})"></span>
+    `).join('');
+  }
+
+  // Clear and restart timer
+  if (previewSlideInterval) clearInterval(previewSlideInterval);
+  if (activeBanners.length > 1) {
+    previewSlideInterval = setInterval(() => {
+      const currentActives = allBanners.filter(b => b.is_active !== 0);
+      if (currentActives.length > 1) {
+        previewSlideIndex = (previewSlideIndex + 1) % currentActives.length;
+        renderPreviewSlider();
+      }
+    }, 4500);
+  }
+}
+
+function nextPreviewSlide() {
+  const activeBanners = allBanners.filter(b => b.is_active !== 0);
+  if (activeBanners.length <= 1) return;
+  previewSlideIndex = (previewSlideIndex + 1) % activeBanners.length;
+  renderPreviewSlider();
+}
+
+function prevPreviewSlide() {
+  const activeBanners = allBanners.filter(b => b.is_active !== 0);
+  if (activeBanners.length <= 1) return;
+  previewSlideIndex = (previewSlideIndex - 1 + activeBanners.length) % activeBanners.length;
+  renderPreviewSlider();
+}
+
+function goToPreviewSlide(index) {
+  previewSlideIndex = index;
+  renderPreviewSlider();
+}
+
+function openAddBannerModal() {
+  if (allBanners.length >= 6) {
+    showToast('Maximum 6 banners reached. Please delete or edit an existing banner.', 'warning');
+    return;
+  }
+
+  document.getElementById('bannerFormId').value = '';
+  document.getElementById('bannerFormImage').value = '';
+  document.getElementById('bannerFormMobileImage').value = '';
+  document.getElementById('bannerFormActive').checked = true;
+
+  const preview = document.getElementById('bannerFormPreview');
+  const placeholder = document.getElementById('bannerFormPreviewPlaceholder');
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
+  if (placeholder) placeholder.style.display = 'block';
+
+  const mobPreview = document.getElementById('bannerFormMobilePreview');
+  const mobWrap = document.getElementById('bannerFormMobilePreviewWrap');
+  if (mobPreview) { mobPreview.src = ''; mobPreview.style.display = 'none'; }
+  if (mobWrap) mobWrap.style.display = 'none';
+
+  document.getElementById('bannerModalTitle').innerText = 'Add Banner Slide';
+  document.getElementById('btnSaveBanner').innerText = 'Add Banner';
+  document.getElementById('bannerModal').style.display = 'flex';
+}
+
+function openEditBannerModal(id) {
+  const b = allBanners.find(x => x.id === id);
+  if (!b) return;
+
+  document.getElementById('bannerFormId').value = b.id;
+  document.getElementById('bannerFormImage').value = b.image_url || '';
+  document.getElementById('bannerFormMobileImage').value = b.mobile_image_url || '';
+  document.getElementById('bannerFormActive').checked = b.is_active !== 0;
+
+  const preview = document.getElementById('bannerFormPreview');
+  const placeholder = document.getElementById('bannerFormPreviewPlaceholder');
+  if (preview && b.image_url) {
+    preview.src = b.image_url;
+    preview.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    if (placeholder) placeholder.style.display = 'block';
+  }
+
+  const mobPreview = document.getElementById('bannerFormMobilePreview');
+  const mobWrap = document.getElementById('bannerFormMobilePreviewWrap');
+  if (mobPreview && b.mobile_image_url) {
+    mobPreview.src = b.mobile_image_url;
+    mobPreview.style.display = 'block';
+    if (mobWrap) mobWrap.style.display = 'flex';
+  } else {
+    if (mobPreview) { mobPreview.src = ''; mobPreview.style.display = 'none'; }
+    if (mobWrap) mobWrap.style.display = 'none';
+  }
+
+  document.getElementById('bannerModalTitle').innerText = `Edit Banner Slide #${b.sort_order || id}`;
+  document.getElementById('btnSaveBanner').innerText = 'Save Changes';
+  document.getElementById('bannerModal').style.display = 'flex';
+}
+
+function closeBannerModal() {
+  const modal = document.getElementById('bannerModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function handleBannerFormSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('bannerFormId').value;
+  const image_url = document.getElementById('bannerFormImage').value.trim();
+  const mobile_image_url = document.getElementById('bannerFormMobileImage').value.trim();
+  const is_active = document.getElementById('bannerFormActive').checked ? 1 : 0;
+
+  if (!image_url) {
+    showToast('Please select or upload a banner image.', 'warning');
+    return;
+  }
+
+  // Validate web view banner aspect ratio 2048 x 728
+  const check = await validateBannerAspectRatio(image_url);
+  if (!check.valid) {
+    showToast(check.message, 'error');
+    return;
+  }
+
+  // Validate mobile banner aspect ratio 9:16 portrait (if provided)
+  if (mobile_image_url) {
+    const mobCheck = await validateMobileBannerAspectRatio(mobile_image_url);
+    if (!mobCheck.valid) {
+      showToast(mobCheck.message, 'error');
+      return;
+    }
+  }
+
+  const payload = {
+    image_url,
+    mobile_image_url: mobile_image_url || null,
+    is_active
+  };
+
+  const btn = document.getElementById('btnSaveBanner');
+  if (btn) btn.disabled = true;
+
+  try {
+    const url = id ? `${API_BASE}/admin/banners/${id}` : `${API_BASE}/admin/banners`;
+    const method = id ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(id ? 'Banner updated successfully!' : 'Banner added successfully!', 'success');
+      closeBannerModal();
+      loadBanners();
+    } else {
+      showToast(data.message || 'Failed to save banner.', 'error');
+    }
+  } catch (err) {
+    showToast('Error saving banner.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function deleteBanner(id) {
+  if (!confirm('Are you sure you want to delete this banner slide?')) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/banners/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Banner deleted successfully.', 'success');
+      loadBanners();
+    } else {
+      showToast(data.message || 'Failed to delete banner.', 'error');
+    }
+  } catch (err) {
+    showToast('Error deleting banner.', 'error');
+  }
+}
+
+async function toggleBannerActive(id) {
+  const b = allBanners.find(x => x.id === id);
+  if (!b) return;
+
+  const newStatus = b.is_active === 0 ? 1 : 0;
+  try {
+    const res = await fetch(`${API_BASE}/admin/banners/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ is_active: newStatus })
+    });
+    const data = await res.json();
+    if (data.success) {
+      b.is_active = newStatus;
+      showToast(newStatus ? 'Banner enabled on homepage.' : 'Banner disabled.', 'info');
+      renderBannersList();
+      renderPreviewSlider();
+    }
+  } catch (err) {
+    showToast('Failed to update banner status.', 'error');
+  }
+}
+
+async function moveBanner(index, direction) {
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= allBanners.length) return;
+
+  // Swap
+  const temp = allBanners[index];
+  allBanners[index] = allBanners[targetIndex];
+  allBanners[targetIndex] = temp;
+
+  // Update sort_order numbers
+  allBanners.forEach((b, i) => { b.sort_order = i + 1; });
+
+  renderBannersList();
+  renderPreviewSlider();
+
+  try {
+    await fetch(`${API_BASE}/admin/banners/save-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ banners: allBanners })
+    });
+    showToast('Banner order saved!', 'success');
+  } catch (err) {
+    console.warn('Could not save reordered banners:', err);
+  }
+}
+
+function triggerBulkBannerUpload() {
+  if (allBanners.length >= 6) {
+    showToast('Maximum 6 banners reached. Please delete an existing banner before uploading more.', 'warning');
+    return;
+  }
+  const fileInput = document.getElementById('bulkBannerFileInput');
+  if (fileInput) fileInput.click();
+}
+
+// Validate that an image conforms to 2048 x 728 aspect ratio (~2.813)
+function validateBannerAspectRatio(fileOrUrl) {
+  return new Promise((resolve) => {
+    const targetRatio = 2048 / 728; // ~2.8131868
+    const tolerance = 0.05; // 5% allowance for rounding (e.g. 2103x748 or 2048x768)
+
+    const img = new Image();
+    let objectUrl = null;
+
+    img.onload = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      if (!width || !height) {
+        return resolve({ valid: true });
+      }
+      const actualRatio = width / height;
+      const diff = Math.abs(actualRatio - targetRatio) / targetRatio;
+      if (diff <= tolerance) {
+        resolve({ valid: true, width, height, ratio: actualRatio });
+      } else {
+        resolve({
+          valid: false,
+          width,
+          height,
+          ratio: actualRatio,
+          message: `Only 2048 × 728 aspect ratio is accepted for web view banner. Uploaded image is ${width} × ${height}px.`
+        });
+      }
+    };
+
+    img.onerror = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve({ valid: true }); // Graceful fallback
+    };
+
+    if (fileOrUrl instanceof File || fileOrUrl instanceof Blob) {
+      objectUrl = URL.createObjectURL(fileOrUrl);
+      img.src = objectUrl;
+    } else if (typeof fileOrUrl === 'string') {
+      img.src = fileOrUrl;
+    } else {
+      resolve({ valid: true });
+    }
+  });
+}
+
+// Validate that an image conforms to 9:16 portrait aspect ratio (~0.5625)
+function validateMobileBannerAspectRatio(fileOrUrl) {
+  return new Promise((resolve) => {
+    const targetRatio = 9 / 16; // 0.5625 (portrait)
+    const tolerance = 0.05; // 5% allowance for rounding (e.g. 1080x1920, 720x1280)
+
+    const img = new Image();
+    let objectUrl = null;
+
+    img.onload = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      if (!width || !height) {
+        return resolve({ valid: true });
+      }
+      const actualRatio = width / height;
+      const diff = Math.abs(actualRatio - targetRatio) / targetRatio;
+      if (diff <= tolerance) {
+        resolve({ valid: true, width, height, ratio: actualRatio });
+      } else {
+        resolve({
+          valid: false,
+          width,
+          height,
+          ratio: actualRatio,
+          message: `Only 9:16 portrait aspect ratio is accepted for mobile banner (e.g. 1080 × 1920px). Uploaded image is ${width} × ${height}px.`
+        });
+      }
+    };
+
+    img.onerror = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve({ valid: true }); // Graceful fallback
+    };
+
+    if (fileOrUrl instanceof File || fileOrUrl instanceof Blob) {
+      objectUrl = URL.createObjectURL(fileOrUrl);
+      img.src = objectUrl;
+    } else if (typeof fileOrUrl === 'string') {
+      img.src = fileOrUrl;
+    } else {
+      resolve({ valid: true });
+    }
+  });
+}
+
+async function handleBannerFilesUpload(files) {
+  if (!files || files.length === 0) return;
+
+  const remainingSlots = 6 - allBanners.length;
+  if (remainingSlots <= 0) {
+    showToast('Maximum 6 banners reached.', 'warning');
+    return;
+  }
+
+  const filesToUpload = Array.from(files).slice(0, remainingSlots);
+  if (files.length > remainingSlots) {
+    showToast(`Only ${remainingSlots} slot(s) available. Uploading first ${remainingSlots} image(s).`, 'info');
+  }
+
+  // Strictly enforce 2048 x 728 aspect ratio for web view banners
+  const validFiles = [];
+  for (const file of filesToUpload) {
+    const check = await validateBannerAspectRatio(file);
+    if (!check.valid) {
+      showToast(`${file.name}: ${check.message}`, 'error');
+    } else {
+      validFiles.push(file);
+    }
+  }
+
+  if (validFiles.length === 0) {
+    showToast('Upload cancelled: Web view banner requires 2048 × 728 aspect ratio.', 'warning');
+    const bulkInput = document.getElementById('bulkBannerFileInput');
+    if (bulkInput) bulkInput.value = '';
+    const dropInput = document.getElementById('dropzoneFileInput');
+    if (dropInput) dropInput.value = '';
+    return;
+  }
+
+  showToast(`Compressing & uploading ${validFiles.length} banner image(s)...`, 'info');
+
+  try {
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
+      const compressed = await fastCompressImage(file, 2048, 0.92);
+      const formData = new FormData();
+      formData.append('image', compressed);
+
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success && (data.url || data.imageUrl)) {
+        const finalUrl = data.url || data.imageUrl;
+        const autoTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+
+        await fetch(`${API_BASE}/admin/banners`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            image_url: finalUrl,
+            sort_order: allBanners.length + 1
+          })
+        });
+      }
+    }
+
+    showToast('All banner images uploaded and added successfully!', 'success');
+    loadBanners();
+  } catch (err) {
+    console.error('Error uploading banner images:', err);
+    showToast('Error uploading one or more banner images.', 'error');
+    loadBanners();
+  } finally {
+    const bulkInput = document.getElementById('bulkBannerFileInput');
+    if (bulkInput) bulkInput.value = '';
+    const dropInput = document.getElementById('dropzoneFileInput');
+    if (dropInput) dropInput.value = '';
+  }
+}
+
+async function uploadSingleBannerImage(input, targetInputId, previewImgId) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  // Strictly enforce 2048 x 728 aspect ratio for web view desktop banners
+  if (targetInputId === 'bannerFormImage') {
+    const check = await validateBannerAspectRatio(file);
+    if (!check.valid) {
+      showToast(check.message, 'error');
+      input.value = '';
+      return;
+    }
+  }
+
+  // Strictly enforce 9:16 portrait aspect ratio for mobile banner
+  if (targetInputId === 'bannerFormMobileImage') {
+    const check = await validateMobileBannerAspectRatio(file);
+    if (!check.valid) {
+      showToast(check.message, 'error');
+      input.value = '';
+      return;
+    }
+  }
+
+  showToast('Compressing & uploading image...', 'info');
+  try {
+    const maxDim = targetInputId === 'bannerFormMobileImage' ? 1920 : 2048;
+    const compressed = await fastCompressImage(file, maxDim, 0.92);
+    const formData = new FormData();
+    formData.append('image', compressed);
+
+    const res = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success && (data.url || data.imageUrl)) {
+      const finalUrl = data.url || data.imageUrl;
+      const targetInput = document.getElementById(targetInputId);
+      if (targetInput) targetInput.value = finalUrl;
+
+      if (previewImgId) {
+        const preview = document.getElementById(previewImgId);
+        const placeholder = document.getElementById('bannerFormPreviewPlaceholder');
+        const mobWrap = document.getElementById('bannerFormMobilePreviewWrap');
+        if (preview) {
+          preview.src = finalUrl;
+          preview.style.display = 'block';
+        }
+        if (placeholder && targetInputId === 'bannerFormImage') placeholder.style.display = 'none';
+        if (mobWrap && targetInputId === 'bannerFormMobileImage') mobWrap.style.display = 'flex';
+      }
+      showToast('Image uploaded successfully!', 'success');
+    } else {
+      showToast('Failed to upload image.', 'error');
+    }
+  } catch (err) {
+    showToast('Error uploading image.', 'error');
+  } finally {
+    input.value = '';
+  }
 }

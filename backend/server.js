@@ -1301,6 +1301,20 @@ app.get('/api/categories', async (req, res) => {
       };
     });
 
+    const getCatRank = (cat) => {
+      const slug = (cat.slug || '').toLowerCase();
+      const name = (cat.name || '').toLowerCase();
+      if (slug.includes('lighting') || name.includes('lighting') || Number(cat.id) === 8) return 1;
+      if (slug.includes('wire') || name.includes('wire') || (name.includes('cable') && !name.includes('management')) || Number(cat.id) === 5) return 2;
+      return 100;
+    };
+    categories.sort((a, b) => {
+      const rA = getCatRank(a);
+      const rB = getCatRank(b);
+      if (rA !== rB) return rA - rB;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+
     res.json({
       success: true,
       categories,
@@ -1929,6 +1943,172 @@ app.delete('/api/inquiries/:id', authenticateToken, async (req, res) => {
     await logActivity(req.user.id, 'Soft Deleted Inquiry', `Soft deleted inquiry ID: ${id} from ${inq.name}`);
     res.json({ success: true, message: 'Inquiry deleted successfully.' });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/* ==========================================================================
+   HOME PAGE BANNERS MANAGEMENT (Max 6 banners)
+   ========================================================================== */
+
+// GET /api/banners (Public endpoint for storefront)
+app.get('/api/banners', async (req, res) => {
+  try {
+    const banners = await db.prepare('SELECT id, image_url, mobile_image_url, title, link_url, sort_order FROM banners WHERE is_active = 1 ORDER BY sort_order ASC, id ASC LIMIT 6').all();
+    res.json({ success: true, count: banners.length, banners });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/banners (Admin endpoint)
+app.get('/api/admin/banners', authenticateToken, async (req, res) => {
+  try {
+    const banners = await db.prepare('SELECT * FROM banners ORDER BY sort_order ASC, id ASC').all();
+    res.json({ success: true, count: banners.length, banners });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/banners (Add a new banner, max 6)
+app.post('/api/admin/banners', authenticateToken, async (req, res) => {
+  try {
+    const { image_url, mobile_image_url, title, link_url, sort_order } = req.body;
+    if (!image_url || !image_url.trim()) {
+      return res.status(400).json({ success: false, message: 'Banner image is required.' });
+    }
+
+    const countRow = await db.prepare('SELECT count(*) as count FROM banners').get();
+    if (countRow && countRow.count >= 6) {
+      return res.status(400).json({ success: false, message: 'Maximum 6 home page banners allowed. Please delete or replace an existing banner.' });
+    }
+
+    let finalImageUrl = image_url.trim();
+    if (isCloudinaryConfigured()) {
+      finalImageUrl = await ensureCloudinaryUrl(finalImageUrl, 'superlight/banners');
+    }
+
+    let finalMobileUrl = mobile_image_url ? mobile_image_url.trim() : null;
+    if (finalMobileUrl && isCloudinaryConfigured()) {
+      finalMobileUrl = await ensureCloudinaryUrl(finalMobileUrl, 'superlight/banners');
+    }
+
+    const nextOrder = sort_order ? Number(sort_order) : ((countRow ? countRow.count : 0) + 1);
+
+    const result = await db.prepare(`
+      INSERT INTO banners (image_url, mobile_image_url, title, link_url, sort_order, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(finalImageUrl, finalMobileUrl, title ? title.trim() : null, link_url ? link_url.trim() : null, nextOrder);
+
+    await logActivity(req.user.id, 'Added Banner', `Added banner #${result.lastInsertRowid || result.insertId}: ${title || finalImageUrl}`);
+    res.status(201).json({ success: true, message: 'Banner added successfully.', id: result.lastInsertRowid || result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/admin/banners/:id (Update existing banner)
+app.put('/api/admin/banners/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { image_url, mobile_image_url, title, link_url, sort_order, is_active } = req.body;
+
+    const existing = await db.prepare('SELECT * FROM banners WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Banner not found.' });
+    }
+
+    let finalImageUrl = image_url ? image_url.trim() : existing.image_url;
+    if (finalImageUrl && isCloudinaryConfigured()) {
+      finalImageUrl = await ensureCloudinaryUrl(finalImageUrl, 'superlight/banners');
+    }
+
+    let finalMobileUrl = mobile_image_url !== undefined ? (mobile_image_url ? mobile_image_url.trim() : null) : existing.mobile_image_url;
+    if (finalMobileUrl && isCloudinaryConfigured()) {
+      finalMobileUrl = await ensureCloudinaryUrl(finalMobileUrl, 'superlight/banners');
+    }
+
+    const finalTitle = title !== undefined ? (title ? title.trim() : null) : existing.title;
+    const finalLink = link_url !== undefined ? (link_url ? link_url.trim() : null) : existing.link_url;
+    const finalOrder = sort_order !== undefined ? Number(sort_order) : existing.sort_order;
+    const finalActive = is_active !== undefined ? (is_active ? 1 : 0) : existing.is_active;
+
+    await db.prepare(`
+      UPDATE banners 
+      SET image_url = ?, mobile_image_url = ?, title = ?, link_url = ?, sort_order = ?, is_active = ?
+      WHERE id = ?
+    `).run(finalImageUrl, finalMobileUrl, finalTitle, finalLink, finalOrder, finalActive, id);
+
+    await logActivity(req.user.id, 'Updated Banner', `Updated banner ID: ${id}`);
+    res.json({ success: true, message: 'Banner updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/banners/:id (Delete banner)
+app.delete('/api/admin/banners/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const banner = await db.prepare('SELECT id, title, image_url FROM banners WHERE id = ?').get(id);
+    if (!banner) {
+      return res.status(404).json({ success: false, message: 'Banner not found.' });
+    }
+
+    await db.prepare('DELETE FROM banners WHERE id = ?').run(id);
+    await logActivity(req.user.id, 'Deleted Banner', `Deleted banner ID: ${id}`);
+    res.json({ success: true, message: 'Banner deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/banners/save-all (Save entire banner list of up to 6 banners at once)
+app.post('/api/admin/banners/save-all', authenticateToken, async (req, res) => {
+  try {
+    const { banners } = req.body;
+    if (!Array.isArray(banners)) {
+      return res.status(400).json({ success: false, message: 'Banners array is required.' });
+    }
+    if (banners.length > 6) {
+      return res.status(400).json({ success: false, message: 'Maximum 6 home page banners allowed.' });
+    }
+
+    // Clear existing and re-insert
+    await db.prepare('DELETE FROM banners').run();
+
+    for (let i = 0; i < banners.length; i++) {
+      const b = banners[i];
+      let img = b.image_url ? b.image_url.trim() : '';
+      if (!img) continue;
+
+      if (isCloudinaryConfigured()) {
+        img = await ensureCloudinaryUrl(img, 'superlight/banners');
+      }
+
+      let mImg = b.mobile_image_url ? b.mobile_image_url.trim() : null;
+      if (mImg && isCloudinaryConfigured()) {
+        mImg = await ensureCloudinaryUrl(mImg, 'superlight/banners');
+      }
+
+      await db.prepare(`
+        INSERT INTO banners (image_url, mobile_image_url, title, link_url, sort_order, is_active)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        img,
+        mImg,
+        b.title ? b.title.trim() : null,
+        b.link_url ? b.link_url.trim() : null,
+        i + 1,
+        b.is_active !== undefined ? (b.is_active ? 1 : 0) : 1
+      );
+    }
+
+    await logActivity(req.user.id, 'Updated Home Banners', `Saved ${banners.length} home page banners.`);
+    res.json({ success: true, message: 'Home banners saved successfully!' });
+  } catch (err) {
+    console.error('Error saving banners:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
